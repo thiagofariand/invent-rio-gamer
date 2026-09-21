@@ -1,0 +1,448 @@
+{
+  "version": "0.95",
+  "note": "Listas piloto para validar Tenho/Quero, ofertas nacionais e interesse em alertas. Não representam catálogos completos e não calculam porcentagem de franquia.",
+  "collections": {
+    "zelda": [
+      {
+        "title": "The Legend of Zelda",
+        "year": 1986,
+        "platforms": [
+          "NES"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: A Link to the Past",
+        "year": 1991,
+        "platforms": [
+          "SNES",
+          "Game Boy Advance"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Ocarina of Time",
+        "year": 1998,
+        "platforms": [
+          "Nintendo 64",
+          "3DS"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Majora's Mask",
+        "year": 2000,
+        "platforms": [
+          "Nintendo 64",
+          "3DS"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: The Wind Waker",
+        "year": 2002,
+        "platforms": [
+          "GameCube",
+          "Wii U"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Twilight Princess",
+        "year": 2006,
+        "platforms": [
+          "GameCube",
+          "Wii",
+          "Wii U"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Skyward Sword",
+        "year": 2011,
+        "platforms": [
+          "Wii",
+          "Switch"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Link's Awakening",
+        "year": 1993,
+        "platforms": [
+          "Game Boy",
+          "Game Boy Color",
+          "Switch"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Breath of the Wild",
+        "year": 2017,
+        "platforms": [
+          "Wii U",
+          "Switch"
+        ]
+      },
+      {
+        "title": "The Legend of Zelda: Tears of the Kingdom",
+        "year": 2023,
+        "platforms": [
+          "Switch"
+        ]
+      }
+    ],
+    "call-of-duty": [
+      {
+        "title": "Call of Duty 4: Modern Warfare",
+        "year": 2007,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: World at War",
+        "year": 2008,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: Modern Warfare 2",
+        "year": 2009,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: Black Ops",
+        "year": 2010,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: Modern Warfare 3",
+        "year": 2011,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: Black Ops II",
+        "year": 2012,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Call of Duty: Ghosts",
+        "year": 2013,
+        "platforms": [
+          "PS3",
+          "PS4"
+        ]
+      },
+      {
+        "title": "Call of Duty: WWII",
+        "year": 2017,
+        "platforms": [
+          "PS4"
+        ]
+      },
+      {
+        "title": "Call of Duty: Modern Warfare",
+        "year": 2019,
+        "platforms": [
+          "PS4"
+        ]
+      },
+      {
+        "title": "Call of Duty: Black Ops 6",
+        "year": 2024,
+        "platforms": [
+          "PS4",
+          "PS5"
+        ]
+      }
+    ],
+    "grand-theft-auto": [
+      {
+        "title": "Grand Theft Auto III",
+        "year": 2001,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto: Vice City",
+        "year": 2002,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto: San Andreas",
+        "year": 2004,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto: Liberty City Stories",
+        "year": 2005,
+        "platforms": [
+          "PSP",
+          "PS2"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto: Vice City Stories",
+        "year": 2006,
+        "platforms": [
+          "PSP",
+          "PS2"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto IV",
+        "year": 2008,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto: Chinatown Wars",
+        "year": 2009,
+        "platforms": [
+          "PSP"
+        ]
+      },
+      {
+        "title": "Grand Theft Auto V",
+        "year": 2013,
+        "platforms": [
+          "PS3",
+          "PS4",
+          "PS5"
+        ]
+      }
+    ],
+    "god-of-war": [
+      {
+        "title": "God of War",
+        "year": 2005,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "God of War II",
+        "year": 2007,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "God of War: Chains of Olympus",
+        "year": 2008,
+        "platforms": [
+          "PSP"
+        ]
+      },
+      {
+        "title": "God of War III",
+        "year": 2010,
+        "platforms": [
+          "PS3",
+          "PS4"
+        ]
+      },
+      {
+        "title": "God of War: Ghost of Sparta",
+        "year": 2010,
+        "platforms": [
+          "PSP"
+        ]
+      },
+      {
+        "title": "God of War: Ascension",
+        "year": 2013,
+        "platforms": [
+          "PS3"
+        ]
+      },
+      {
+        "title": "God of War",
+        "year": 2018,
+        "platforms": [
+          "PS4"
+        ]
+      },
+      {
+        "title": "God of War Ragnarök",
+        "year": 2022,
+        "platforms": [
+          "PS4",
+          "PS5"
+        ]
+      }
+    ],
+    "resident-evil": [
+      {
+        "title": "Resident Evil",
+        "year": 1996,
+        "platforms": [
+          "PS1"
+        ]
+      },
+      {
+        "title": "Resident Evil 2",
+        "year": 1998,
+        "platforms": [
+          "PS1"
+        ]
+      },
+      {
+        "title": "Resident Evil 3: Nemesis",
+        "year": 1999,
+        "platforms": [
+          "PS1"
+        ]
+      },
+      {
+        "title": "Resident Evil Code: Veronica X",
+        "year": 2001,
+        "platforms": [
+          "PS2"
+        ]
+      },
+      {
+        "title": "Resident Evil 4",
+        "year": 2005,
+        "platforms": [
+          "PS2",
+          "GameCube",
+          "Wii",
+          "PS4"
+        ]
+      },
+      {
+        "title": "Resident Evil 5",
+        "year": 2009,
+        "platforms": [
+          "PS3",
+          "PS4"
+        ]
+      },
+      {
+        "title": "Resident Evil 6",
+        "year": 2012,
+        "platforms": [
+          "PS3",
+          "PS4"
+        ]
+      },
+      {
+        "title": "Resident Evil 7 biohazard",
+        "year": 2017,
+        "platforms": [
+          "PS4",
+          "PS5"
+        ]
+      },
+      {
+        "title": "Resident Evil Village",
+        "year": 2021,
+        "platforms": [
+          "PS4",
+          "PS5"
+        ]
+      },
+      {
+        "title": "Resident Evil 4 (2023)",
+        "year": 2023,
+        "platforms": [
+          "PS4",
+          "PS5"
+        ]
+      }
+    ],
+    "sonic": [
+      {
+        "title": "Sonic the Hedgehog",
+        "year": 1991,
+        "platforms": [
+          "Mega Drive / Genesis",
+          "Master System",
+          "Game Gear"
+        ]
+      },
+      {
+        "title": "Sonic the Hedgehog 2",
+        "year": 1992,
+        "platforms": [
+          "Mega Drive / Genesis",
+          "Master System",
+          "Game Gear"
+        ]
+      },
+      {
+        "title": "Sonic the Hedgehog 3",
+        "year": 1994,
+        "platforms": [
+          "Mega Drive / Genesis"
+        ]
+      },
+      {
+        "title": "Sonic & Knuckles",
+        "year": 1994,
+        "platforms": [
+          "Mega Drive / Genesis"
+        ]
+      },
+      {
+        "title": "Sonic Adventure",
+        "year": 1998,
+        "platforms": [
+          "Dreamcast",
+          "GameCube"
+        ]
+      },
+      {
+        "title": "Sonic Adventure 2",
+        "year": 2001,
+        "platforms": [
+          "Dreamcast",
+          "GameCube"
+        ]
+      },
+      {
+        "title": "Sonic Heroes",
+        "year": 2003,
+        "platforms": [
+          "GameCube",
+          "PS2"
+        ]
+      },
+      {
+        "title": "Sonic Unleashed",
+        "year": 2008,
+        "platforms": [
+          "Wii",
+          "PS2",
+          "PS3"
+        ]
+      },
+      {
+        "title": "Sonic Mania Plus",
+        "year": 2018,
+        "platforms": [
+          "Switch",
+          "PS4"
+        ]
+      },
+      {
+        "title": "Sonic Frontiers",
+        "year": 2022,
+        "platforms": [
+          "Switch",
+          "PS4",
+          "PS5"
+        ]
+      }
+    ]
+  }
+}

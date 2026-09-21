@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Inventário Gamer — MVP v0.95</title>
+<link rel="icon" type="image/jpeg" href="/inventario-icon.jpg?v=08" />
+<style>
+:root{--bg:#0d0d10;--panel:#17171c;--panel2:#202127;--line:#30313a;--text:#f7f4ef;--muted:#aaa8a2;--red:#e64236;--red2:#ff655b;--green:#62c777;--blue:#77aaff;--yellow:#f2c76d;--radius:18px}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;line-height:1.35}button,input{font:inherit}.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 94px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px;font-weight:900;letter-spacing:-.04em}.brand-icon{width:42px;height:42px;object-fit:cover;border-radius:10px;border:1px solid #4a3025;background:#201610;box-shadow:0 3px 12px rgba(0,0,0,.28)}.brand span{font-size:20px}.pill{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:8px 11px;border-radius:999px;font-size:12px}.hero{background:linear-gradient(180deg,#18181d 0%,#121216 100%);border:1px solid var(--line);border-radius:24px;padding:24px 20px;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;right:-65px;top:-65px;width:190px;height:190px;border:28px solid rgba(230,66,54,.11);border-radius:50%;pointer-events:none}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--red2);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.pixel{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;letter-spacing:-.04em}h1{font-size:44px;line-height:.98;letter-spacing:-.055em;margin:12px 0;max-width:780px}.hero p{margin:0;color:var(--muted);max-width:720px;font-size:16px}.search{display:flex;gap:10px;margin-top:22px;position:relative;z-index:2}.search input{flex:1;min-width:0;background:#0f0f13;border:1px solid #363741;color:#fff;border-radius:14px;padding:15px 16px;outline:none}.search input:focus{border-color:var(--red)}.search button{border:0;background:var(--red);color:#fff;font-weight:850;border-radius:14px;padding:0 20px;cursor:pointer}.examples{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:relative;z-index:2}.chip{border:1px solid var(--line);background:var(--panel2);color:#dedbd4;padding:9px 12px;border-radius:999px;font-size:12px;cursor:pointer}.chip.active{border-color:var(--red);color:#fff;background:rgba(230,66,54,.12)}.section{margin-top:30px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px}.section h2{font-size:25px;letter-spacing:-.035em;margin:0}.section small{color:var(--muted)}.franchise-grid{display:grid;grid-template-columns:1fr;gap:10px}.franchise-card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:17px;text-align:left;color:#fff;cursor:pointer}.franchise-card strong{display:block;font-size:19px;margin-bottom:4px}.franchise-card span{color:var(--muted);font-size:12px}.franchise-card em{display:inline-block;margin-top:10px;color:var(--red2);font-style:normal;font-size:11px;font-weight:800}.smart-box{margin-top:14px;border:1px solid var(--line);background:#0f0f13;border-radius:18px;padding:14px}.smart-title{display:flex;align-items:start;justify-content:space-between;gap:10px}.smart-title strong{font-size:17px}.smart-title span{font-size:10px;color:var(--green);border:1px solid rgba(98,199,119,.4);background:rgba(98,199,119,.08);padding:5px 7px;border-radius:999px;white-space:nowrap}.smart-copy{font-size:12px;color:var(--muted);margin-top:5px}.filter-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 7px}.filter-row{display:flex;gap:7px;overflow:auto;padding-bottom:3px;scrollbar-width:none}.filter-row::-webkit-scrollbar{display:none}.filter-chip{border:1px solid var(--line);background:var(--panel2);color:#ccc;padding:8px 10px;border-radius:999px;font-size:11px;white-space:nowrap;cursor:pointer}.filter-chip.active{border-color:var(--red);color:#fff;background:rgba(230,66,54,.12)}.results-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line);background:#111116;border-radius:14px 14px 0 0;padding:11px 14px;color:var(--muted);font-size:11px}.results-toolbar b{color:#fff}.grid{display:block;border:1px solid var(--line);border-top:0;border-radius:0 0 16px 16px;overflow:hidden;background:var(--panel)}.game-card{display:grid;grid-template-columns:112px minmax(0,1fr) 230px;gap:18px;align-items:stretch;background:var(--panel);padding:18px;border-bottom:1px solid var(--line);min-width:0}.game-card:last-child{border-bottom:0}.game-cover{width:112px;height:150px;border-radius:9px;border:1px solid #3a3b45;background:linear-gradient(145deg,#292a33,#111116);padding:12px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative}.game-cover:after{content:"";position:absolute;width:80px;height:80px;border:18px solid rgba(230,66,54,.12);border-radius:50%;right:-35px;bottom:-35px}.cover-icon{font-size:28px;position:relative;z-index:1}.cover-title{font-size:12px;font-weight:950;line-height:1.05;letter-spacing:-.02em;position:relative;z-index:1}.cover-franchise{font-size:8px;text-transform:uppercase;color:var(--red2);letter-spacing:.08em;position:relative;z-index:1}.game-info{padding:3px 0;min-width:0}.game-franchise{font-size:10px;text-transform:uppercase;color:var(--red2);letter-spacing:.08em;margin-bottom:4px}.game-title{font-size:23px;font-weight:900;line-height:1.08;letter-spacing:-.035em}.platform-line{margin-top:10px;color:#d6d3cd;font-size:12px}.platform-line span{color:var(--muted)}.aliases{font-size:10px;color:#77756f;margin-top:10px}.game-copy{margin-top:12px;color:var(--muted);font-size:11px;max-width:620px}.price-panel{border-left:1px solid var(--line);padding:5px 0 5px 18px;display:flex;flex-direction:column;justify-content:center;align-items:stretch}.product-offer-summary{min-height:72px}.offer-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.offer-price{font-size:26px;font-weight:950;letter-spacing:-.045em;margin-top:2px}.offer-price.loading{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:0;line-height:1.25}.offer-count{font-size:10px;color:var(--muted);margin-top:3px}.best-platform{font-size:10px;color:#d7d3cc;margin-top:2px}.offer-button{border:0;background:var(--red);color:white;border-radius:12px;padding:11px 12px;font-weight:900;font-size:11px;cursor:pointer;margin-top:10px;width:100%}.digital-button{display:flex;width:100%;cursor:pointer;text-align:left;font-family:inherit;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:10px 11px;border-radius:12px;background:linear-gradient(135deg,rgba(98,199,119,.16),rgba(107,165,255,.10));border:1px solid rgba(98,199,119,.42);color:#effff2;text-decoration:none;font-size:10px;font-weight:900}.digital-button small{display:block;color:#b7d6bd;font-weight:600;margin-top:2px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.btn{display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:#111116;color:#fff;padding:11px;border-radius:13px;font-weight:800;font-size:12px}.btn.ebay{border-color:#3859a8;background:rgba(56,89,168,.12)}.btn.shopee{border-color:#e76436;background:rgba(231,100,54,.12)}.empty{background:var(--panel);padding:22px;text-align:center;color:var(--muted)}.empty strong{display:block;color:#fff;font-size:18px;margin-bottom:6px}.notice{margin-top:26px;border:1px solid rgba(242,199,109,.35);background:rgba(242,199,109,.07);border-radius:18px;padding:14px;font-size:12px;color:#ddd2b6}.bottomnav{position:fixed;left:0;right:0;bottom:0;background:rgba(13,13,16,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);z-index:99}.navitem{text-align:center;color:#8f8d88;font-size:10px}.navitem b{display:block;font-size:18px;line-height:1.2}.navitem.active{color:var(--red2)}
+
+.offer-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center;padding:0}.offer-modal.open{display:flex}.offer-sheet{width:100%;max-width:720px;max-height:82vh;overflow:auto;background:#15151a;border:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -25px 80px rgba(0,0,0,.55)}.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.sheet-head h3{margin:3px 0 0;font-size:22px;letter-spacing:-.03em}.sheet-close{border:1px solid var(--line);background:var(--panel2);color:#fff;border-radius:999px;width:36px;height:36px;cursor:pointer}.sheet-copy{font-size:11px;color:var(--muted);margin:5px 0 14px}.offers-list{display:grid;gap:9px}.offer-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--line);background:#0f0f13;border-radius:15px;padding:12px}.offer-row .source-name{font-size:10px;color:var(--red2);font-weight:850;text-transform:uppercase;letter-spacing:.07em}.source-kind{display:inline-block;margin-left:6px;color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0}.offer-row strong{display:block;font-size:14px;margin:2px 0}.offer-row .offer-meta{font-size:10px;color:var(--muted)}.offer-row .row-price{text-align:right;font-size:17px;font-weight:900;white-space:nowrap}.offer-row a{display:inline-block;margin-top:5px;color:#fff;text-decoration:none;font-size:10px;border-bottom:1px solid #777}.external-searches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.external-searches a{text-align:center;text-decoration:none;color:#fff;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:11px;font-size:11px;font-weight:850}.integration-note{margin-top:12px;color:var(--muted);font-size:10px}.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px}.warn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:5px}
+
+.trending-grid{display:grid;grid-template-columns:1fr;gap:10px}.trend-card{border:1px solid var(--line);background:linear-gradient(145deg,#1a1a20,#121216);border-radius:18px;padding:16px;position:relative;overflow:hidden}.trend-card:after{content:"";position:absolute;right:-28px;bottom:-28px;width:90px;height:90px;border:18px solid rgba(230,66,54,.09);border-radius:50%;pointer-events:none}.trend-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1}.trend-badge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#fff;background:var(--red);padding:5px 7px;border-radius:999px}.trend-date{font-size:9px;color:var(--muted)}.trend-title{font-size:20px;line-height:1.06;font-weight:950;letter-spacing:-.03em;margin-top:10px;position:relative;z-index:1}.trend-copy{font-size:11px;color:var(--muted);margin-top:6px;min-height:30px;position:relative;z-index:1}.trend-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px;position:relative;z-index:1}.trend-action{border:1px solid var(--line);background:#0f0f13;color:#fff;padding:8px 10px;border-radius:10px;font-size:10px;font-weight:850;text-decoration:none;cursor:pointer}.trend-action.primary{background:var(--red);border-color:var(--red)}.trend-action.digital{border-color:rgba(98,199,119,.44);color:#effff2;background:rgba(98,199,119,.08)}.trend-action.merch{border-color:rgba(242,199,109,.42);color:#fff4d4;background:rgba(242,199,109,.07)}
+.explore-shell{display:grid;gap:14px}.eco-block{border:1px solid var(--line);background:#111116;border-radius:18px;padding:15px}.eco-head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:10px}.eco-head strong{font-size:16px}.eco-head span{font-size:10px;color:var(--muted)}.franchise-chips{display:flex;flex-wrap:wrap;gap:8px}.franchise-chip{border:1px solid var(--line);background:var(--panel2);color:#eee;padding:9px 11px;border-radius:999px;font-size:11px;font-weight:750;cursor:pointer}.franchise-chip:hover{border-color:#575965}.franchise-chip.nintendo{box-shadow:inset 3px 0 0 rgba(230,66,54,.75)}.franchise-chip.playstation{box-shadow:inset 3px 0 0 rgba(107,165,255,.75)}.franchise-chip.multi{box-shadow:inset 3px 0 0 rgba(98,199,119,.75)}
+.import-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid rgba(107,165,255,.32);background:linear-gradient(135deg,rgba(107,165,255,.08),rgba(98,199,119,.05));border-radius:18px;padding:15px}.import-card strong{font-size:14px}.import-card p{margin:4px 0 0;font-size:11px;color:var(--muted)}.import-card a{border:1px solid var(--line);background:#111116;color:#fff;text-decoration:none;padding:10px 12px;border-radius:11px;font-size:10px;font-weight:850;white-space:nowrap}.section-note{font-size:10px;color:var(--muted);margin-top:7px}.topic-hub{display:grid;grid-template-columns:1fr;gap:12px;background:var(--panel);padding:18px}.topic-hub h3{margin:0;font-size:22px}.topic-hub p{margin:5px 0 0;color:var(--muted);font-size:11px}.topic-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.topic-actions a{border:1px solid var(--line);background:#111116;color:#fff;padding:10px 12px;border-radius:11px;text-decoration:none;font-size:10px;font-weight:850}.topic-actions a.digital{border-color:rgba(98,199,119,.4)}.topic-actions a.merch{border-color:rgba(242,199,109,.4)}
+
+.collection-shell{border:1px solid var(--line);background:linear-gradient(145deg,#17171c,#111116);border-radius:22px;overflow:hidden}.collection-summary{padding:18px;border-bottom:1px solid var(--line);background:radial-gradient(circle at 90% 10%,rgba(230,66,54,.15),transparent 28%),#141419}.collection-summary-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-end}.collection-kicker{font-size:10px;color:var(--red2);font-weight:900;letter-spacing:.1em}.collection-summary strong{display:block;font-size:24px;letter-spacing:-.04em;margin-top:3px}.collection-percent{font-size:36px;font-weight:950;letter-spacing:-.06em}.progress-track{height:10px;background:#272830;border:1px solid #353640;border-radius:999px;overflow:hidden;margin-top:14px}.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--red2));border-radius:999px;transition:width .25s ease}.collection-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.collection-stat{font-size:10px;color:var(--muted);border:1px solid var(--line);background:#0f0f13;padding:7px 9px;border-radius:999px}.collection-summary-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.collection-main-action{border:0;background:var(--red);color:#fff;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:900;cursor:pointer}.collection-secondary-action{border:1px solid var(--line);background:#202127;color:#fff;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:850;cursor:pointer}.collection-note{font-size:10px;color:var(--muted);margin-top:10px}.collection-grid{display:grid;grid-template-columns:1fr}.collection-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}.collection-item:last-child{border-bottom:0}.collection-item.owned{background:linear-gradient(90deg,rgba(98,199,119,.07),transparent 42%)}.collection-item.wanted{background:linear-gradient(90deg,rgba(242,199,109,.06),transparent 42%)}.collection-year{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:#0f0f13;display:grid;place-items:center;font-size:10px;font-weight:900;color:var(--muted)}.collection-title{font-size:14px;font-weight:900;line-height:1.15}.collection-platforms{font-size:10px;color:var(--muted);margin-top:4px}.collection-status-text{font-size:9px;color:var(--muted);margin-top:5px}.collection-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.collection-toggle,.collection-find{border:1px solid var(--line);background:#111116;color:#ddd;padding:8px 9px;border-radius:10px;font-size:10px;font-weight:850;cursor:pointer}.collection-toggle.owned.active{border-color:rgba(98,199,119,.6);background:rgba(98,199,119,.14);color:#effff2}.collection-toggle.wanted.active{border-color:rgba(242,199,109,.55);background:rgba(242,199,109,.12);color:#fff4d4}.collection-find{border-color:rgba(230,66,54,.45);color:#fff}.collection-empty{padding:22px;color:var(--muted);text-align:center}.collection-empty strong{display:block;color:#fff;margin-bottom:4px}.collection-filters-label{font-size:10px;color:var(--muted)}
+
+.universe-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:12px}.universe-card{border:1px solid var(--line);background:#121217;color:#fff;border-radius:15px;padding:12px;text-align:left;cursor:pointer;transition:.16s ease;min-width:0}.universe-card:hover{transform:translateY(-1px);border-color:#494a55}.universe-card.active{border-color:rgba(230,66,54,.7);background:linear-gradient(145deg,rgba(230,66,54,.14),#15151a)}.universe-card-top{display:flex;align-items:center;gap:8px}.universe-icon{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);display:grid;place-items:center;background:#0e0e12;font-size:15px}.universe-name{font-size:12px;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.universe-count{font-size:9px;color:var(--muted);margin-top:2px}.universe-mini-track{height:5px;border-radius:999px;background:#2a2b32;overflow:hidden;margin-top:10px}.universe-mini-fill{height:100%;background:var(--red);border-radius:999px}.universe-mini-label{font-size:9px;color:var(--muted);margin-top:5px}.collection-active-name{color:var(--red2)}
+
+@media(min-width:760px){.wrap{padding:26px 24px 80px}.franchise-grid{grid-template-columns:repeat(3,1fr)}.trending-grid{grid-template-columns:repeat(4,1fr)}.explore-shell{grid-template-columns:1fr 1fr}.eco-block.multi-wide{grid-column:1/-1}.universe-picker{grid-template-columns:repeat(3,1fr)}.collection-grid{grid-template-columns:1fr 1fr}.collection-item:nth-child(odd){border-right:1px solid var(--line)}h1{font-size:62px}.bottomnav{display:none}}
+@media(max-width:759px){.game-card{grid-template-columns:78px minmax(0,1fr);gap:12px;padding:14px}.game-cover{width:78px;height:104px;padding:8px}.cover-icon{font-size:21px}.cover-title{font-size:9px}.game-title{font-size:18px}.price-panel{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);padding:12px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 1fr;gap:8px;align-items:end}.product-offer-summary{min-height:0}.offer-button{margin-top:0}.digital-button{grid-column:1/-1;margin-top:0}.game-copy{display:none}.results-toolbar{border-radius:12px 12px 0 0}.search button{padding:0 15px}.collection-item{grid-template-columns:46px minmax(0,1fr);align-items:start}.collection-actions{grid-column:1/-1;justify-content:stretch}.collection-toggle,.collection-find{flex:1}.collection-percent{font-size:30px}}
+
+.pilot-strip{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;border:1px solid rgba(98,199,119,.28);background:rgba(98,199,119,.06);border-radius:15px;padding:12px 14px;margin-bottom:12px}
+.pilot-strip span{font-size:9px;font-weight:950;letter-spacing:.1em;color:var(--green)}
+.pilot-strip b{font-size:12px}.pilot-strip small{grid-column:2;color:var(--muted);font-size:10px}
+.collection-count{min-width:64px;height:64px;border-radius:18px;border:1px solid var(--line);background:#0f0f13;display:grid;place-items:center;font-size:30px;font-weight:950;color:#fff}
+.collection-alert{border:1px solid rgba(119,170,255,.45);background:rgba(119,170,255,.08);color:#eaf1ff;padding:8px 9px;border-radius:10px;font-size:10px;font-weight:850;cursor:pointer}
+.collection-alert.active{border-color:rgba(98,199,119,.6);background:rgba(98,199,119,.13);color:#effff2}
+.toast{position:fixed;left:50%;bottom:88px;transform:translate(-50%,18px);width:min(92vw,520px);background:#202127;border:1px solid #3c3d47;color:#fff;border-radius:14px;padding:12px 14px;font-size:11px;box-shadow:0 18px 60px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.2s ease;z-index:500}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.validation-badge{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-size:9px;font-weight:900;margin-top:7px}
+@media(max-width:759px){.pilot-strip{grid-template-columns:1fr}.pilot-strip small{grid-column:1}.collection-count{width:54px;height:54px;font-size:24px}.collection-alert{flex:1}}
+
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="topbar"><div class="brand"><img class="brand-icon" src="/inventario-icon.jpg?v=08" alt="Ícone do Inventário" /><span>INVENTÁRIO</span></div><div class="pill">v0.95 • piloto Brasil</div></header>
+
+<section class="hero">
+<div class="eyebrow pixel">▣ BUSCA → PLATAFORMA → OFERTAS</div>
+<h1>Monte seu Inventário. Ache o próximo jogo.</h1>
+<p>Marque o que você já tem, salve o que quer e consulte ofertas nacionais quando bater a vontade de comprar. Sem porcentagem artificial de “franquia completa”.</p>
+<div class="search"><input id="searchInput" autocomplete="off" placeholder="Ex.: Ultimate Mortal Kombat 3 Mega Drive" /><button onclick="runSearch()">Buscar</button></div>
+<div class="examples">
+<button class="chip" onclick="setExample('mortal kombat')">mortal kombat</button>
+<button class="chip" onclick="setExample('ultimate mortal kombat 3 mega drive')">umk3 mega drive</button>
+<button class="chip" onclick="setExample('sonic 2 game gear')">sonic 2 game gear</button>
+<button class="chip" onclick="setExample('ac black flag switch')">ac black flag switch</button>
+</div>
+<div id="smartBox" class="smart-box" hidden></div>
+</section>
+
+
+<section class="section" id="collectionSection">
+<div class="section-head"><div><small class="pixel">SEUS INVENTÁRIOS</small><h2>O que você tem — e o que está procurando?</h2><div class="section-note">Escolha uma franquia e marque <b>Tenho</b> ou <b>Quero</b>. As listas abaixo são pilotos de demonstração, não uma definição de “100% da franquia”.</div></div></div>
+<div class="pilot-strip"><span>TESTE DA V0.95</span><b>Tenho / Quero → ofertas → interesse em alerta de preço</b><small>O objetivo agora é descobrir quais dessas ações as pessoas realmente usam.</small></div>
+<div class="universe-picker" id="universePicker"></div>
+<div class="collection-shell">
+  <div class="collection-summary">
+    <div class="collection-summary-top"><div><div class="collection-kicker" id="collectionKicker">LISTA PILOTO</div><strong id="collectionHeadline">Comece seu inventário.</strong></div><div class="collection-count" id="collectionCount">0</div></div>
+    <div class="collection-stats"><span class="collection-stat" id="ownedStat">0 tenho</span><span class="collection-stat" id="wantedStat">0 quero</span><span class="collection-stat" id="alertStat">0 alertas</span></div>
+    <div class="collection-summary-actions"><button class="collection-main-action" id="wantedToggleBtn" onclick="toggleWantedOnly()">Ver só os que quero</button><button class="collection-secondary-action" onclick="resetCollection()">Limpar esta lista</button></div>
+    <div class="collection-note">Não existe porcentagem geral aqui: remake, remaster, port e spin-off variam demais entre franquias. Progresso percentual só faria sentido depois em coleções com escopo explícito.</div>
+  </div>
+  <div class="collection-grid" id="collectionGrid"></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-head"><div><small class="pixel">EM DESTAQUE AGORA</small><h2>Assuntos que puxam a busca.</h2><div class="section-note">Curadoria manual de 21/09/2026 com links oficiais. Quando houver dados próprios, esta área poderá virar “Em alta no Inventário”.</div></div></div>
+<div class="trending-grid" id="trendingGrid"></div>
+</section>
+
+<section class="section">
+<div class="section-head"><div><small class="pixel">EXPLORE POR FRANQUIA</small><h2>Entre pela série e escolha o que quer encontrar.</h2></div></div>
+<div class="explore-shell">
+<div class="eco-block"><div class="eco-head"><strong>Nintendo</strong><span>10 portas de entrada</span></div><div class="franchise-chips" id="nintendoFranchises"></div></div>
+<div class="eco-block"><div class="eco-head"><strong>PlayStation</strong><span>10 portas de entrada</span></div><div class="franchise-chips" id="playstationFranchises"></div></div>
+<div class="eco-block multi-wide"><div class="eco-head"><strong>Multiplataforma & retro</strong><span>onde o usado brilha</span></div><div class="franchise-chips" id="multiFranchises"></div></div>
+</div>
+</section>
+
+
+<section class="section" id="resultsSection">
+<div class="section-head"><div><small class="pixel">RESULTADOS</small><h2 id="resultTitle">Pesquise um título, franquia ou tema.</h2></div><small id="countLabel">0 resultados</small></div>
+<div class="results-toolbar"><span><b>Resultados em lista</b> • mercado brasileiro primeiro</span><span>Preço sem frete</span></div><div class="grid" id="resultsGrid"><div class="empty"><strong>A estante está esperando.</strong>Pesquise um jogo, uma franquia ou use um dos destaques acima.</div></div>
+</section>
+
+<div class="notice"><b>v0.95 é a versão de validação.</b> Sai a porcentagem geral de franquia; ficam Tenho / Quero, ofertas e um teste transparente de interesse em alerta de preço. Merch e importação continuam no roadmap, mas ficam fora deste piloto.</div>
+
+<div id="offerModal" class="offer-modal" onclick="if(event.target===this)closeOffers()">
+  <div class="offer-sheet">
+    <div class="sheet-head"><div><div class="pixel" style="font-size:10px;color:var(--red2)">OFERTAS</div><h3 id="offerModalTitle">Carregando…</h3></div><button class="sheet-close" onclick="closeOffers()">×</button></div>
+    <div id="offerModalCopy" class="sheet-copy"></div>
+    <div id="offersList" class="offers-list"></div>
+    <div id="externalSearches" class="external-searches"></div>
+    <div id="integrationNote" class="integration-note"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+</main>
+
+<nav class="bottomnav"><div class="navitem active" onclick="window.scrollTo({top:0,behavior:'smooth'})"><b>▦</b>Estante</div><div class="navitem" onclick="document.getElementById('searchInput').focus();window.scrollTo({top:0,behavior:'smooth'})"><b>⌕</b>Buscar</div><div class="navitem" onclick="showWantedOnly()"><b>☆</b>Procurados</div><div class="navitem" onclick="document.getElementById('collectionSection').scrollIntoView({behavior:'smooth'})"><b>▣</b>Meu Inventário</div></nav>
+
+<script>
+
+const trendingNow=[
+  {title:'Grand Theft Auto VI',tag:'PRÉ-VENDA',copy:'Lançamento em 19/11/2026 para PS5 e Xbox Series X|S; pré-venda já aberta.',query:'grand theft auto vi',digital:'https://store.rockstargames.com/pt-BR/game/buy-gta-vi'},
+  {title:"Marvel's Wolverine",tag:'LANÇAMENTO',copy:'Lançado em 15/09/2026 para PS5.',query:'marvel wolverine ps5',digital:'https://www.playstation.com/pt-br/games/marvels-wolverine/'},
+  {title:'The Legend of Zelda: Ocarina of Time',tag:'REMAKE',copy:'Remake para Nintendo Switch 2 com lançamento em 05/11/2026.',query:'ocarina of time switch 2',digital:'https://www.nintendo.com/pt-br/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/'},
+  {title:"Fire Emblem: Fortune's Weave",tag:'NOVO',copy:'Lançado em 17/09/2026 para Nintendo Switch 2.',query:'fire emblem fortunes weave',digital:'https://www.nintendo.com/pt-br/store/products/fire-emblem-fortunes-weave-switch-2/'}
+];
+const franchiseDirectory={
+  Nintendo:['Mario','The Legend of Zelda','Pokémon','Metroid','Kirby','Donkey Kong','Animal Crossing','Fire Emblem','Splatoon','Pikmin'],
+  PlayStation:['God of War','The Last of Us','Gran Turismo','Ratchet & Clank','Horizon','Ghost of Tsushima','Marvel Spider-Man','Uncharted','Astro Bot','Bloodborne'],
+  Multi:['Sonic','Call of Duty','Mortal Kombat',"Assassin's Creed",'Resident Evil','Final Fantasy','Grand Theft Auto','Street Fighter','Monster Hunter','Tomb Raider','Silent Hill']
+};
+
+const collections={
+  zelda:{name:'The Legend of Zelda',short:'Zelda',icon:'✦',items:[
+    {slug:'the-legend-of-zelda',title:'The Legend of Zelda',year:1986,platforms:['NES']},
+    {slug:'a-link-to-the-past',title:'The Legend of Zelda: A Link to the Past',year:1991,platforms:['SNES','Game Boy Advance']},
+    {slug:'ocarina-of-time',title:'The Legend of Zelda: Ocarina of Time',year:1998,platforms:['Nintendo 64','3DS']},
+    {slug:'majoras-mask',title:"The Legend of Zelda: Majora's Mask",year:2000,platforms:['Nintendo 64','3DS']},
+    {slug:'the-wind-waker',title:'The Legend of Zelda: The Wind Waker',year:2002,platforms:['GameCube','Wii U']},
+    {slug:'twilight-princess',title:'The Legend of Zelda: Twilight Princess',year:2006,platforms:['GameCube','Wii','Wii U']},
+    {slug:'skyward-sword',title:'The Legend of Zelda: Skyward Sword',year:2011,platforms:['Wii','Switch']},
+    {slug:'links-awakening',title:"The Legend of Zelda: Link's Awakening",year:1993,platforms:['Game Boy','Game Boy Color','Switch']},
+    {slug:'breath-of-the-wild',title:'The Legend of Zelda: Breath of the Wild',year:2017,platforms:['Wii U','Switch']},
+    {slug:'tears-of-the-kingdom',title:'The Legend of Zelda: Tears of the Kingdom',year:2023,platforms:['Switch']}
+  ]},
+  cod:{name:'Call of Duty',short:'Call of Duty',icon:'◎',items:[
+    {slug:'cod4-modern-warfare',title:'Call of Duty 4: Modern Warfare',year:2007,platforms:['PS3']},
+    {slug:'world-at-war',title:'Call of Duty: World at War',year:2008,platforms:['PS3']},
+    {slug:'modern-warfare-2',title:'Call of Duty: Modern Warfare 2',year:2009,platforms:['PS3']},
+    {slug:'black-ops',title:'Call of Duty: Black Ops',year:2010,platforms:['PS3']},
+    {slug:'modern-warfare-3',title:'Call of Duty: Modern Warfare 3',year:2011,platforms:['PS3']},
+    {slug:'black-ops-ii',title:'Call of Duty: Black Ops II',year:2012,platforms:['PS3']},
+    {slug:'ghosts',title:'Call of Duty: Ghosts',year:2013,platforms:['PS3','PS4']},
+    {slug:'wwii',title:'Call of Duty: WWII',year:2017,platforms:['PS4']},
+    {slug:'modern-warfare-2019',title:'Call of Duty: Modern Warfare',year:2019,platforms:['PS4']},
+    {slug:'black-ops-6',title:'Call of Duty: Black Ops 6',year:2024,platforms:['PS4','PS5']}
+  ]},
+  gta:{name:'Grand Theft Auto',short:'GTA',icon:'▣',items:[
+    {slug:'gta-iii',title:'Grand Theft Auto III',year:2001,platforms:['PS2']},
+    {slug:'vice-city',title:'Grand Theft Auto: Vice City',year:2002,platforms:['PS2']},
+    {slug:'san-andreas',title:'Grand Theft Auto: San Andreas',year:2004,platforms:['PS2']},
+    {slug:'liberty-city-stories',title:'Grand Theft Auto: Liberty City Stories',year:2005,platforms:['PSP','PS2']},
+    {slug:'vice-city-stories',title:'Grand Theft Auto: Vice City Stories',year:2006,platforms:['PSP','PS2']},
+    {slug:'gta-iv',title:'Grand Theft Auto IV',year:2008,platforms:['PS3']},
+    {slug:'chinatown-wars',title:'Grand Theft Auto: Chinatown Wars',year:2009,platforms:['PSP']},
+    {slug:'gta-v',title:'Grand Theft Auto V',year:2013,platforms:['PS3','PS4','PS5']}
+  ]},
+  godofwar:{name:'God of War',short:'God of War',icon:'Ω',items:[
+    {slug:'god-of-war-2005',title:'God of War',year:2005,platforms:['PS2']},
+    {slug:'god-of-war-ii',title:'God of War II',year:2007,platforms:['PS2']},
+    {slug:'chains-of-olympus',title:'God of War: Chains of Olympus',year:2008,platforms:['PSP']},
+    {slug:'god-of-war-iii',title:'God of War III',year:2010,platforms:['PS3','PS4']},
+    {slug:'ghost-of-sparta',title:'God of War: Ghost of Sparta',year:2010,platforms:['PSP']},
+    {slug:'ascension',title:'God of War: Ascension',year:2013,platforms:['PS3']},
+    {slug:'god-of-war-2018',title:'God of War',year:2018,platforms:['PS4']},
+    {slug:'ragnarok',title:'God of War Ragnarök',year:2022,platforms:['PS4','PS5']}
+  ]},
+  residentevil:{name:'Resident Evil',short:'Resident Evil',icon:'☣',items:[
+    {slug:'resident-evil',title:'Resident Evil',year:1996,platforms:['PS1']},
+    {slug:'resident-evil-2',title:'Resident Evil 2',year:1998,platforms:['PS1']},
+    {slug:'resident-evil-3',title:'Resident Evil 3: Nemesis',year:1999,platforms:['PS1']},
+    {slug:'code-veronica-x',title:'Resident Evil Code: Veronica X',year:2001,platforms:['PS2']},
+    {slug:'resident-evil-4',title:'Resident Evil 4',year:2005,platforms:['PS2','GameCube','Wii','PS4']},
+    {slug:'resident-evil-5',title:'Resident Evil 5',year:2009,platforms:['PS3','PS4']},
+    {slug:'resident-evil-6',title:'Resident Evil 6',year:2012,platforms:['PS3','PS4']},
+    {slug:'resident-evil-7',title:'Resident Evil 7 biohazard',year:2017,platforms:['PS4','PS5']},
+    {slug:'resident-evil-village',title:'Resident Evil Village',year:2021,platforms:['PS4','PS5']},
+    {slug:'resident-evil-4-remake',title:'Resident Evil 4 (2023)',year:2023,platforms:['PS4','PS5']}
+  ]},
+  sonic:{name:'Sonic the Hedgehog',short:'Sonic',icon:'◉',items:[
+    {slug:'sonic-1',title:'Sonic the Hedgehog',year:1991,platforms:['Mega Drive / Genesis','Master System','Game Gear']},
+    {slug:'sonic-2',title:'Sonic the Hedgehog 2',year:1992,platforms:['Mega Drive / Genesis','Master System','Game Gear']},
+    {slug:'sonic-3',title:'Sonic the Hedgehog 3',year:1994,platforms:['Mega Drive / Genesis']},
+    {slug:'sonic-and-knuckles',title:'Sonic & Knuckles',year:1994,platforms:['Mega Drive / Genesis']},
+    {slug:'sonic-adventure',title:'Sonic Adventure',year:1998,platforms:['Dreamcast','GameCube']},
+    {slug:'sonic-adventure-2',title:'Sonic Adventure 2',year:2001,platforms:['Dreamcast','GameCube']},
+    {slug:'sonic-heroes',title:'Sonic Heroes',year:2003,platforms:['GameCube','PS2']},
+    {slug:'sonic-unleashed',title:'Sonic Unleashed',year:2008,platforms:['Wii','PS2','PS3']},
+    {slug:'sonic-mania-plus',title:'Sonic Mania Plus',year:2018,platforms:['Switch','PS4']},
+    {slug:'sonic-frontiers',title:'Sonic Frontiers',year:2022,platforms:['Switch','PS4','PS5']}
+  ]}
+};
+const COLLECTION_STORAGE_KEY='inventario-gamer:v095:collections';
+const ALERT_STORAGE_KEY='inventario-gamer:v095:alerts';
+const OLD_ZELDA_KEY='inventario-gamer:v092:zelda';
+const OLD_COLLECTION_KEY='inventario-gamer:v093:collections';
+let activeCollection='zelda',collectionState=loadCollectionState(),alertState=loadAlertState(),collectionFilter='all';
+function loadCollectionState(){
+  try{
+    const current=JSON.parse(localStorage.getItem(COLLECTION_STORAGE_KEY)||'{}');
+    if(current&&typeof current==='object'&&Object.keys(current).length)return current;
+    const prior=JSON.parse(localStorage.getItem(OLD_COLLECTION_KEY)||'{}');
+    if(prior&&typeof prior==='object'&&Object.keys(prior).length){localStorage.setItem(COLLECTION_STORAGE_KEY,JSON.stringify(prior));return prior}
+    const old=JSON.parse(localStorage.getItem(OLD_ZELDA_KEY)||'{}');
+    if(old&&typeof old==='object'&&Object.keys(old).length){const migrated={zelda:old};localStorage.setItem(COLLECTION_STORAGE_KEY,JSON.stringify(migrated));return migrated}
+  }catch{}
+  return {};
+}
+function saveCollectionState(){try{localStorage.setItem(COLLECTION_STORAGE_KEY,JSON.stringify(collectionState))}catch{}}
+function loadAlertState(){try{return JSON.parse(localStorage.getItem(ALERT_STORAGE_KEY)||'{}')||{}}catch{return {}}}
+function saveAlertState(){try{localStorage.setItem(ALERT_STORAGE_KEY,JSON.stringify(alertState))}catch{}}
+function currentAlerts(){if(!alertState[activeCollection])alertState[activeCollection]={};return alertState[activeCollection]}
+let toastTimer=null;
+function showToast(msg){const el=document.getElementById('toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3400)}
+function setAlertInterest(slug){
+  const alerts=currentAlerts(),state=currentState();
+  if(state[slug]==='owned'){showToast('Este jogo está marcado como Tenho. No piloto, o alerta fica para itens que você ainda procura.');return}
+  if(alerts[slug]){delete alerts[slug];saveAlertState();renderCollection();showToast('Interesse em alerta removido.');return}
+  alerts[slug]=true;
+  if(!state[slug])state[slug]='wanted';
+  saveAlertState();saveCollectionState();renderCollection();
+  showToast('Interesse em alerta salvo neste aparelho. A v0.95 ainda não envia notificações — estamos testando se você usaria esse recurso.');
+}
+function currentCollection(){return collections[activeCollection]||collections.zelda}
+function currentState(){if(!collectionState[activeCollection])collectionState[activeCollection]={};return collectionState[activeCollection]}
+function selectCollection(key){if(!collections[key])return;activeCollection=key;collectionFilter='all';renderCollection();document.getElementById('collectionSection').scrollIntoView({behavior:'smooth',block:'start'})}
+function setCollectionStatus(slug,status){const state=currentState();state[slug]=state[slug]===status?null:status;if(!state[slug])delete state[slug];saveCollectionState();renderCollection()}
+function collectionStatusLabel(status){return status==='owned'?'No inventário':status==='wanted'?'Na lista de procurados':'Ainda não marcado'}
+function collectionStats(key){
+  const c=collections[key],state=collectionState[key]||{},alerts=alertState[key]||{};
+  const owned=c.items.filter(x=>state[x.slug]==='owned').length;
+  const wanted=c.items.filter(x=>state[x.slug]==='wanted').length;
+  const alertCount=c.items.filter(x=>alerts[x.slug]).length;
+  return {owned,wanted,alertCount,total:c.items.length};
+}
+function renderUniversePicker(){
+  const el=document.getElementById('universePicker');if(!el)return;
+  el.innerHTML=Object.entries(collections).map(([key,c])=>{
+    const s=collectionStats(key);
+    return `<button class="universe-card ${key===activeCollection?'active':''}" onclick="selectCollection('${key}')"><div class="universe-card-top"><span class="universe-icon">${c.icon}</span><div><div class="universe-name">${escapeHtml(c.short)}</div><div class="universe-count">${s.owned} tenho • ${s.wanted} quero</div></div></div><div class="universe-mini-label">${s.alertCount?`🔔 ${s.alertCount} ${s.alertCount===1?'alerta marcado':'alertas marcados'}`:'lista piloto • '+s.total+' títulos'}</div></button>`}).join('')
+}
+function renderCollection(){
+  renderUniversePicker();
+  const c=currentCollection(),state=currentState(),alerts=currentAlerts();
+  const stats=collectionStats(activeCollection);
+  document.getElementById('collectionKicker').textContent=`${c.name.toUpperCase()} • LISTA PILOTO`;
+  document.getElementById('collectionCount').textContent=stats.owned;
+  document.getElementById('ownedStat').textContent=stats.owned+' tenho';
+  document.getElementById('wantedStat').textContent=stats.wanted+' quero';
+  document.getElementById('alertStat').textContent=stats.alertCount+' '+(stats.alertCount===1?'alerta':'alertas');
+  document.getElementById('collectionHeadline').textContent=stats.owned?`${stats.owned} ${stats.owned===1?'jogo marcado':'jogos marcados'} como Tenho em ${c.short}.`:`Comece seu inventário ${c.short}.`;
+  const btn=document.getElementById('wantedToggleBtn');if(btn)btn.textContent=collectionFilter==='wanted'?'Mostrar todos':'Ver só os que quero';
+  let items=c.items;
+  if(collectionFilter==='wanted')items=items.filter(x=>state[x.slug]==='wanted');
+  const grid=document.getElementById('collectionGrid');
+  if(!items.length){grid.innerHTML=`<div class="collection-empty"><strong>Nenhum jogo marcado como Quero.</strong>Marque ♡ Quero em algum título para ele aparecer aqui.</div>`;return}
+  grid.innerHTML=items.map(x=>{
+    const s=state[x.slug]||'',alerted=Boolean(alerts[x.slug]);
+    return `<article class="collection-item ${s}"><div class="collection-year">${x.year}</div><div><div class="collection-title">${escapeHtml(x.title)}</div><div class="collection-platforms">${escapeHtml(x.platforms.join(' • '))}</div><div class="collection-status-text">${collectionStatusLabel(s)}${alerted?' • alerta desejado':''}</div></div><div class="collection-actions"><button class="collection-toggle owned ${s==='owned'?'active':''}" onclick="setCollectionStatus('${x.slug}','owned')">✓ Tenho</button><button class="collection-toggle wanted ${s==='wanted'?'active':''}" onclick="setCollectionStatus('${x.slug}','wanted')">♡ Quero</button>${s!=='owned'?`<button class="collection-alert ${alerted?'active':''}" onclick="setAlertInterest('${x.slug}')">${alerted?'🔔 Alerta marcado':'🔔 Quero alerta'}</button>`:''}<button class="collection-find" onclick='findCollectionOffers(${JSON.stringify(x.title)})'>Ver ofertas</button></div></article>`
+  }).join('')
+}
+function toggleWantedOnly(){collectionFilter=collectionFilter==='wanted'?'all':'wanted';renderCollection();document.getElementById('collectionGrid').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function showWantedOnly(){collectionFilter='wanted';renderCollection();document.getElementById('collectionSection').scrollIntoView({behavior:'smooth',block:'start'})}
+function resetCollection(){const state=currentState(),alerts=currentAlerts();if(!Object.keys(state).length&&!Object.keys(alerts).length)return;collectionState[activeCollection]={};alertState[activeCollection]={};collectionFilter='all';saveCollectionState();saveAlertState();renderCollection()}
+function findCollectionOffers(title){document.getElementById('searchInput').value=title;runSearch()}
+function etsyUrl(q){return `https://www.etsy.com/search?q=${encodeURIComponent(q)}`}
+function nuuvemSearchUrl(q){return `https://www.nuuvem.com/br-pt/catalog/page/1/search/${encodeURIComponent(q)}`}
+function nintendoStoreUrl(q){return `https://www.nintendo.com/pt-br/search/#q=${encodeURIComponent(q)}`}
+function psStoreUrl(q){return `https://store.playstation.com/pt-br/search/${encodeURIComponent(q)}`}
+function meliUrl(q){return `https://lista.mercadolivre.com.br/${encodeURIComponent(q)}`}
+function olxUrl(q){return `https://www.olx.com.br/brasil?q=${encodeURIComponent(q)}`}
+function enjoeiUrl(q){return `https://www.enjoei.com.br/s?q=${encodeURIComponent(q)}`}
+function renderTrending(){const el=document.getElementById('trendingGrid');if(!el)return;el.innerHTML=trendingNow.map(t=>`<article class="trend-card"><div class="trend-top"><span class="trend-badge">${escapeHtml(t.tag)}</span><span class="trend-date">atualizado 21/09</span></div><div class="trend-title">${escapeHtml(t.title)}</div><div class="trend-copy">${escapeHtml(t.copy)}</div><div class="trend-actions"><button class="trend-action primary" onclick="setExample(${JSON.stringify(t.query)})">Físico / ofertas</button><a class="trend-action digital" href="${t.digital}" target="_blank" rel="noopener">Digital / oficial ↗</a></div></article>`).join('')}
+function renderFranchises(){const make=(arr,cls)=>arr.map(x=>`<button class="franchise-chip ${cls}" onclick="setExample(${JSON.stringify(x)})">${escapeHtml(x)}</button>`).join('');document.getElementById('nintendoFranchises').innerHTML=make(franchiseDirectory.Nintendo,'nintendo');document.getElementById('playstationFranchises').innerHTML=make(franchiseDirectory.PlayStation,'playstation');document.getElementById('multiFranchises').innerHTML=make(franchiseDirectory.Multi,'multi')}
+function knownFranchise(raw){const n=norm(raw);for(const [eco,arr] of Object.entries(franchiseDirectory)){const f=arr.find(x=>norm(x)===n);if(f)return {name:f,eco}}return null}
+function topicHubMarkup(raw){const k=knownFranchise(raw);if(!k)return '';return `<div class="topic-hub"><div><div class="pixel" style="font-size:10px;color:var(--red2)">FRANQUIA</div><h3>${escapeHtml(k.name)}</h3><p>O catálogo detalhado desta franquia ainda está sendo preenchido. Na V0.95, o teste é jogo físico no Brasil + opções digitais.</p><div class="topic-actions"><a href="${meliUrl(k.name)}" target="_blank" rel="noopener">Físico no Brasil ↗</a><button class="digital" onclick="openDigitalOptions(${JSON.stringify(k.name)})">Digital / oficial</button></div></div></div>`}
+
+const catalog=[
+{franchise:'Call of Duty',title:'Call of Duty 4: Modern Warfare',aliases:['cod4','modern warfare 2007'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: World at War',aliases:['world at war','cod waw'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: Modern Warfare 2',aliases:['mw2','modern warfare 2'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: Black Ops',aliases:['black ops','bo1'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: Modern Warfare 3',aliases:['mw3','modern warfare 3'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: Black Ops II',aliases:['black ops 2','bo2'],variants:[['PlayStation','PS3']]},
+{franchise:'Call of Duty',title:'Call of Duty: Ghosts',aliases:['cod ghosts'],variants:[['PlayStation','PS3'],['PlayStation','PS4']]},
+{franchise:'Call of Duty',title:'Call of Duty: WWII',aliases:['cod wwii','call of duty ww2'],variants:[['PlayStation','PS4']]},
+{franchise:'Call of Duty',title:'Call of Duty: Modern Warfare',aliases:['modern warfare 2019','mw 2019'],variants:[['PlayStation','PS4']]},
+{franchise:'Call of Duty',title:'Call of Duty: Black Ops 6',aliases:['black ops 6','bo6'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto III',aliases:['gta 3','gta iii'],variants:[['PlayStation','PS2']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto: Vice City',aliases:['gta vice city','vice city'],variants:[['PlayStation','PS2']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto: San Andreas',aliases:['gta san andreas','san andreas'],variants:[['PlayStation','PS2']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto: Liberty City Stories',aliases:['gta liberty city stories','lcs'],variants:[['PlayStation','PSP'],['PlayStation','PS2']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto: Vice City Stories',aliases:['gta vice city stories','vcs'],variants:[['PlayStation','PSP'],['PlayStation','PS2']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto IV',aliases:['gta 4','gta iv'],variants:[['PlayStation','PS3']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto: Chinatown Wars',aliases:['gta chinatown wars'],variants:[['PlayStation','PSP']]},
+{franchise:'Grand Theft Auto',title:'Grand Theft Auto V',aliases:['gta 5','gta v'],variants:[['PlayStation','PS3'],['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'God of War',title:'God of War',aliases:['god of war 1','gow 1','god of war 2005'],variants:[['PlayStation','PS2']]},
+{franchise:'God of War',title:'God of War II',aliases:['god of war 2','gow 2'],variants:[['PlayStation','PS2']]},
+{franchise:'God of War',title:'God of War: Chains of Olympus',aliases:['chains of olympus'],variants:[['PlayStation','PSP']]},
+{franchise:'God of War',title:'God of War III',aliases:['god of war 3','gow 3'],variants:[['PlayStation','PS3'],['PlayStation','PS4']]},
+{franchise:'God of War',title:'God of War: Ghost of Sparta',aliases:['ghost of sparta'],variants:[['PlayStation','PSP']]},
+{franchise:'God of War',title:'God of War: Ascension',aliases:['gow ascension'],variants:[['PlayStation','PS3']]},
+{franchise:'God of War',title:'God of War (2018)',aliases:['god of war 2018','gow 2018'],variants:[['PlayStation','PS4']]},
+{franchise:'God of War',title:'God of War Ragnarök',aliases:['god of war ragnarok','gow ragnarok'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Resident Evil',title:'Resident Evil',aliases:['resident evil 1','re1'],variants:[['PlayStation','PS1']]},
+{franchise:'Resident Evil',title:'Resident Evil 2',aliases:['re2'],variants:[['PlayStation','PS1']]},
+{franchise:'Resident Evil',title:'Resident Evil 3: Nemesis',aliases:['resident evil 3','re3 nemesis'],variants:[['PlayStation','PS1']]},
+{franchise:'Resident Evil',title:'Resident Evil Code: Veronica X',aliases:['code veronica x','resident evil code veronica'],variants:[['PlayStation','PS2']]},
+{franchise:'Resident Evil',title:'Resident Evil 4',aliases:['re4','resident evil four'],variants:[['PlayStation','PS2'],['Nintendo','GameCube'],['Nintendo','Wii'],['PlayStation','PS4']]},
+{franchise:'Resident Evil',title:'Resident Evil 5',aliases:['re5'],variants:[['PlayStation','PS3'],['PlayStation','PS4']]},
+{franchise:'Resident Evil',title:'Resident Evil 6',aliases:['re6'],variants:[['PlayStation','PS3'],['PlayStation','PS4']]},
+{franchise:'Resident Evil',title:'Resident Evil 7 biohazard',aliases:['resident evil 7','re7','biohazard 7'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Resident Evil',title:'Resident Evil Village',aliases:['resident evil 8','re8','village'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Resident Evil',title:'Resident Evil 4 (2023)',aliases:['resident evil 4 remake','re4 remake'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda',aliases:['zelda 1','zelda nes'],variants:[['Nintendo','NES']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: A Link to the Past',aliases:['a link to the past','alttp'],variants:[['Nintendo','SNES'],['Nintendo','Game Boy Advance']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: Ocarina of Time',aliases:['ocarina of time','oot','zelda oot'],variants:[['Nintendo','Nintendo 64'],['Nintendo','3DS']]},
+{franchise:'The Legend of Zelda',title:"The Legend of Zelda: Majora's Mask",aliases:['majoras mask','majora mask'],variants:[['Nintendo','Nintendo 64'],['Nintendo','3DS']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: The Wind Waker',aliases:['wind waker','zelda wind waker'],variants:[['Nintendo','GameCube'],['Nintendo','Wii U']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: Twilight Princess',aliases:['twilight princess','zelda tp'],variants:[['Nintendo','GameCube'],['Nintendo','Wii'],['Nintendo','Wii U']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: Skyward Sword',aliases:['skyward sword','zelda ss'],variants:[['Nintendo','Wii'],['Nintendo','Switch']]},
+{franchise:'The Legend of Zelda',title:"The Legend of Zelda: Link's Awakening",aliases:['links awakening','link awakening'],variants:[['Nintendo','Game Boy'],['Nintendo','Game Boy Color'],['Nintendo','Switch']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: Breath of the Wild',aliases:['breath of the wild','botw'],variants:[['Nintendo','Wii U'],['Nintendo','Switch']]},
+{franchise:'The Legend of Zelda',title:'The Legend of Zelda: Tears of the Kingdom',aliases:['tears of the kingdom','totk'],variants:[['Nintendo','Switch']]},
+{franchise:'Sonic',title:'Sonic the Hedgehog',aliases:['sonic 1','sonic the hedgehog 1'],variants:[['SEGA','Mega Drive / Genesis'],['SEGA','Master System'],['SEGA','Game Gear']]},
+{franchise:'Sonic',title:'Sonic the Hedgehog 2',aliases:['sonic 2'],variants:[['SEGA','Mega Drive / Genesis'],['SEGA','Master System'],['SEGA','Game Gear']]},
+{franchise:'Sonic',title:'Sonic the Hedgehog 3',aliases:['sonic 3'],variants:[['SEGA','Mega Drive / Genesis']]},
+{franchise:'Sonic',title:'Sonic & Knuckles',aliases:['sonic and knuckles'],variants:[['SEGA','Mega Drive / Genesis']]},
+{franchise:'Sonic',title:'Sonic CD',aliases:['sonic the hedgehog cd'],variants:[['SEGA','Sega CD / Mega-CD']]},
+{franchise:'Sonic',title:'Sonic 3D Blast',aliases:['sonic 3d','sonic 3d flickies island'],variants:[['SEGA','Mega Drive / Genesis'],['SEGA','Saturn']]},
+{franchise:'Sonic',title:'Sonic R',aliases:[],variants:[['SEGA','Saturn']]},
+{franchise:'Sonic',title:'Sonic Adventure',aliases:['sonic adventure dx'],variants:[['SEGA','Dreamcast'],['Nintendo','GameCube']]},
+{franchise:'Sonic',title:'Sonic Adventure 2',aliases:['sonic adventure 2 battle','sa2'],variants:[['SEGA','Dreamcast'],['Nintendo','GameCube']]},
+{franchise:'Sonic',title:'Sonic Heroes',aliases:[],variants:[['Nintendo','GameCube'],['PlayStation','PS2']]},
+{franchise:'Sonic',title:'Sonic Unleashed',aliases:[],variants:[['Nintendo','Wii'],['PlayStation','PS2'],['PlayStation','PS3']]},
+{franchise:'Sonic',title:'Sonic Generations',aliases:[],variants:[['Nintendo','3DS'],['PlayStation','PS3']]},
+{franchise:'Sonic',title:'Sonic Mania Plus',aliases:['sonic mania'],variants:[['Nintendo','Switch'],['PlayStation','PS4']]},
+{franchise:'Sonic',title:'Sonic Frontiers',aliases:[],variants:[['Nintendo','Switch'],['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Sonic',title:'Sonic Superstars',aliases:[],variants:[['Nintendo','Switch'],['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Sonic',title:'Sonic X Shadow Generations',aliases:['sonic x shadow','sonic shadow generations'],variants:[['Nintendo','Switch'],['PlayStation','PS4'],['PlayStation','PS5']]},
+
+{franchise:'Mortal Kombat',title:'Mortal Kombat',aliases:['mortal kombat 1 classic','mk1 classic'],variants:[['Nintendo','SNES'],['SEGA','Mega Drive / Genesis'],['SEGA','Master System'],['SEGA','Game Gear']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat II',aliases:['mortal kombat 2','mk2'],variants:[['Nintendo','SNES'],['SEGA','Mega Drive / Genesis'],['SEGA','Game Gear']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat 3',aliases:['mk3'],variants:[['Nintendo','SNES'],['SEGA','Mega Drive / Genesis']]},
+{franchise:'Mortal Kombat',title:'Ultimate Mortal Kombat 3',aliases:['umk3','ultimate mk3'],variants:[['Nintendo','SNES'],['SEGA','Mega Drive / Genesis'],['SEGA','Saturn']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat Trilogy',aliases:['mk trilogy'],variants:[['Nintendo','Nintendo 64'],['PlayStation','PS1']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat 4',aliases:['mk4'],variants:[['Nintendo','Nintendo 64'],['PlayStation','PS1']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat: Deadly Alliance',aliases:['deadly alliance','mk deadly alliance'],variants:[['Nintendo','GameCube'],['PlayStation','PS2']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat: Deception',aliases:['deception','mk deception'],variants:[['Nintendo','GameCube'],['PlayStation','PS2']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat: Armageddon',aliases:['armageddon','mk armageddon'],variants:[['Nintendo','Wii'],['PlayStation','PS2']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat (2011)',aliases:['mortal kombat 9','mk9','mortal kombat 2011'],variants:[['PlayStation','PS3'],['PlayStation','PS Vita']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat X',aliases:['mkx','mortal kombat 10'],variants:[['PlayStation','PS4']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat 11',aliases:['mk11'],variants:[['Nintendo','Switch'],['PlayStation','PS4']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat 11 Ultimate',aliases:['mk11 ultimate'],variants:[['Nintendo','Switch'],['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Mortal Kombat',title:'Mortal Kombat 1',aliases:['mk1','mortal kombat one'],variants:[['Nintendo','Switch'],['PlayStation','PS5']]},
+
+{franchise:"Assassin's Creed",title:"Assassin's Creed",aliases:['assassins creed 1','ac1'],variants:[['PlayStation','PS3']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed II",aliases:['assassins creed 2','ac2'],variants:[['PlayStation','PS3']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed: Brotherhood",aliases:['ac brotherhood','assassins creed brotherhood'],variants:[['PlayStation','PS3']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed: Revelations",aliases:['ac revelations','assassins creed revelations'],variants:[['PlayStation','PS3']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed III",aliases:['assassins creed 3','ac3'],variants:[['PlayStation','PS3'],['Nintendo','Wii U']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed IV: Black Flag",aliases:['assassins creed 4 black flag','ac black flag','black flag'],variants:[['PlayStation','PS3'],['PlayStation','PS4'],['Nintendo','Wii U']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Rogue",aliases:['ac rogue','assassins creed rogue'],variants:[['PlayStation','PS3']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Unity",aliases:['ac unity','assassins creed unity'],variants:[['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Syndicate",aliases:['ac syndicate','assassins creed syndicate'],variants:[['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Origins",aliases:['ac origins','assassins creed origins'],variants:[['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Odyssey",aliases:['ac odyssey','assassins creed odyssey'],variants:[['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed III Remastered",aliases:['ac3 remastered','assassins creed 3 remastered'],variants:[['Nintendo','Switch'],['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed: The Rebel Collection",aliases:['rebel collection','ac rebel collection','ac black flag switch','black flag switch'],variants:[['Nintendo','Switch']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed: The Ezio Collection",aliases:['ezio collection','ac ezio collection'],variants:[['Nintendo','Switch'],['PlayStation','PS4']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Valhalla",aliases:['ac valhalla','assassins creed valhalla'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Mirage",aliases:['ac mirage','assassins creed mirage'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:"Assassin's Creed",title:"Assassin's Creed Shadows",aliases:['ac shadows','assassins creed shadows'],variants:[['PlayStation','PS5']]}
+];
+
+
+const digitalCatalog={
+  'Mortal Kombat 1':{label:'Digital disponível',platform:'PC • Steam',store:'Nuuvem',url:'https://www.nuuvem.com/br-pt/item/mortal-kombat-1'},
+  'Sonic X Shadow Generations':{label:'Digital disponível',platform:'PC • Steam',store:'Nuuvem',url:'https://www.nuuvem.com/br-en/item/sonic-x-shadow-generations'},
+  "Assassin's Creed Origins":{label:'Digital disponível',platform:'PC • Ubisoft Connect',store:'Nuuvem',url:'https://www.nuuvem.com/br-pt/item/assassins-creed-origins'},
+  "Assassin's Creed Valhalla":{label:'Digital disponível',platform:'PC • Ubisoft Connect',store:'Nuuvem',url:'https://www.nuuvem.com/br-pt/item/assassins-creed-valhalla'}
+};
+const offerCache=new Map();
+
+const platformAliases=[
+{platform:'Mega Drive / Genesis',aliases:['mega drive','megadrive','genesis','sega genesis']},
+{platform:'Master System',aliases:['master system']},{platform:'Game Gear',aliases:['game gear']},{platform:'Sega CD / Mega-CD',aliases:['sega cd','mega cd','mega-cd']},{platform:'Saturn',aliases:['saturn','sega saturn']},{platform:'Dreamcast',aliases:['dreamcast']},
+{platform:'NES',aliases:['nes','nintendo entertainment system']},{platform:'SNES',aliases:['snes','super nintendo']},{platform:'Game Boy',aliases:['game boy','gameboy']},{platform:'Game Boy Color',aliases:['game boy color','gbc']},{platform:'Game Boy Advance',aliases:['game boy advance','gba']},{platform:'Nintendo 64',aliases:['nintendo 64','n64']},{platform:'GameCube',aliases:['gamecube','game cube','gc']},{platform:'Wii U',aliases:['wii u','wiiu']},{platform:'Wii',aliases:['wii']},{platform:'Switch',aliases:['nintendo switch','switch']},{platform:'3DS',aliases:['3ds','nintendo 3ds']},
+{platform:'PSP',aliases:['psp','playstation portable']},{platform:'PS Vita',aliases:['ps vita','vita']},{platform:'PS5',aliases:['ps5','playstation 5']},{platform:'PS4',aliases:['ps4','playstation 4']},{platform:'PS3',aliases:['ps3','playstation 3']},{platform:'PS2',aliases:['ps2','playstation 2']},{platform:'PS1',aliases:['ps1','psx','playstation 1']}
+].sort((a,b)=>Math.max(...b.aliases.map(x=>x.length))-Math.max(...a.aliases.map(x=>x.length)));
+
+let activeEco='all',activePlatform='all',lastRaw='';
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['’]/g,'').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function detectPlatform(q){const n=norm(q);for(const p of platformAliases){for(const a of p.aliases){const na=norm(a);if(new RegExp(`(^| )${na.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}( |$)`).test(n))return p.platform}}return null}
+function stripPlatform(q,platform){if(!platform)return norm(q);let n=' '+norm(q)+' ';const p=platformAliases.find(x=>x.platform===platform);for(const a of p.aliases.sort((a,b)=>b.length-a.length)){n=n.replace(new RegExp(` ${norm(a).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')} `,'g'),' ')}return n.replace(/\s+/g,' ').trim()}
+function franchiseNorm(f){return norm(f)}
+function searchable(p){return [p.title,...p.aliases].map(norm)}
+function scoreProduct(p,raw){const q=norm(raw),platform=detectPlatform(raw),core=stripPlatform(raw,platform),names=searchable(p),fr=franchiseNorm(p.franchise);let score=0;const franchiseQuery=(q===fr||core===fr);if(franchiseQuery)score=80;else{if(names.includes(q))score=120;if(names.includes(core))score=Math.max(score,110);if(names.some(n=>n.includes(core)&&core.length>2))score=Math.max(score,65);const tokens=core.split(' ').filter(Boolean);if(tokens.length&&tokens.every(t=>norm(p.title+' '+p.aliases.join(' ')+' '+p.franchise).includes(t)))score=Math.max(score,50+tokens.length)}if(!score)return null;let variants=p.variants;if(platform)variants=variants.filter(v=>v[1]===platform);if(activeEco!=='all')variants=variants.filter(v=>v[0]===activeEco);if(activePlatform!=='all')variants=variants.filter(v=>v[1]===activePlatform);if(!variants.length)return null;return {p,variants,score,platform}}
+function physicalSearchButtons(q){return `<a href="${meliUrl(q)}" target="_blank" rel="noopener">Mercado Livre ↗</a><a href="${olxUrl(q)}" target="_blank" rel="noopener">OLX ↗</a><a href="${enjoeiUrl(q)}" target="_blank" rel="noopener">Enjoei ↗</a>`}
+function ecosystemClass(e){return e==='Nintendo'?'nintendo':e==='PlayStation'?'playstation':'sega'}
+function iconFor(f){return f==='Sonic'?'💨':f==='Mortal Kombat'?'🐉':f==='The Legend of Zelda'?'✦':'🦅'}
+function findMatches(raw){return catalog.map(p=>scoreProduct(p,raw)).filter(Boolean).sort((a,b)=>b.score-a.score||a.p.title.localeCompare(b.p.title))}
+function baseMatches(raw){const oldEco=activeEco,oldPlat=activePlatform;activeEco='all';activePlatform='all';const m=findMatches(raw);activeEco=oldEco;activePlatform=oldPlat;return m}
+function availableFilters(raw){const base=baseMatches(raw);const ecos=[...new Set(base.flatMap(x=>x.p.variants.map(v=>v[0])))];const variants=base.flatMap(x=>x.p.variants).filter(v=>activeEco==='all'||v[0]===activeEco);return {ecos,platforms:[...new Set(variants.map(v=>v[1]))]}}
+function renderSmart(raw,matches){const box=document.getElementById('smartBox');if(!raw){box.hidden=true;return}const detected=detectPlatform(raw);const exact=matches[0]&&matches[0].score>=110;const fr=matches.length&&new Set(matches.map(x=>x.p.franchise)).size===1?matches[0].p.franchise:null;box.hidden=false;box.innerHTML=`<div class="smart-title"><div><strong>${exact?'Título reconhecido':fr?'Franquia reconhecida':'Busca interpretada'}</strong><div class="smart-copy">${exact?escapeHtml(matches[0].p.title):fr?escapeHtml(fr):'Correspondência por título e apelidos'}${detected?` • plataforma: <b>${escapeHtml(detected)}</b>`:''}</div></div><span>${matches.length} ${matches.length===1?'título':'títulos'}</span></div>`}
+function renderFilters(raw){const box=document.getElementById('smartBox');const f=availableFilters(raw);if(!f.ecos.length)return;box.innerHTML+=`<div class="filter-title">Ecossistema</div><div class="filter-row" id="ecoFilters"><button class="filter-chip ${activeEco==='all'?'active':''}" onclick="setEco('all')">Todos</button>${f.ecos.map(e=>`<button class="filter-chip ${activeEco===e?'active':''}" onclick="setEco('${e}')">${e}</button>`).join('')}</div><div class="filter-title">Plataforma</div><div class="filter-row" id="platformFilters"><button class="filter-chip ${activePlatform==='all'?'active':''}" onclick="setPlatform('all')">Todas</button>${f.platforms.map(p=>`<button class="filter-chip ${activePlatform===p?'active':''}" onclick="setPlatform('${p.replace(/'/g,"\\'")}')">${p}</button>`).join('')}</div>`}
+function offerKey(title,platform){return `${title}|||${platform}`}
+function digitalButton(p){const d=digitalCatalog[p.title];const label=d?'● Digital disponível':'Pesquisar digital';const sub=d?`${d.platform} • ${d.store}`:'Nintendo Store • PS Store • Nuuvem';return `<button class="digital-button" onclick="openDigitalOptions(${JSON.stringify(p.title)})"><span>${label}<small>${sub}</small></span><b>›</b></button>`}
+function productKey(p){return norm(p.franchise+' '+p.title)}
+function platformText(variants){return variants.map(v=>`${v[0]} ${v[1]}`).join(' · ')}
+function groupedOffers(data){const national=data?.nationalOffers||data?.offers?.filter(o=>o.sourceKind==='nacional')||[];const imported=data?.importedOffers||data?.offers?.filter(o=>o.sourceKind==='importado')||[];return {national,imported}}
+function productSummaryMarkup(p,variants){
+  const loaded=variants.map(v=>offerCache.get(offerKey(p.title,v[1]))).filter(Boolean);
+  if(!loaded.length)return `<div class="offer-price loading">Consultar preços nacionais</div><div class="offer-count">carregados só ao abrir as ofertas</div>`;
+  const national=[];let total=0;
+  variants.forEach(v=>{const d=offerCache.get(offerKey(p.title,v[1]));if(!d?.ok)return;const g=groupedOffers(d);g.national.forEach(o=>national.push({...o,platform:v[1]}));total+=g.national.length});
+  national.sort((a,b)=>a.priceValue-b.priceValue);
+  if(!national.length)return `<div class="offer-price loading">nenhuma oferta nacional validada</div><div class="offer-count">tente Mercado Livre, OLX ou Enjoei</div>`;
+  return `<div class="offer-label">🇧🇷 nacional a partir de</div><div class="offer-price">${escapeHtml(national[0].displayPrice)}</div><div class="offer-count">${total} ${total===1?'oferta validada':'ofertas validadas'} • sem frete</div>`
+}
+async function ensureSummary(title,platform){
+  const key=offerKey(title,platform);if(offerCache.has(key))return offerCache.get(key);
+  try{
+    const qs=new URLSearchParams({title,platform,condition:'used'});
+    const r=await fetch(`/api/offers?${qs.toString()}`);const data=await r.json();
+    offerCache.set(key,{...data,ok:r.ok});
+  }catch(e){offerCache.set(key,{ok:false,error:'offline'})}
+  return offerCache.get(key)
+}
+async function mapLimit(items,limit,fn){const out=new Array(items.length);let cursor=0;async function worker(){while(cursor<items.length){const i=cursor++;out[i]=await fn(items[i],i)}}await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));return out}
+function updateProductSummary(title,variants){const p=catalog.find(x=>x.title===title);if(!p)return;const row=document.querySelector(`[data-product-key="${CSS.escape(productKey(p))}"]`);if(row){const slot=row.querySelector('.product-offer-summary');if(slot)slot.innerHTML=productSummaryMarkup(p,variants)}}
+function coverMarkup(p){return `<div class="game-cover"><div class="cover-franchise">${escapeHtml(p.franchise)}</div><div class="cover-icon">${iconFor(p.franchise)}</div><div class="cover-title">${escapeHtml(p.title)}</div></div>`}
+
+const TITLE_ALERT_KEY='inventario-gamer:v095:title-alerts';
+function loadTitleAlerts(){try{return JSON.parse(localStorage.getItem(TITLE_ALERT_KEY)||'{}')||{}}catch{return {}}}
+let titleAlerts=loadTitleAlerts();
+function isTitleAlerted(title){return Boolean(titleAlerts[norm(title)])}
+function toggleTitleAlert(title){
+  const k=norm(title);
+  if(titleAlerts[k]){delete titleAlerts[k];showToast('Interesse em alerta removido.')}
+  else{titleAlerts[k]={title,createdAt:new Date().toISOString()};showToast('Interesse em alerta salvo neste aparelho. O piloto ainda não envia notificações.')}
+  try{localStorage.setItem(TITLE_ALERT_KEY,JSON.stringify(titleAlerts))}catch{}
+  if(lastRaw)updateSearch(false);
+}
+function renderResults(raw,matches){
+  const grid=document.getElementById('resultsGrid');
+  document.getElementById('countLabel').textContent=`${matches.length} ${matches.length===1?'título':'títulos'}`;
+  document.getElementById('resultTitle').textContent=raw?`Resultados para “${raw}”`:'Escolha um teste acima.';
+  if(!matches.length){
+    const hub=topicHubMarkup(raw);
+    grid.innerHTML=hub||`<div class="empty"><strong>Ainda não catalogamos isso em detalhe.</strong>Mas você já pode procurar <b>${escapeHtml(raw)}</b> no mercado brasileiro.<div class="external-searches">${physicalSearchButtons(raw)}</div><div class="topic-actions"><button class="digital" onclick="openDigitalOptions(${JSON.stringify(raw)})">Digital / lojas oficiais</button></div></div>`;
+    return
+  }
+  grid.innerHTML=matches.map(({p,variants})=>{
+    const vjson=encodeURIComponent(JSON.stringify(variants));
+    const alerted=isTitleAlerted(p.title);
+    return `<article class="game-card" data-product-key="${escapeHtml(productKey(p))}">${coverMarkup(p)}<div class="game-info"><div class="game-franchise">${escapeHtml(p.franchise)}</div><div class="game-title">${escapeHtml(p.title)}</div><div class="platform-line"><span>Plataformas:</span> ${escapeHtml(platformText(variants))}</div>${p.aliases.length?`<div class="aliases">Também entende: ${escapeHtml(p.aliases.slice(0,3).join(' • '))}</div>`:''}<div class="game-copy">Mídia física usada. Na V0.95, o teste prioriza o mercado brasileiro e consulta preços somente quando você abre as ofertas.</div></div><aside class="price-panel"><div class="product-offer-summary">${productSummaryMarkup(p,variants)}</div><button class="offer-button" onclick="openAllOffers(${JSON.stringify(p.title)},decodeURIComponent('${vjson}'))">Ver ofertas</button><button class="collection-alert ${alerted?'active':''}" style="width:100%;margin-top:8px" onclick='toggleTitleAlert(${JSON.stringify(p.title)})'>${alerted?'🔔 Alerta marcado':'🔔 Quero alerta'}</button>${digitalButton(p)}</aside></article>`
+  }).join('')
+}
+function offerRowMarkup(o){return `<div class="offer-row"><div><div class="source-name">${escapeHtml(o.source)}${o.sourceKind?`<span class="source-kind">${escapeHtml(o.sourceKind)}</span>`:''}</div><strong>${escapeHtml(o.title)}</strong><div class="offer-meta">${escapeHtml(o.condition||'Usado')}${o.platform?' • '+escapeHtml(o.platform):''}${o.location?' • '+escapeHtml(o.location):''}${o.shippingIncluded?' • frete grátis':''}</div></div><div class="row-price">${escapeHtml(o.displayPrice)}${o.originalDisplayPrice&&o.originalDisplayPrice!==o.displayPrice?`<div style="font-size:9px;color:var(--muted);font-weight:500">${escapeHtml(o.originalDisplayPrice)}</div>`:''}<br><a href="${o.url}" target="_blank" rel="noopener">Ir ao anúncio ↗</a></div></div>`}
+function offerSectionMarkup(title,items,note=''){if(!items.length)return '';return `<div style="margin:8px 2px 6px;font-size:11px;font-weight:900;color:#fff">${title}</div>${note?`<div style="margin:0 2px 8px;font-size:9px;color:var(--muted)">${note}</div>`:''}${items.map(offerRowMarkup).join('')}`}
+async function openAllOffers(title,variantsJson){
+  let variants=[];try{variants=JSON.parse(variantsJson)}catch{}
+  const modal=document.getElementById('offerModal');modal.classList.add('open');document.body.style.overflow='hidden';
+  document.getElementById('offerModalTitle').textContent=title;
+  document.getElementById('offerModalCopy').innerHTML=`Físico usado • Brasil • ${variants.length} ${variants.length===1?'plataforma':'plataformas'} • consulta sob demanda`;
+  document.getElementById('offersList').innerHTML='<div class="empty"><strong>Buscando ofertas nacionais…</strong>Consultando em pequenos lotes.</div>';
+  document.getElementById('externalSearches').innerHTML=physicalSearchButtons(title);
+  document.getElementById('integrationNote').innerHTML='';
+  await mapLimit(variants,3,v=>ensureSummary(title,v[1]));updateProductSummary(title,variants);
+  const national=[];
+  variants.forEach(v=>{const d=offerCache.get(offerKey(title,v[1]));if(!d?.ok)return;const g=groupedOffers(d);g.national.forEach(o=>national.push({...o,platform:v[1]}))});
+  national.sort((a,b)=>a.priceValue-b.priceValue);
+  if(national.length){
+    document.getElementById('offersList').innerHTML=offerSectionMarkup('🇧🇷 Ofertas nacionais',national.slice(0,18),'Preço anunciado no Brasil. Frete pode variar.');
+    document.getElementById('integrationNote').innerHTML='<span class="live-dot"></span>V0.95: foco no mercado brasileiro. Resultados irrelevantes, repros, partes e defeitos são filtrados antes da comparação.'
+  }else{
+    document.getElementById('offersList').innerHTML='<div class="empty"><strong>Nenhuma oferta nacional validada agora.</strong>Use os atalhos abaixo enquanto a integração não retorna resultados compatíveis.</div>';
+    document.getElementById('integrationNote').innerHTML='<span class="warn-dot"></span>Sem preço fictício: se a fonte não responde com uma oferta válida, o Inventário não inventa um valor.'
+  }
+}
+function brl(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)}
+async function openOffers(title,platform){
+  const modal=document.getElementById('offerModal');modal.classList.add('open');document.body.style.overflow='hidden';
+  document.getElementById('offerModalTitle').textContent=`${title} — ${platform}`;
+  document.getElementById('offerModalCopy').innerHTML='Físico usado • mercado brasileiro • consulta sob demanda';
+  document.getElementById('offersList').innerHTML='<div class="empty"><strong>Buscando ofertas nacionais…</strong>Um instante.</div>';
+  document.getElementById('externalSearches').innerHTML=physicalSearchButtons(title+' '+platform);
+  document.getElementById('integrationNote').innerHTML='';
+  const key=offerKey(title,platform);if(!offerCache.has(key))await ensureSummary(title,platform);
+  const data=offerCache.get(key),g=groupedOffers(data);
+  if(data?.ok&&g.national.length){
+    document.getElementById('offersList').innerHTML=offerSectionMarkup('🇧🇷 Ofertas nacionais',g.national,'Preço anunciado no Brasil. Frete pode variar.');
+    document.getElementById('integrationNote').innerHTML='<span class="live-dot"></span>Fonte nacional conectada e resultados filtrados antes da exibição.'
+  }else{
+    document.getElementById('offersList').innerHTML='<div class="empty"><strong>Nenhuma oferta nacional validada agora.</strong>Use os atalhos abaixo enquanto a integração não retorna resultados compatíveis.</div>';
+    document.getElementById('integrationNote').innerHTML='<span class="warn-dot"></span>Não mostramos preço fictício.'
+  }
+}
+function openDigitalOptions(title){const modal=document.getElementById('offerModal');modal.classList.add('open');document.body.style.overflow='hidden';document.getElementById('offerModalTitle').textContent=`Digital — ${title}`;document.getElementById('offerModalCopy').innerHTML='Lojas oficiais e parceiras • preço automático entra apenas quando houver integração autorizada';const d=digitalCatalog[title];const nuuvemHref=d?.url||nuuvemSearchUrl(title);document.getElementById('offersList').innerHTML=`<div class="offer-row"><div><div class="source-name">Nintendo Store</div><strong>Loja oficial Nintendo Brasil</strong><div class="offer-meta">Preço oficial consultado na loja • integração automática pendente</div></div><div class="row-price"><a href="${nintendoStoreUrl(title)}" target="_blank" rel="noopener">Abrir loja ↗</a></div></div><div class="offer-row"><div><div class="source-name">PlayStation Store</div><strong>PS Store Brasil</strong><div class="offer-meta">Preço oficial consultado na loja • integração automática pendente</div></div><div class="row-price"><a href="${psStoreUrl(title)}" target="_blank" rel="noopener">Abrir loja ↗</a></div></div><div class="offer-row"><div><div class="source-name">Nuuvem</div><strong>${d?'Versão digital encontrada no catálogo':'Busca na loja brasileira'}</strong><div class="offer-meta">API oficial existe, mas o acesso está em beta para parceiros selecionados</div></div><div class="row-price"><a href="${nuuvemHref}" target="_blank" rel="noopener">Abrir Nuuvem ↗</a></div></div>`;document.getElementById('externalSearches').innerHTML='';document.getElementById('integrationNote').innerHTML='<span class="warn-dot"></span>O Inventário não inventa preço digital: Nintendo/PS Store ficam como link oficial até termos um feed/API autorizado; Nuuvem entra ao vivo quando o token de parceiro for liberado.'}
+function closeOffers(){document.getElementById('offerModal').classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOffers()});
+function runSearch(){lastRaw=document.getElementById('searchInput').value.trim();activeEco='all';activePlatform='all';updateSearch(true)}
+function updateSearch(scroll=false){if(!lastRaw)return;let matches=findMatches(lastRaw);renderSmart(lastRaw,matches);renderFilters(lastRaw);matches=findMatches(lastRaw);renderResults(lastRaw,matches);if(scroll)document.getElementById('resultsSection').scrollIntoView({behavior:'smooth',block:'start'})}
+function setExample(q){document.getElementById('searchInput').value=q;runSearch()}
+function setEco(e){activeEco=e;activePlatform='all';updateSearch(false)}
+function setPlatform(p){activePlatform=p;updateSearch(false)}
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch()});
+renderTrending();renderFranchises();renderCollection();
+</script>
+</body>
+</html>
