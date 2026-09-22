@@ -1,0 +1,14 @@
+{
+  "name": "inventario-gamer",
+  "version": "2.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/app-core.js && node --check src/search.js && node --check src/views.js && node --check src/main.js && node --check lib/igdb.js && node --check lib/marketplace.js",
+    "serve": "python3 -m http.server 4173"
+  }
+}
