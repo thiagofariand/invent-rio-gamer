@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#FBFBF8" />
+  <meta name="description" content="Inventário Gamer — encontre o item que falta no seu inventário." />
+  <title>Inventário Gamer</title>
+  <link rel="icon" href="/assets/brand/mark.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#app">Pular para o conteúdo</a>
+  <header class="site-header">
+    <a class="brand" href="#/" aria-label="Inventário Gamer — início">
+      <img src="/assets/brand/mark.svg" alt="" width="42" height="42" />
+      <span><strong>Inventário</strong><em>Gamer</em></span>
+    </a>
+    <nav class="main-nav" aria-label="Principal">
+      <a href="#/games">Games</a>
+      <a href="#/inventario">Meu Inventário</a>
+    </nav>
+    <div class="search-shell" data-search-shell>
+      <label class="sr-only" for="global-search">Buscar jogos e franquias</label>
+      <input id="global-search" type="search" placeholder="Buscar jogo ou franquia…" autocomplete="off" />
+      <div class="search-suggestions" id="search-suggestions" role="listbox" hidden></div>
+    </div>
+  </header>
+  <main id="app" tabindex="-1"></main>
+  <footer class="site-footer">
+    <p>Inventário Gamer <span aria-hidden="true">•</span> Dados visuais de jogos podem ser obtidos via IGDB. Ofertas pertencem às lojas de origem.</p>
+  </footer>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
