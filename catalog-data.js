@@ -237,7 +237,15 @@ const merchTypes={
   impressao3d:{cat:'fanmade',label:'Impressão 3D',term:'impressão 3d'}
 };
 
+/* Assets visuais canônicos.
+   Preencher depois com imagens oficiais/licenciadas sem mudar os componentes:
+   visualAssets.games[slug] = {hero:'https://...', cover:'https://...', merch:'https://...', fanmade:'https://...'}
+   visualAssets.themes[slug] = {...}
+   visualAssets.universes[slug] = {hero:'https://...'}
+*/
+const visualAssets={games:{},themes:{},universes:{}};
+
 const trendingUpdated='21/09/2026'; /* data da curadoria manual dos destaques */
 
-return {version:'0.96',trendingUpdated,trendingNow,franchiseDirectory,collections,catalog,digitalCatalog,platformAliases,retroPlatforms,digitalPlatforms,merchCategories,merchTypes};
+return {version:'0.99.2',trendingUpdated,trendingNow,franchiseDirectory,collections,catalog,digitalCatalog,platformAliases,retroPlatforms,digitalPlatforms,merchCategories,merchTypes,visualAssets};
 })();

@@ -531,3 +531,399 @@ body.inventory-route .site-footer{background:var(--night);color:#9EA3B0;border-c
   body.inventory-route .mobile-bottom a,body.inventory-route .mobile-bottom button{color:#B4B8C2}
   body.inventory-route .mobile-bottom b{color:var(--gold)}
 }
+
+
+/* ============================================================
+   v0.99.2 — GAME PAGE VISUAL REFERENCE
+   Hero widescreen + compra unificada + menus ilustrados.
+   Imagens/preços demo são placeholders e podem ser trocados por
+   dados reais sem alterar a estrutura dos componentes.
+   ============================================================ */
+
+.game-hero{
+  position:relative;
+  min-height:260px;
+  display:grid;
+  grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);
+  overflow:hidden;
+  background:#17191E;
+  color:#fff;
+  border:1px solid #23262D;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.game-hero-copy{
+  position:relative;
+  z-index:3;
+  padding:34px 30px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
+}
+.game-hero-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:4px 8px;
+  margin-bottom:12px;
+  background:#2A2D34;
+  border:1px solid #424650;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.game-hero h1{
+  margin:0;
+  font-size:clamp(30px,4vw,46px);
+  line-height:1.02;
+  letter-spacing:-.045em;
+  max-width:15ch;
+}
+.game-hero-copy p{
+  margin-top:12px;
+  color:#D1D5DB;
+  max-width:58ch;
+  font-size:15px;
+}
+.game-hero-actions{
+  margin-top:22px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.game-hero .save-btn{
+  min-height:40px;
+  padding:9px 14px;
+  border:1px solid rgba(255,255,255,.34);
+  background:transparent;
+  color:#fff;
+}
+.game-hero .save-btn:hover{background:rgba(255,255,255,.08)}
+.game-hero .btn-ghost{
+  background:transparent;
+  color:#fff;
+  border-color:rgba(255,255,255,.36);
+}
+.game-hero-art{
+  position:relative;
+  min-height:260px;
+  overflow:hidden;
+  background:
+    linear-gradient(135deg,hsla(var(--hero-h),82%,55%,.72),rgba(230,66,54,.2)),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.10) 0 2px,transparent 2px 18px),
+    #252831;
+}
+.game-hero-art.has-image{
+  background-image:
+    linear-gradient(90deg,#17191E 0%,rgba(23,25,30,.70) 18%,rgba(23,25,30,.05) 58%),
+    var(--hero-img);
+  background-size:cover;
+  background-position:center;
+}
+.game-hero-art::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,#17191E 0%,rgba(23,25,30,.86) 7%,rgba(23,25,30,.18) 38%,transparent 72%);
+  z-index:1;
+  pointer-events:none;
+}
+.game-hero-art.has-image::before{
+  background:linear-gradient(90deg,#17191E 0%,rgba(23,25,30,.72) 12%,rgba(23,25,30,.08) 48%,transparent 78%);
+}
+.game-hero-placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:8px;
+  z-index:0;
+  color:rgba(255,255,255,.92);
+  text-align:center;
+  text-transform:uppercase;
+}
+.game-hero-placeholder b{
+  font:900 clamp(44px,7vw,78px)/1 "Courier New",monospace;
+  letter-spacing:.04em;
+  text-shadow:0 3px 0 rgba(0,0,0,.16);
+}
+.game-hero-placeholder span{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.14em;
+  background:rgba(18,18,24,.72);
+  padding:5px 8px;
+}
+
+.visual-demo-warning{
+  margin-top:10px;
+  padding-left:2px;
+  letter-spacing:.015em;
+}
+
+.game-commerce-grid{
+  margin-top:24px;
+  display:grid;
+  grid-template-columns:minmax(0,2fr) minmax(210px,.88fr) minmax(210px,.88fr);
+  gap:14px;
+  align-items:stretch;
+}
+.purchase-module{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(150px,190px) minmax(0,1fr);
+  gap:20px;
+  border:1px solid #DDE0E4;
+  background:#fff;
+  padding:16px;
+}
+.purchase-cover .cover{
+  aspect-ratio:3/4;
+  height:100%;
+  min-height:300px;
+}
+.purchase-main{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+.purchase-title-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid #E6E8EB;
+}
+.purchase-title-row h2{
+  margin-top:2px;
+  font-size:22px;
+  line-height:1.08;
+  letter-spacing:-.025em;
+}
+.purchase-kicker,.purchase-media-kicker{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.demo-layout-chip{
+  flex:none;
+  padding:4px 6px;
+  border:1px solid #F2C4BF;
+  background:#FFF5F4;
+  color:var(--red-ink);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+.purchase-platform{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+.purchase-options{
+  display:grid;
+  gap:12px;
+  margin-top:12px;
+}
+.purchase-media-group{
+  border:1px solid #E3E5E8;
+  background:#FBFBFC;
+  padding:12px 13px;
+}
+.purchase-media-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.purchase-media-head h3{
+  margin-top:1px;
+  font-size:16px;
+  line-height:1.1;
+}
+.purchase-arrow{
+  color:var(--red-ink);
+  font-size:18px;
+  font-weight:900;
+}
+.purchase-price-list{
+  display:grid;
+  gap:6px;
+}
+.purchase-price-row{
+  display:grid;
+  grid-template-columns:70px minmax(0,1fr);
+  align-items:end;
+  gap:10px;
+  padding-top:7px;
+  border-top:1px solid #ECEDEF;
+}
+.purchase-price-row:first-child{border-top:0;padding-top:0}
+.purchase-condition{
+  color:#4B5563;
+  font-size:12px;
+  font-weight:700;
+}
+.purchase-value{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:5px;
+}
+.purchase-value strong{
+  font-size:19px;
+  line-height:1;
+  letter-spacing:-.025em;
+}
+.purchase-from{
+  color:var(--muted);
+  font-size:11px;
+}
+.purchase-value .mock-chip{
+  transform:translateY(-1px);
+}
+.store-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:10px;
+}
+.store-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 8px;
+  background:#fff;
+  border:1px solid #DDE0E4;
+  color:#374151;
+  font-size:11px;
+  font-weight:650;
+}
+.purchase-demo-note{
+  margin-top:auto;
+  padding-top:12px;
+  color:var(--muted);
+  font-size:11.5px;
+}
+.purchase-empty{
+  padding:16px;
+  border:1px dashed #D7DADE;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.visual-menu-card{
+  min-width:0;
+  border:1px solid #DDE0E4;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+}
+.visual-menu-art{
+  position:relative;
+  min-height:205px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    repeating-linear-gradient(135deg,rgba(255,255,255,.13) 0 2px,transparent 2px 18px),
+    #D92731;
+  border-bottom:1px solid #DDE0E4;
+}
+.visual-menu-art.fanmade{
+  background:
+    repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 2px,transparent 2px 18px),
+    #1398C8;
+}
+.visual-menu-art.has-image{
+  background-image:var(--menu-img);
+  background-size:cover;
+  background-position:center;
+}
+.visual-menu-art.has-image::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,transparent 45%,rgba(18,18,24,.35));
+}
+.visual-menu-icon{
+  position:relative;
+  z-index:2;
+  width:64px;
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(18,18,24,.78);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.24);
+  box-shadow:6px 6px 0 rgba(18,18,24,.18);
+}
+.visual-menu-body{
+  padding:12px 13px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  flex:1;
+}
+.visual-menu-body h2{
+  font-size:15px;
+  line-height:1.15;
+}
+.visual-menu-body p{
+  color:var(--muted);
+  font-size:12px;
+}
+.visual-menu-body .link-cta{
+  margin-top:auto;
+  padding-top:6px;
+  text-decoration:none;
+}
+
+@media (max-width:980px){
+  .game-hero{grid-template-columns:minmax(0,1fr) minmax(260px,.8fr)}
+  .game-commerce-grid{grid-template-columns:minmax(0,1.5fr) minmax(210px,1fr)}
+  .purchase-module{grid-column:1 / -1}
+}
+@media (max-width:760px){
+  .game-hero{
+    grid-template-columns:minmax(0,1fr);
+    min-height:0;
+  }
+  .game-hero-copy{padding:24px 18px}
+  .game-hero h1{font-size:32px;max-width:none}
+  .game-hero-art{min-height:190px;grid-row:1}
+  .game-hero-copy{grid-row:2}
+  .game-hero-art::before{
+    background:linear-gradient(180deg,transparent 20%,#17191E 100%);
+  }
+  .game-commerce-grid{grid-template-columns:minmax(0,1fr)}
+  .purchase-module{
+    grid-template-columns:112px minmax(0,1fr);
+    gap:12px;
+    padding:12px;
+  }
+  .purchase-cover .cover{min-height:0}
+  .purchase-title-row{align-items:center}
+  .purchase-title-row h2{font-size:18px}
+  .purchase-price-row{grid-template-columns:58px minmax(0,1fr)}
+  .visual-menu-card{
+    display:grid;
+    grid-template-columns:132px minmax(0,1fr);
+  }
+  .visual-menu-art{min-height:150px;border-bottom:0;border-right:1px solid #DDE0E4}
+}
+@media (max-width:480px){
+  .purchase-module{grid-template-columns:minmax(0,1fr)}
+  .purchase-cover{max-width:150px}
+  .visual-menu-card{grid-template-columns:104px minmax(0,1fr)}
+}

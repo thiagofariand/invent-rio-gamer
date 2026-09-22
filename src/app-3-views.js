@@ -146,24 +146,160 @@ function renderSearch(params,token){
   main._filterTotal=filtered.length;
 }
 
-/* ---------- página do item ---------- */
-function blockMarkup(cond,p,platform){
-  if(cond==='digital'){
-    const stores=digitalStores(p,platform);
-    return `<button class="cond-block" data-act="open-offers" data-title="${esc(p.title)}" data-platform="${esc(platform)}" data-cond="digital">
-      <div class="cond-name"><span>Digital</span><span class="link-cta">Ver digital →</span></div>
-      <div class="cond-price">Lojas oficiais</div><div class="cond-note">${esc(stores.map(s=>s.name).join(' · '))} · o preço aparece direto na loja</div></button>`;
+
+/* ---------- imagens automáticas IGDB ---------- */
+const igdbVisualMemo=new Map();
+async function fetchIgdbVisual(title,platform='',year=''){
+  const key=[title,platform,year].join('|');
+  if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
+
+  const p=(async()=>{
+    try{
+      const qs=new URLSearchParams({q:title});
+      if(platform)qs.set('platform',platform);
+      if(year)qs.set('year',year);
+      const r=await fetch('/api/igdb/game?'+qs.toString(),{headers:{Accept:'application/json'}});
+      if(!r.ok)return null;
+      const d=await r.json();
+      return d&&d.ok&&d.found?d:null;
+    }catch{return null}
+  })();
+
+  igdbVisualMemo.set(key,p);
+  return p;
+}
+function setHeroBackground(el,url){
+  if(!el||!url)return;
+  el.classList.add('has-image');
+  el.style.setProperty('--hero-img',`url("${url.replace(/"/g,'%22')}")`);
+  const ph=el.querySelector('.game-hero-placeholder');
+  if(ph)ph.remove();
+}
+function setCoverImage(el,title,platform,url){
+  if(!el||!url)return;
+  el.innerHTML=coverTile(title,{platform,image:url});
+}
+async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector=''}) {
+  const d=await fetchIgdbVisual(title,platform,year);
+  if(!d)return;
+  const hero=document.querySelector(heroSelector);
+  if(hero&&d.hero?.url)setHeroBackground(hero,d.hero.url);
+  if(coverSelector&&d.cover?.url){
+    const cover=document.querySelector(coverSelector);
+    setCoverImage(cover,title,platform,d.cover.url);
   }
+}
+
+/* ---------- página do item: hero + módulo unificado de compra ---------- */
+function visualAsset(scope,key,field){
+  return D.visualAssets?.[scope]?.[key]?.[field] || '';
+}
+function localOrRemoteImage(u){
+  const s=String(u||'').trim();
+  return (/^https?:\/\//i.test(s)||s.startsWith('/'))?s:'';
+}
+function demoPrice(title,kind){
+  const seed=hashStr(`${title}|${kind}|layout-demo`);
+  const ranges={
+    used:[79,220],
+    new:[189,360],
+    digital:[129,300],
+    special:[399,900]
+  };
+  const [min,max]=ranges[kind]||[99,299];
+  const value=min+(seed%(max-min+1));
+  return brl(Math.floor(value)+0.90);
+}
+function heroVisual(title,{image='',label='KEY ART / WALLPAPER'}={}){
+  const src=localOrRemoteImage(image);
+  const h=hashStr(title)%360;
+  const style=src
+    ?`--hero-img:url("${esc(src)}");--hero-h:${h}`
+    :`--hero-img:none;--hero-h:${h}`;
+  return `<div class="game-hero-art ${src?'has-image':''}" style='${style}'>
+    ${src?'':`<div class="game-hero-placeholder"><b>${esc(initialsOf(title))}</b><span>${esc(label)}</span></div>`}
+  </div>`;
+}
+function gameHeroMarkup({title,kicker='',copy='',image='',artLabel='KEY ART / WALLPAPER',actions=''}) {
+  return `<section class="game-hero">
+    <div class="game-hero-copy">
+      ${kicker?`<span class="game-hero-kicker">${esc(kicker)}</span>`:''}
+      <h1>${esc(title)}</h1>
+      ${copy?`<p>${esc(copy)}</p>`:''}
+      ${actions?`<div class="game-hero-actions">${actions}</div>`:''}
+    </div>
+    ${heroVisual(title,{image,label:artLabel})}
+  </section>`;
+}
+function storePills(names){
+  return `<div class="store-pills">${names.filter(Boolean).map(n=>`<span class="store-pill">${esc(n)}</span>`).join('')}</div>`;
+}
+function purchasePriceMarkup(cond,p,platform){
   const s=summaryOf(cond,p.title,platform);
-  let price;
-  if(!s)price='<span class="fine">Consultando ofertas…</span>';
-  else if(s.status==='ok'&&s.count)price=`A partir de <b>${esc(s.minDisplay)}</b> <span class="fine">· ${s.count} ${s.count===1?'oferta':'ofertas'}</span> ${s.mock?mockChip():''}`;
-  else if(s.status==='empty')price='<span class="fine">Nenhuma oferta validada agora</span>';
-  else price='<span class="fine">Preço indisponível agora</span>';
-  const note=cond==='used'?'Autenticidade não verificada':'Frete e taxas podem variar';
-  return `<button class="cond-block ${cond==='used'?'lead':''}" data-act="open-offers" data-title="${esc(p.title)}" data-platform="${esc(platform)}" data-cond="${cond}">
-    <div class="cond-name"><span>${COND_LABEL[cond]}</span><span class="link-cta">Ver ofertas →</span></div>
-    <div class="cond-price">${price}</div><div class="cond-note">${note}</div></button>`;
+  if(s&&s.status==='ok'&&s.count){
+    return `<span class="purchase-from">a partir de</span><strong>${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}`;
+  }
+  return `<span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(p.title,cond))}</strong>${mockChip()}`;
+}
+function physicalMediaMarkup(p,platform){
+  const rows=[];
+  if(p.new!==false){
+    rows.push(`<div class="purchase-price-row"><span class="purchase-condition">Novo</span><span class="purchase-value">${purchasePriceMarkup('new',p,platform)}</span></div>`);
+  }
+  if(p.used!==false){
+    rows.push(`<div class="purchase-price-row"><span class="purchase-condition">Usado</span><span class="purchase-value">${purchasePriceMarkup('used',p,platform)}</span></div>`);
+  }
+  return `<section class="purchase-media-group">
+    <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Físico</h3></div><span class="purchase-arrow">→</span></div>
+    <div class="purchase-price-list">${rows.join('')}</div>
+    ${storePills(['Mercado Livre','Amazon','OLX','Enjoei'])}
+  </section>`;
+}
+function digitalMediaMarkup(p,platform){
+  const stores=digitalStores(p,platform).map(s=>s.name);
+  const names=stores.length?stores:(platform.includes('PlayStation')?['PlayStation Store']:platform.includes('Switch')?['Nintendo eShop']:['Loja digital oficial']);
+  return `<section class="purchase-media-group">
+    <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Digital</h3></div><span class="purchase-arrow">→</span></div>
+    <div class="purchase-price-row"><span class="purchase-condition">Download</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(p.title,'digital'))}</strong>${mockChip()}</span></div>
+    ${storePills(names)}
+  </section>`;
+}
+function purchaseOptionsMarkup(p,platform){
+  const physical=p.physical!==false;
+  const digital=p.digital===true || hasDigital(p,platform);
+  const blocks=[];
+  if(physical)blocks.push(physicalMediaMarkup(p,platform));
+  if(digital)blocks.push(digitalMediaMarkup(p,platform));
+  if(!blocks.length){
+    blocks.push(`<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`);
+  }
+  return blocks.join('');
+}
+function visualMenuCard({title,copy,kind='collectibles',image='',href='#'}){
+  const src=localOrRemoteImage(image);
+  const icon=kind==='fanmade'?ico('brush',34):ico('cube',34);
+  return `<article class="visual-menu-card">
+    <div class="visual-menu-art ${kind} ${src?'has-image':''}" ${src?`style='--menu-img:url("${esc(src)}")'`:''}>
+      ${src?'':`<span class="visual-menu-icon">${icon}</span>`}
+    </div>
+    <div class="visual-menu-body">
+      <h2>${esc(title)}</h2>
+      <p>${esc(copy)}</p>
+      <a class="link-cta" href="${esc(href)}">Explorar →</a>
+    </div>
+  </article>`;
+}
+function purchaseModuleMarkup(p,platform,{coverImage=''}={}){
+  const cover=coverImage||visualAsset('games',p.slug,'cover');
+  return `<article class="purchase-module" id="comprar-jogo">
+    <div class="purchase-cover" id="productCoverSlot">${coverTile(p.title,{platform,image:cover})}</div>
+    <div class="purchase-main">
+      <div class="purchase-title-row"><div><span class="purchase-kicker">COMPRAR O JOGO</span><h2>${esc(p.title)}</h2></div><span class="demo-layout-chip">LAYOUT DEMO</span></div>
+      <div class="plat-row" role="group" aria-label="Plataforma">${p.variants.map(v=>v[1]).filter((v,i,a)=>a.indexOf(v)===i).map(x=>`<button class="plat-btn" aria-pressed="${x===platform}" data-act="pick-platform" data-slug="${p.slug}" data-plat="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <div class="purchase-options" id="purchaseOptions">${purchaseOptionsMarkup(p,platform)}</div>
+      <p class="purchase-demo-note">Referência visual: preços e disponibilidade podem ser exemplos. Quando as fontes reais entrarem, este mesmo componente recebe os valores verdadeiros.</p>
+    </div>
+  </article>`;
 }
 function renderProduct(slug,params,token){
   const p=catalogBySlug.get(slug);
@@ -172,36 +308,36 @@ function renderProduct(slug,params,token){
   const platforms=p.variants.map(v=>v[1]);
   const platform=platforms.includes(wanted)?wanted:platforms[0];
   const u=uMap.get(p.universe);
-  const dig=hasDigital(p,platform);
   setTitle(`${p.title} (${platform})`);
   const ref=gameRef(p),cur=invGet(ref.id);
+  const heroImage=visualAsset('games',p.slug,'hero');
+  const merchImage=visualAsset('games',p.slug,'merch');
+  const fanImage=visualAsset('games',p.slug,'fanmade');
+  const heroActions=`
+    <a class="btn btn-primary" href="#comprar-jogo">Onde comprar</a>
+    ${saveButton(ref,{label:true})}
+    ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
+  const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
-  <div class="product">
-    <div class="product-cover" id="productCoverSlot">${coverTile(p.title,{platform,image:bestOfferImage(p,platform)})}</div>
-    <div>
-      <h1>${esc(p.title)}</h1>
-      <div class="plat-row" role="group" aria-label="Plataforma">${platforms.map(x=>`<button class="plat-btn" aria-pressed="${x===platform}" data-act="pick-platform" data-slug="${p.slug}" data-plat="${esc(x)}">${esc(x)}</button>`).join('')}</div>
-      <p class="media-line">Mídia física${dig?' / Digital':''}${p.year?' · '+p.year:''}${cur?` · <span class="chip status">${cur.status==='owned'?'Tenho':'Quero'}</span>`:''}</p>
-      <div class="product-actions">
-        <button class="btn btn-primary" data-act="open-offers" data-title="${esc(p.title)}" data-platform="${esc(platform)}" data-cond="all">Ver ofertas</button>
-        ${saveButton(ref,{label:true})}
-      </div>
-      <div class="cond-blocks" id="condBlocks">${blockMarkup('used',p,platform)}${blockMarkup('new',p,platform)}${dig?blockMarkup('digital',p,platform):''}</div>
-      <p class="fine" style="margin-top:14px">Novo, usado e digital são comparados separadamente: cada um tem o seu “a partir de”.</p>
-    </div>
+  ${gameHeroMarkup({title:p.title,kicker:platform,copy:heroCopy,image:heroImage,artLabel:'KEY ART DO JOGO',actions:heroActions})}
+  <div class="game-commerce-grid">
+    ${purchaseModuleMarkup(p,platform)}
+    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',image:merchImage,href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
+    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',image:fanImage,href:`#/merch?cat=fanmade&uni=${p.universe}`})}
   </div>`;
+  hydrateIgdbVisuals({
+    title:p.title,
+    platform,
+    year:p.year||'',
+    heroSelector:'.game-hero-art',
+    coverSelector:'#productCoverSlot'
+  });
   ['used','new'].forEach(async cond=>{
     await fetchCond(p.title,platform,cond);
     if(token!==viewToken)return;
-    const slot=$('#condBlocks');
-    if(!slot)return;
-    const idx=cond==='used'?0:1;
-    const el=slot.children[idx];
-    if(el)el.outerHTML=blockMarkup(cond,p,platform);
-    const cover=$('#productCoverSlot');
-    const img=bestOfferImage(p,platform);
-    if(cover&&img)cover.innerHTML=coverTile(p.title,{platform,image:img});
+    const slot=$('#purchaseOptions');
+    if(slot)slot.innerHTML=purchaseOptionsMarkup(p,platform);
   });
 }
 
@@ -245,26 +381,82 @@ function renderUniverse(slug,params){
   }
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/games">Games</a> › <span>${esc(u.name)}</span></nav>
-  <section class="banner"><span class="chip">${esc(ECO_LABEL[u.eco]||'')}</span><h1>Universo ${esc(u.name)}</h1>
-    <p>${titles.length?`${titles.length} jogos catalogados, com ofertas novas, usadas e digitais separadas.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}</p></section>
+  ${gameHeroMarkup({
+    title:`Universo ${u.name}`,
+    kicker:ECO_LABEL[u.eco]||'',
+    copy:`${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}`,
+    image:visualAsset('universes',u.slug,'hero'),
+    artLabel:'ARTE DA FRANQUIA'
+  })}
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="#/universo/${slug}?tab=${k}" aria-current="${k===tab}">${l}</a>`).join('')}</div>
   ${body}`;
 }
 
 /* ---------- tema em alta ---------- */
+function themeDemoConfig(t){
+  const presets={
+    'gta-vi':{physical:false,digital:true,platform:'PS5 · Xbox Series X|S'},
+    'marvels-wolverine':{physical:true,digital:true,platform:'PS5'},
+    'ocarina-of-time-remake':{physical:true,digital:true,platform:'Switch 2'},
+    'fire-emblem-fortunes-weave':{physical:true,digital:true,platform:'Switch 2'}
+  };
+  return presets[t.slug]||{physical:true,digital:true,platform:''};
+}
+function themePurchaseGroup(title,kind,enabled,platform){
+  if(!enabled)return '';
+  if(kind==='physical'){
+    return `<section class="purchase-media-group">
+      <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Físico</h3></div><span class="purchase-arrow">→</span></div>
+      <div class="purchase-price-list">
+        <div class="purchase-price-row"><span class="purchase-condition">Novo</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(title,'new'))}</strong>${mockChip()}</span></div>
+        <div class="purchase-price-row"><span class="purchase-condition">Usado</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(title,'used'))}</strong>${mockChip()}</span></div>
+      </div>
+      ${storePills(['Mercado Livre','Amazon','OLX','Enjoei'])}
+    </section>`;
+  }
+  return `<section class="purchase-media-group">
+    <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Digital</h3></div><span class="purchase-arrow">→</span></div>
+    <div class="purchase-price-row"><span class="purchase-condition">Download</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(title,'digital'))}</strong>${mockChip()}</span></div>
+    ${storePills(platform.includes('PS')?['PlayStation Store','Nuuvem']:platform.includes('Switch')?['Nintendo eShop','Nuuvem']:['Loja oficial','Nuuvem'])}
+  </section>`;
+}
 function renderTheme(slug){
   const t=D.trendingNow.find(x=>x.slug===slug);
   if(!t)return renderNotFound();
   const u=t.universe&&uMap.get(t.universe);
+  const cfg=themeDemoConfig(t);
+  const heroImage=visualAsset('themes',t.slug,'hero');
+  const coverImage=visualAsset('themes',t.slug,'cover');
+  const merchImage=visualAsset('themes',t.slug,'merch');
+  const fanImage=visualAsset('themes',t.slug,'fanmade');
   setTitle(t.short);
+  const heroActions=`
+    <a class="btn btn-primary" href="#comprar-jogo">Onde comprar</a>
+    ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
+  const fakeProduct={title:t.title,slug:t.slug,variants:[['Demo',cfg.platform||'Plataforma']],physical:cfg.physical,digital:cfg.digital};
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/em-alta">Em alta</a> › <span>${esc(t.short)}</span></nav>
-  <section class="banner"><span class="chip">${esc(sentence(t.tag))}</span><h1>${esc(t.title)}</h1><p>${esc(t.copy)}</p>
-    <div class="banner-actions"><a class="btn btn-primary" href="${esc(ext.ml(t.query))}" target="_blank" rel="noopener noreferrer">Físico no Brasil ↗</a>
-    <a class="btn btn-ghost" href="${esc(safeUrl(t.digital))}" target="_blank" rel="noopener noreferrer">Digital / oficial ↗</a>
-    ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}</div></section>
-  <p class="fine" style="margin-top:12px">Curadoria manual de ${esc(D.trendingUpdated)}. Os links levam às páginas oficiais e às buscas das lojas; o Inventário não mostra preço deste item até haver uma fonte confiável.</p>
-  <div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2>${marketShortcuts(t.short)}</div>`;
+  ${gameHeroMarkup({title:t.title,kicker:sentence(t.tag),copy:t.copy,image:heroImage,artLabel:'KEY ART / WALLPAPER OFICIAL',actions:heroActions})}
+  <p class="fine visual-demo-warning">LAYOUT DEMO · As imagens, disponibilidade e preços abaixo são referências visuais até conectarmos as fontes oficiais.</p>
+  <div class="game-commerce-grid">
+    <article class="purchase-module" id="comprar-jogo">
+      <div class="purchase-cover">${coverTile(t.title,{platform:cfg.platform,image:coverImage})}</div>
+      <div class="purchase-main">
+        <div class="purchase-title-row"><div><span class="purchase-kicker">COMPRAR O JOGO</span><h2>${esc(t.short)}</h2></div><span class="demo-layout-chip">LAYOUT DEMO</span></div>
+        ${cfg.platform?`<p class="purchase-platform">${esc(cfg.platform)}</p>`:''}
+        <div class="purchase-options">${themePurchaseGroup(t.title,'physical',cfg.physical,cfg.platform)}${themePurchaseGroup(t.title,'digital',cfg.digital,cfg.platform)}</div>
+        <p class="purchase-demo-note">Quando os dados reais entrarem, o bloco mantém o mesmo desenho e apenas substitui preço, disponibilidade e lojas.</p>
+      </div>
+    </article>
+    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Itens oficiais e colecionáveis relacionados a este jogo ou universo.',kind:'collectibles',image:merchImage,href:u?`#/merch?cat=colecionaveis&uni=${u.slug}`:'#/merch?cat=colecionaveis'})}
+    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Criações de fãs, decoração e peças artesanais relacionadas ao universo.',kind:'fanmade',image:fanImage,href:u?`#/merch?cat=fanmade&uni=${u.slug}`:'#/merch?cat=fanmade'})}
+  </div>`;
+  hydrateIgdbVisuals({
+    title:t.title,
+    platform:cfg.platform||'',
+    heroSelector:'.game-hero-art',
+    coverSelector:'#comprar-jogo .purchase-cover'
+  });
 }
 function renderTrendingPage(){
   setTitle('Em alta');
