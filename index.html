@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventário Gamer — Beta1 + Claudinho</title>
+<meta name="description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
+<link rel="icon" type="image/png" href="/inventario-logo-header.png?v=Beta1-Claudinho">
+<link rel="stylesheet" href="/src/style.css?v=Beta1-Claudinho">
+</head>
+<body>
+<a class="skip" href="#main">Pular para o conteúdo</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="#/" aria-label="Inventário Gamer — início">
+      <img class="brand-logo" src="/inventario-logo-header.png?v=Beta1-Claudinho" alt="Inventário Gamer">
+    </a>
+    <div class="search">
+      <span class="s-ico" aria-hidden="true">⌕</span>
+      <input id="searchInput" type="search" autocomplete="off" placeholder="Busque por games, franquias ou colecionáveis..." aria-label="Buscar games, franquias ou colecionáveis" aria-expanded="false" aria-controls="suggest" role="combobox" aria-autocomplete="list">
+      <div id="suggest" class="suggest" role="listbox" hidden></div>
+    </div>
+    <button id="searchGo" class="search-go" aria-label="Buscar">Buscar</button>
+    <nav class="main-nav" aria-label="Categorias">
+      <a id="nav-games" href="#/games">Games</a>
+      <a id="nav-merch" href="#/merch?cat=acessorios">Acessórios</a>
+      <a href="#/merch?cat=colecionaveis">Colecionáveis</a>
+      <a href="#/merch?cat=fanmade">Fan-made</a>
+      <a id="nav-alta" href="#/em-alta">Em alta</a>
+    </nav>
+    <a id="nav-inv" class="inv-link" href="#/inventario">
+      <span class="inv-pixel" aria-hidden="true"></span>
+      <span>Meu Inventário</span>
+      <span id="invCount" class="count-badge" hidden>0</span>
+    </a>
+  </div>
+</header>
+
+<main id="main" tabindex="-1"></main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>Inventário Gamer organiza e compara ofertas; a compra acontece na loja de origem.</span>
+    <span><button id="mockToggle" type="button">Modo demonstração</button> · itens de exemplo são sempre identificados.</span>
+  </div>
+</footer>
+
+<div id="offerOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="offerModalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div><span class="modal-kicker">COMPARAÇÃO DE OFERTAS</span><h2 id="offerModalTitle">Ofertas</h2></div>
+      <button class="modal-close" data-act="close-overlay" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="offerTabs" class="otabs"></div>
+      <div id="offerBody"></div>
+    </div>
+  </div>
+</div>
+
+<div id="saveOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="saveModalTitle">
+  <div class="modal small">
+    <div class="modal-head">
+      <div><span class="modal-kicker">MEU INVENTÁRIO</span><h2 id="saveModalTitle">Salvar</h2></div>
+      <button class="modal-close" data-act="close-overlay" aria-label="Fechar">✕</button>
+    </div>
+    <div id="saveOptions" class="save-list"></div>
+    <div id="saveSnapshot" hidden>
+      <div class="field"><label for="snapPrice">Preço pago (opcional)</label><input id="snapPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="R$"></div>
+      <div class="save-list" style="padding-top:0"><button class="btn btn-primary" data-act="save-snapshot">Salvar no Inventário</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="filterOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="filterModalTitle">
+  <div class="modal small sheet-modal">
+    <div class="modal-head">
+      <div><span class="modal-kicker">BUSCA</span><h2 id="filterModalTitle">Filtros</h2></div>
+      <button class="modal-close" data-act="close-overlay" aria-label="Fechar">✕</button>
+    </div>
+    <div id="filterBody" class="modal-body"></div>
+    <div class="sheet-actions"><button id="filterApply" class="btn btn-primary btn-block">Aplicar filtros</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<nav class="mobile-bottom" aria-label="Navegação móvel">
+  <a href="#/"><b>⌂</b><span>Início</span></a>
+  <button type="button" data-mobile-search><b>⌕</b><span>Busca</span></button>
+  <a href="#/inventario"><b>▣</b><span>Inventário</span></a>
+</nav>
+
+<script src="/catalog-data.js?v=Beta1-Claudinho"></script>
+<script src="/mock-data.js?v=Beta1-Claudinho"></script>
+<script src="/src/app-1-core.js?v=Beta1-Claudinho"></script>
+<script src="/src/app-2-search.js?v=Beta1-Claudinho"></script>
+<script src="/src/app-3-views.js?v=Beta1-Claudinho"></script>
+<script src="/src/app-main.js?v=Beta1-Claudinho"></script>
+</body>
+</html>
