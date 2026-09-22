@@ -1,0 +1,291 @@
+import {
+  directorySections, featuredGameSlugs, gameSeeds, lineageLabels,
+  getContextCount, getFranchiseSeed, getFranchiseTheme, getGameSeed
+} from '../catalog-data.js';
+import { demoMerch, demoFanMade } from '../mock-data.js';
+import { escapeHtml, fetchJson, setDocumentTitle, showToast } from './app-core.js';
+import { getGameState, readInventory, setGameStatus, toggleAlert } from './inventory.js';
+
+function shell(content, className = '') { return `<div class="page ${className}">${content}</div>`; }
+function breadcrumb(items) {
+  return `<nav class="breadcrumb" aria-label="Breadcrumb">${items.map((item, i) => item.href
+    ? `<a href="${item.href}">${escapeHtml(item.label)}</a>${i < items.length - 1 ? '<span>/</span>' : ''}`
+    : `<span aria-current="page">${escapeHtml(item.label)}</span>`).join('')}</nav>`;
+}
+function lineageBadge(lineage) { return `<span class="lineage-badge lineage-${escapeHtml(lineage)}">${escapeHtml(lineageLabels[lineage] || lineage)}</span>`; }
+function loadingImage(kind='cover') { return `<div class="media-placeholder ${kind}" aria-hidden="true"><span>IG</span></div>`; }
+function gameLink(game) { return `#/jogo/${encodeURIComponent(game.slug)}`; }
+function universeLink(slug, tab='') { return `#/universo/${encodeURIComponent(slug)}${tab ? `?tab=${encodeURIComponent(tab)}` : ''}`; }
+
+function marketSearchUrl(provider, query) {
+  const q = encodeURIComponent(query);
+  if (provider === 'Mercado Livre') return `https://lista.mercadolivre.com.br/${q}`;
+  if (provider === 'OLX') return `https://www.olx.com.br/brasil?q=${q}`;
+  if (provider === 'Amazon') return `https://www.amazon.com.br/s?k=${q}`;
+  if (provider === 'Shopee') return `https://shopee.com.br/search?keyword=${q}`;
+  return '#/games';
+}
+
+function marketShortcuts(query) {
+  return `<div class="market-shortcuts">
+    <div class="shortcut-group"><h3>Físico no Brasil</h3><div>${['Mercado Livre','OLX','Amazon'].map(name => `<a href="${marketSearchUrl(name, query)}" target="_blank" rel="noopener noreferrer">${name} ↗</a>`).join('')}</div></div>
+    <div class="shortcut-group"><h3>Colecionáveis e merch</h3><div>${['Mercado Livre','Shopee'].map(name => `<a href="${marketSearchUrl(name, `${query} colecionável`)}" target="_blank" rel="noopener noreferrer">${name} ↗</a>`).join('')}</div></div>
+    <div class="shortcut-group"><h3>Fan-made e artesanais</h3><div>${['Shopee','Mercado Livre'].map(name => `<a href="${marketSearchUrl(name, `${query} artesanal`)}" target="_blank" rel="noopener noreferrer">${name} ↗</a>`).join('')}</div></div>
+  </div>`;
+}
+
+function compactGameCard(game) {
+  return `<a class="catalog-card hydrate-game" href="${gameLink(game)}" data-query="${escapeHtml(game.igdbQuery)}" data-year="${game.year}">
+    <div class="card-cover pixel-cover">${loadingImage()}</div>
+    <div class="catalog-card-title">${escapeHtml(game.name)}</div>
+    <div class="catalog-card-meta">${game.year} · ${escapeHtml(game.platforms[0] || '')}</div>
+    <div class="catalog-card-tags">${lineageBadge(game.lineage)}${game.retro ? '<span class="retro-badge">Retrô</span>' : ''}</div>
+    <span class="catalog-card-cta">Ver o jogo →</span>
+  </a>`;
+}
+
+export function renderHome(root) {
+  setDocumentTitle('');
+  const featured = featuredGameSlugs.map(getGameSeed).filter(Boolean);
+  const top = featured.slice(0, 3);
+  const rest = featured.slice(3);
+  const shelf = [
+    { title:'Jogos usados', context:'Mídia física no mercado nacional', label:'USADOS', href:'#/games', tone:'used' },
+    { title:'Novos', context:'Lançamentos e reposições', label:'NOVOS', href:'#/games', tone:'new' },
+    { title:'Retrogamer', context:'N64, PS1, Mega Drive e mais', label:'RETRÔ', href:'#/universo/sonic-the-hedgehog?tab=retro', tone:'retro' }
+  ];
+  const merch = [
+    { title:'Amiibo', context:'Colecionáveis oficiais', label:'AMIIBO', href:'#/merch?cat=colecionaveis', tone:'amiibo' },
+    { title:'Decoração', context:'Quadros, placas e luminárias', label:'MERCH', href:'#/merch?cat=merch', tone:'decor' },
+    { title:'Artesanais', context:'Fan-made e criações de fãs', label:'FAN-MADE', href:'#/merch?cat=fanmade', tone:'fanmade' }
+  ];
+  const shelfCard = item => `<a class="home-shelf-card" href="${item.href}">
+    <div class="home-shelf-art tone-${item.tone}"><span>${escapeHtml(item.label)}</span></div>
+    <strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.context)}</small><span class="home-card-cta">Ver mais →</span>
+  </a>`;
+
+  root.innerHTML = shell(`
+    <h1 class="home-classic-title">Encontre o item que falta no seu Inventário.</h1>
+    <div class="home-classic-grid">
+      <section class="home-panel home-panel-trending" aria-labelledby="home-trending-title">
+        <div class="home-panel-head"><h2 id="home-trending-title">Em alta</h2><a href="#/em-alta">Ver tudo</a></div>
+        <div class="home-panel-body">
+          <div class="home-cards-three">${top.map(game => `<a class="home-trend-card hydrate-game" href="${gameLink(game)}" data-query="${escapeHtml(game.igdbQuery)}" data-year="${game.year}">
+            <div class="card-cover pixel-cover">${loadingImage()}</div><strong>${escapeHtml(game.name)}</strong><small>${escapeHtml(lineageLabels[game.lineage])}${game.retro ? ' · Retrô' : ''}</small><span class="home-card-cta">Ver mais →</span>
+          </a>`).join('')}</div>
+          ${rest.length ? `<div class="home-also"><h3>Também em alta</h3>${rest.map(game => `<a href="${gameLink(game)}"><span>${escapeHtml(game.name)}</span><small>${game.year} · ${escapeHtml(lineageLabels[game.lineage])}</small></a>`).join('')}</div>` : ''}
+          <p class="home-fine">Seleção do catálogo. Capas são hidratadas pela IGDB; preço só aparece quando existe fonte comercial válida.</p>
+        </div>
+      </section>
+      <section class="home-panel" aria-labelledby="home-games-title"><div class="home-panel-head"><h2 id="home-games-title">Games e ofertas</h2><a href="#/games">Ver universos</a></div><div class="home-panel-body"><div class="home-cards-three">${shelf.map(shelfCard).join('')}</div></div></section>
+      <section class="home-panel" aria-labelledby="home-merch-title"><div class="home-panel-head"><h2 id="home-merch-title">Merch &amp; fan-made</h2><a href="#/merch">Ver tudo</a></div><div class="home-panel-body"><div class="home-cards-three">${merch.map(shelfCard).join('')}</div></div></section>
+    </div>
+  `, 'home-page');
+  hydrateGameCards(root);
+}
+
+export function renderGames(root) {
+  setDocumentTitle('Games');
+  root.innerHTML = shell(`
+    ${breadcrumb([{label:'Início', href:'#/'},{label:'Games'}])}
+    <header class="page-heading compact-heading"><h1>Games</h1><p>Escolha um universo. Retrô é um recorte do catálogo, não uma plataforma separada: o contador considera apenas os lançamentos retrô daquele universo.</p></header>
+    <section class="directory-list">${directorySections.map(section => `<article class="directory-row" style="--section-color:${section.color}">
+      <div class="directory-brand">${section.icon ? `<img src="${section.icon}" alt="" />` : `<span class="brand-word">${escapeHtml(section.brandText)}</span>`}<div><strong>${escapeHtml(section.title)}</strong><small>${escapeHtml(section.subtitle)}</small></div></div>
+      <div class="franchise-chips">${section.franchises.map(([name, slug]) => { const count = getContextCount(slug, section.id); return `<a href="${universeLink(slug, section.id === 'retro' ? 'retro' : '')}" class="franchise-chip"><span>${escapeHtml(name)}</span>${count != null ? `<small title="Jogos catalogados neste contexto">${count}</small>` : ''}</a>`; }).join('')}</div>
+    </article>`).join('')}</section>
+  `, 'games-page');
+}
+
+function filterUniverseGames(games, tab) {
+  if (tab === 'original') return games.filter(game => game.lineage === 'original');
+  if (tab === 'remake') return games.filter(game => game.lineage === 'remake');
+  if (tab === 'retro') return games.filter(game => game.retro);
+  return games;
+}
+
+export async function renderUniverse(root, slug, query = new URLSearchParams()) {
+  const theme = getFranchiseTheme(slug);
+  const allGames = getFranchiseSeed(slug).sort((a,b) => a.year - b.year);
+  const tab = query.get('tab') || 'tudo';
+  const games = filterUniverseGames(allGames, tab);
+  const tabs = [['tudo','Tudo'],['games','Games'],['original','Originais'],['remake','Remakes'],['retro','Retrô']];
+  setDocumentTitle(`Universo ${theme.title}`);
+
+  root.innerHTML = shell(`
+    ${breadcrumb([{label:'Início',href:'#/'},{label:'Games',href:'#/games'},{label:`Universo ${theme.title}`}])}
+    <section class="universe-hero theme-${theme.style}" style="--accent:${theme.accent};--focus:${theme.focus}">
+      <div class="hero-backdrop" data-universe-hero>${loadingImage('hero')}</div>
+      <div class="universe-hero-copy"><p class="universe-kicker">UNIVERSO</p><h1>${escapeHtml(theme.title)}</h1><p>${allGames.length ? `${allGames.length} jogo${allGames.length === 1 ? '' : 's'} catalogado${allGames.length === 1 ? '' : 's'}.` : 'Catálogo em preenchimento.'}</p></div>
+    </section>
+    <nav class="universe-tabs" aria-label="Filtros do universo">${tabs.map(([key,label]) => `<a href="${universeLink(slug,key)}" aria-current="${tab === key ? 'page' : 'false'}">${label}</a>`).join('')}</nav>
+    <div class="universe-status" data-universe-status>Identidade visual: carregando IGDB…</div>
+    <section class="universe-content">
+      <h2>${tab === 'retro' ? 'Catálogo retrô' : tab === 'remake' ? 'Remakes' : tab === 'original' ? 'Originais' : 'Games'}</h2>
+      ${games.length ? `<div class="universe-grid">${games.map(compactGameCard).join('')}</div>` : `<div class="empty-state compact-empty"><strong>Nenhum título desta categoria catalogado ainda.</strong><p>A página continua disponível enquanto a curadoria local é preenchida.</p></div>`}
+    </section>
+    <section class="store-search"><h2>Buscar nas lojas</h2><p>Atalhos para pesquisas externas. O Inventário não transforma resultado de busca em preço validado.</p>${marketShortcuts(theme.title)}</section>
+  `, 'universe-page');
+
+  hydrateGameCards(root);
+  try {
+    const data = await fetchJson(`/api/igdb/franchise?q=${encodeURIComponent(theme.title)}`);
+    const hero = root.querySelector('[data-universe-hero]');
+    if (hero && data.hero?.url) hero.innerHTML = `<img src="${data.hero.url}" alt="" style="object-position:${escapeHtml(theme.focus)}" />`;
+    const status = root.querySelector('[data-universe-status]');
+    if (status) status.textContent = data.games?.length ? `IGDB relacionada: ${data.games.length} registros · catálogo exibido: curadoria local` : 'Curadoria local ativa';
+  } catch {
+    const status = root.querySelector('[data-universe-status]');
+    if (status) status.textContent = 'Curadoria local · IGDB indisponível agora';
+  }
+}
+
+function commerceTile(title, items, kind) {
+  if (!items?.length) return '';
+  const item = items[0];
+  return `<article class="commerce-tile commerce-${kind}">
+    <div class="commerce-art"><span>${kind === 'merch' ? 'MERCH' : 'FAN-MADE'}</span></div>
+    <div class="commerce-tile-copy"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.title)}</p><small>${escapeHtml(item.note || 'Categoria de demonstração, sem preço fictício.')}</small><span class="demo-flag">EXEMPLO DE CATEGORIA</span></div>
+    <a href="#/merch?cat=${kind === 'merch' ? 'colecionaveis' : 'fanmade'}">Explorar →</a>
+  </article>`;
+}
+
+function gameSkeleton(seed, theme) {
+  const state = getGameState(seed.slug);
+  const familyName = seed.name.replace(/[:].*$/,'');
+  const related = getFranchiseSeed(seed.franchise).filter(g => g.slug !== seed.slug && g.name.replace(/[:].*$/,'') === familyName);
+  const merch = demoMerch[seed.slug] || [];
+  const fanMade = demoFanMade[seed.slug] || [];
+  const commerceCount = Number(Boolean(merch.length)) + Number(Boolean(fanMade.length));
+  return `
+    ${breadcrumb([{label:'Início',href:'#/'},{label:'Games',href:'#/games'},{label:`Universo ${theme.title}`,href:universeLink(seed.franchise)},{label:`${seed.name} (${seed.year})`}])}
+    <section class="game-hero theme-${theme.style}" style="--accent:${theme.accent}">
+      <div class="game-hero-media" data-game-hero>${loadingImage('hero')}</div><div class="game-hero-overlay"></div>
+      <div class="game-hero-copy"><div class="hero-badges">${lineageBadge(seed.lineage)}${seed.retro ? '<span class="retro-badge">Retrô</span>' : ''}</div><h1>${escapeHtml(seed.name)}</h1><p>${escapeHtml(theme.title)} · ${escapeHtml(seed.platforms.join(' · '))} · ${seed.year}</p>
+        <div class="hero-actions"><a class="btn primary" href="#purchase">Onde comprar</a><button class="btn ghost inventory-action" data-status="want">${state.status === 'want' ? '✓ Quero' : 'Quero'}</button><a class="btn ghost" href="${universeLink(seed.franchise)}">Universo ${escapeHtml(theme.title)} →</a></div>
+      </div>
+    </section>
+    ${related.length ? `<section class="lineage-context"><strong>Mesma linhagem, versões diferentes.</strong><div>${related.map(g => `<a href="${gameLink(g)}">${escapeHtml(g.name)} (${g.year}) ${lineageBadge(g.lineage)}${g.retro ? '<span class="retro-badge">Retrô</span>' : ''}</a>`).join('')}</div></section>` : ''}
+    <section id="purchase" class="game-commerce-layout side-count-${commerceCount}">
+      <article class="purchase-module">
+        <div class="purchase-cover pixel-cover" data-game-cover>${loadingImage()}</div>
+        <div class="purchase-main"><div class="purchase-heading"><p class="micro-label">COMPRAR O JOGO</p><h2>${escapeHtml(seed.name)}</h2><p class="offer-status" data-offer-status>Consultando ofertas reais…</p></div>
+          <div class="platform-pills">${seed.platforms.map(p => `<span>${escapeHtml(p)}</span>`).join('')}</div>
+          <div class="offer-columns" data-offers><div class="offer-empty"><strong>Carregando ofertas</strong><p>Nenhum preço de demonstração será mostrado como valor real.</p></div></div>
+        </div>
+      </article>
+      ${commerceTile('Colecionáveis e merch', merch, 'merch')}
+      ${commerceTile('Fan-made e artesanais', fanMade, 'fanmade')}
+    </section>
+    <section class="inventory-cta"><div><span class="inventory-kicker">MEU INVENTÁRIO</span><h2>Tenho, Quero ou acompanhar?</h2><p>“Tenho” e “Quero” são estados; alerta é uma ação independente.</p></div><div class="inventory-buttons"><button data-status="have" class="inventory-action ${state.status === 'have' ? 'active':''}">Tenho</button><button data-status="want" class="inventory-action ${state.status === 'want' ? 'active':''}">Quero</button><button data-alert class="${state.alert ? 'active':''}">${state.alert ? 'Alerta ativo' : 'Criar alerta'}</button></div></section>
+    <section class="store-search"><h2>Buscar nas lojas</h2><p>Atalhos externos para ampliar a busca sem misturar resultados não validados ao preço do jogo.</p>${marketShortcuts(`${seed.name} ${seed.year}`)}</section>`;
+}
+
+export async function renderGame(root, slug) {
+  const seed = getGameSeed(slug);
+  if (!seed) return renderNotFound(root);
+  const theme = getFranchiseTheme(seed.franchise);
+  setDocumentTitle(`${seed.name} (${seed.year})`);
+  root.innerHTML = shell(gameSkeleton(seed, theme), 'game-page');
+  mountInventoryActions(root, seed.slug);
+  hydrateGameDetail(root, seed);
+  hydrateOffers(root, seed);
+}
+
+async function hydrateGameDetail(root, seed) {
+  try {
+    const data = await fetchJson(`/api/igdb/game?q=${encodeURIComponent(seed.igdbQuery)}&year=${seed.year}`);
+    if (!data.game) throw new Error('Sem correspondência');
+    const hero = root.querySelector('[data-game-hero]');
+    const cover = root.querySelector('[data-game-cover]');
+    if (hero && data.game.hero?.url) hero.innerHTML = `<img src="${data.game.hero.url}" alt="" />`;
+    if (cover && data.game.cover?.url) cover.innerHTML = `<img src="${data.game.cover.url}" alt="Capa de ${escapeHtml(seed.name)}" />`;
+  } catch { /* fallback visual permanece */ }
+}
+
+async function hydrateOffers(root, seed) {
+  const status = root.querySelector('[data-offer-status]');
+  const box = root.querySelector('[data-offers]');
+  try {
+    const data = await fetchJson(`/api/offers?q=${encodeURIComponent(seed.name)}&year=${seed.year}`);
+    const offers = (data.offers || []).filter(o => o.kind === 'game');
+    if (!offers.length) throw new Error('Sem ofertas');
+    if (status) status.textContent = `${offers.length} oferta${offers.length > 1 ? 's' : ''} encontrada${offers.length > 1 ? 's' : ''}.`;
+    if (box) box.innerHTML = offers.slice(0,6).map(o => `<a class="offer-card" href="${escapeHtml(o.url)}" target="_blank" rel="noopener noreferrer sponsored"><div><span>${escapeHtml(o.conditionLabel)}</span><strong>${escapeHtml(o.title)}</strong><small>${escapeHtml(o.seller || o.provider)}</small></div><b>${o.priceFormatted ? escapeHtml(o.priceFormatted) : 'Ver oferta'}</b></a>`).join('');
+  } catch {
+    if (status) status.textContent = 'Sem ofertas validadas no momento.';
+    if (box) box.innerHTML = `<div class="offer-empty"><strong>Sem ofertas no momento</strong><p>O catálogo continua disponível. Nenhum preço fictício será exibido.</p><button data-alert-inline>Criar alerta</button></div>`;
+    box?.querySelector('[data-alert-inline]')?.addEventListener('click', () => { toggleAlert(seed.slug); updateHeaderInventoryCount(); showToast('Alerta salvo neste dispositivo.'); });
+  }
+}
+
+function mountInventoryActions(root, slug) {
+  root.querySelectorAll('[data-status]').forEach(button => button.addEventListener('click', () => {
+    const state = setGameStatus(slug, button.dataset.status);
+    root.querySelectorAll('[data-status]').forEach(btn => { btn.classList.toggle('active', state.status === btn.dataset.status); if (btn.dataset.status === 'want' && btn.closest('.game-hero')) btn.textContent = state.status === 'want' ? '✓ Quero' : 'Quero'; });
+    updateHeaderInventoryCount();
+    showToast(state.status ? `Marcado como “${state.status === 'have' ? 'Tenho' : 'Quero'}”.` : 'Estado removido.');
+  }));
+  root.querySelector('[data-alert]')?.addEventListener('click', event => {
+    const state = toggleAlert(slug); event.currentTarget.classList.toggle('active', state.alert); event.currentTarget.textContent = state.alert ? 'Alerta ativo' : 'Criar alerta';
+    updateHeaderInventoryCount();
+    showToast(state.alert ? 'Alerta ativado neste dispositivo.' : 'Alerta desativado.');
+  });
+}
+
+export function renderTrending(root) {
+  setDocumentTitle('Em alta');
+  const games = featuredGameSlugs.map(getGameSeed).filter(Boolean);
+  root.innerHTML = shell(`${breadcrumb([{label:'Início',href:'#/'},{label:'Em alta'}])}<header class="page-heading compact-heading"><h1>Em alta</h1><p>Seleção atual do catálogo para descoberta. Isto não é um ranking em tempo real nem usa dados inventados de tendência.</p></header><div class="universe-grid trending-grid">${games.map(compactGameCard).join('')}</div>`, 'trending-page');
+  hydrateGameCards(root);
+}
+
+export function renderMerch(root, query = new URLSearchParams()) {
+  const cat = query.get('cat') || 'tudo';
+  const labels = { tudo:'Merch, colecionáveis e fan-made', acessorios:'Acessórios', colecionaveis:'Colecionáveis', merch:'Merch', fanmade:'Fan-made' };
+  const title = labels[cat] || labels.tudo;
+  const merchItems = Object.entries(demoMerch).flatMap(([slug,items]) => items.map(item => ({...item,slug,kind:'merch'})));
+  const fanItems = Object.entries(demoFanMade).flatMap(([slug,items]) => items.map(item => ({...item,slug,kind:'fanmade'})));
+  let items = [...merchItems, ...fanItems];
+  if (cat === 'fanmade') items = fanItems;
+  else if (cat === 'colecionaveis' || cat === 'merch' || cat === 'acessorios') items = merchItems;
+  setDocumentTitle(title);
+  root.innerHTML = shell(`${breadcrumb([{label:'Início',href:'#/'},{label:title}])}<header class="page-heading compact-heading"><h1>${escapeHtml(title)}</h1><p>Esta área já preserva a navegação do projeto antigo. Só itens explicitamente marcados como demonstração aparecem antes das integrações comerciais.</p></header><nav class="category-tabs"><a href="#/merch" aria-current="${cat === 'tudo' ? 'page' : 'false'}">Tudo</a><a href="#/merch?cat=acessorios" aria-current="${cat === 'acessorios' ? 'page' : 'false'}">Acessórios</a><a href="#/merch?cat=colecionaveis" aria-current="${cat === 'colecionaveis' ? 'page' : 'false'}">Colecionáveis</a><a href="#/merch?cat=fanmade" aria-current="${cat === 'fanmade' ? 'page' : 'false'}">Fan-made</a></nav>${items.length ? `<div class="merch-grid">${items.map(item => { const game=getGameSeed(item.slug); return `<article class="merch-card"><div class="commerce-art"><span>${item.kind === 'fanmade' ? 'FAN-MADE' : 'MERCH'}</span></div><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.note || '')}</p><span class="demo-flag">EXEMPLO DE CATEGORIA</span>${game ? `<a href="${gameLink(game)}">Ver jogo relacionado →</a>` : ''}</article>`; }).join('')}</div>` : `<div class="empty-state"><strong>Integração em preparação.</strong><p>Não há itens reais validados nesta categoria agora, então nenhuma oferta fictícia será exibida.</p></div>`}`, 'merch-page');
+}
+
+export function renderInventory(root) {
+  setDocumentTitle('Meu Inventário');
+  const states = readInventory();
+  const items = Object.entries(states).map(([slug, state]) => ({ game:getGameSeed(slug), state })).filter(x => x.game && (x.state.status || x.state.alert));
+  root.innerHTML = shell(`<section class="inventory-world"><div class="inventory-world-header"><div><p class="inventory-kicker">PAUSE MENU</p><h1>Meu Inventário</h1><p>O que você tem, o que procura e os avisos que quer acompanhar neste aparelho.</p></div><span class="inventory-count">${items.length.toString().padStart(2,'0')}</span></div>${items.length ? `<div class="inventory-list">${items.map(({game,state}) => `<a href="${gameLink(game)}"><div><span>${state.status === 'have' ? 'TENHO' : state.status === 'want' ? 'QUERO' : 'ACOMPANHANDO'}</span><strong>${escapeHtml(game.name)} (${game.year})</strong><small>${escapeHtml(lineageLabels[game.lineage])}${state.alert ? ' · alerta ativo' : ''}</small></div><b>→</b></a>`).join('')}</div>` : `<div class="inventory-empty"><div class="pixel-box">?</div><h2>Seu inventário está vazio.</h2><p>Abra um jogo e marque “Tenho” ou “Quero”. Os dados ficam neste navegador nesta primeira versão.</p><a class="btn inventory-btn" href="#/games">Explorar catálogo</a></div>`}</section>`, 'inventory-page');
+}
+
+export function renderNotFound(root) {
+  setDocumentTitle('Página não encontrada');
+  root.innerHTML = shell(`<section class="not-found"><span>404</span><h1>Esse item não está no inventário.</h1><p>A rota pode ter mudado ou ainda não foi catalogada.</p><a class="btn primary" href="#/">Voltar ao início</a></section>`);
+}
+
+export function updateHeaderInventoryCount() {
+  const badge = document.querySelector('[data-inventory-count]');
+  if (!badge) return;
+  const count = Object.values(readInventory()).filter(state => state?.status || state?.alert).length;
+  badge.textContent = String(count);
+  badge.hidden = count === 0;
+}
+
+async function hydrateGameCards(root) {
+  const cards = [...root.querySelectorAll('.hydrate-game')];
+  const queue = cards.slice(0, 24);
+  const worker = async () => {
+    while (queue.length) {
+      const card = queue.shift();
+      try {
+        const data = await fetchJson(`/api/igdb/game?q=${encodeURIComponent(card.dataset.query)}&year=${encodeURIComponent(card.dataset.year || '')}`);
+        if (data.game?.cover?.url) {
+          const slot = card.querySelector('.card-cover, .lineage-cover');
+          if (slot) slot.innerHTML = `<img src="${data.game.cover.url}" alt="" loading="lazy" />`;
+        }
+      } catch { /* fallback permanece */ }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+}
