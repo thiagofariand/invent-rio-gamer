@@ -1456,7 +1456,7 @@ html{overflow-x:hidden}
 .ecosystem-visual{min-height:72px}
 .ecosystem-visual>.ico{width:72px;height:72px}
 .eco-multi .ecosystem-visual,.eco-retro .ecosystem-visual{min-height:72px}
-.eco-retro .ecosystem-visual>.ecosystem-retro-art{display:block;width:min(100%,230px);max-height:92px;height:auto;aspect-ratio:1257/848;object-fit:contain;border:1px solid rgba(255,255,255,.2);border-radius:12px;box-shadow:0 8px 18px rgba(28,18,8,.2)}
+.eco-retro .ecosystem-visual>.ecosystem-retro-art{display:block;width:min(100%,230px);max-height:92px;height:auto;aspect-ratio:1257/782;object-fit:contain;border:0;border-radius:0;box-shadow:none}
 .eco-nintendo .ecosystem-visual,.eco-playstation .ecosystem-visual{min-height:132px}
 .ecosystem-logo{max-height:100px}
 .ecosystem-links{margin-top:12px}
