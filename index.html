@@ -26,7 +26,16 @@
     </div>
     <button id="searchGo" class="search-go" aria-label="Buscar">Buscar</button>
     <nav class="main-nav" aria-label="Categorias">
-      <a id="nav-games" href="#/games">Games</a>
+      <details class="nav-dropdown">
+        <summary id="nav-games">Games</summary>
+        <div class="nav-dropdown-menu" aria-label="Explorar games">
+          <a href="#/games">Explorar catálogo</a>
+          <a href="#/busca?plat=Switch,Switch%202,3DS,DS,Wii%20U,Wii,GameCube,Nintendo%2064,SNES,NES,Game%20Boy%20Advance,Game%20Boy%20Color,Game%20Boy">Nintendo</a>
+          <a href="#/busca?plat=PS5,PS4,PS3,PS2,PS1,PSP,PS%20Vita">PlayStation</a>
+          <a href="#/busca">Multiplataforma</a>
+          <a href="#/busca?retro=1">Retrogaming</a>
+        </div>
+      </details>
       <a id="nav-merch" href="#/merch">Colecionáveis</a>
     </nav>
     <a id="nav-inv" class="inv-link" href="#/inventario">
