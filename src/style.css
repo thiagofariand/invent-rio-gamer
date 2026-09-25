@@ -1434,7 +1434,7 @@ html{overflow-x:hidden}
    Ajustes alinhados para a página Games e a capa de franquia.
    ============================================================ */
 :root{--font-ui:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
-*,*::before,*::after{font-family:var(--font-ui)!important}
+*{font-family:var(--font-ui)!important}
 .page-h,.home-feature h1,.games-intro h1,.lux-section-head h2,.compare-heading h1,
 .game-hero h1,.universe-inventory-copy h2,.purchase-title-row h2,.visual-menu-body h2,
 .merch-home-copy h2,.merch-home-card b,.cv-ini,.ecosystem-card::before{
@@ -1443,20 +1443,24 @@ html{overflow-x:hidden}
 
 /* Bento de ecossistemas: intro na lateral, multiplataforma acima do retrô,
    Nintendo e PlayStation em faixas largas abaixo. */
-.games-directory{grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:220px 180px 320px;grid-auto-rows:auto;gap:14px}
+.games-directory{grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:220px 220px 320px;grid-auto-rows:auto;gap:14px}
 .games-intro{grid-column:1/5;grid-row:1/3;min-height:0;padding:28px}
+.games-intro h1{max-width:12ch;font-size:clamp(34px,3.2vw,42px);line-height:1.02;overflow-wrap:normal;text-wrap:balance}
+.games-intro p{max-width:30ch}
 .eco-multi{grid-column:5/13;grid-row:1;min-height:0}
-.eco-retro{grid-column:5/9;grid-row:2;min-height:0}
+.eco-retro{grid-column:5/13;grid-row:2;min-height:0}
 .eco-nintendo{grid-column:1/8;grid-row:3;min-height:0}
 .eco-playstation{grid-column:8/13;grid-row:3;min-height:0}
 .ecosystem-card{border-radius:22px;padding:22px;box-shadow:0 8px 24px rgba(40,32,24,.08)}
 .ecosystem-card:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(40,32,24,.14)}
-.ecosystem-visual{min-height:84px}
-.eco-multi .ecosystem-visual{min-height:82px}
-.eco-retro .ecosystem-visual{min-height:48px}
+.ecosystem-visual{min-height:72px}
+.ecosystem-visual>.ico{width:72px;height:72px}
+.eco-multi .ecosystem-visual,.eco-retro .ecosystem-visual{min-height:72px}
+.eco-retro .ecosystem-visual>.ico{padding:9px;border-radius:16px;background:rgba(255,255,255,.13)}
 .eco-nintendo .ecosystem-visual,.eco-playstation .ecosystem-visual{min-height:132px}
 .ecosystem-logo{max-height:100px}
 .ecosystem-links{margin-top:12px}
+.eco-multi .ecosystem-links,.eco-retro .ecosystem-links{justify-content:flex-start}
 .eco-nintendo .ecosystem-links,.eco-playstation .ecosystem-links{justify-content:flex-start}
 .ecosystem-links a{transition:background .15s ease,border-color .15s ease}
 .ecosystem-links a:hover{background:rgba(255,255,255,.23);border-color:rgba(255,255,255,.38)}
@@ -1487,7 +1491,7 @@ html{overflow-x:hidden}
 .universe-game-shelf{margin-top:26px}
 
 @media(max-width:1040px){
-  .games-directory{grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:250px 190px 300px}
+  .games-directory{grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:210px 210px 300px}
   .games-intro{grid-column:1/7;grid-row:1;min-height:0}
   .eco-multi{grid-column:1/4;grid-row:2}
   .eco-retro{grid-column:4/7;grid-row:2}
@@ -1497,7 +1501,7 @@ html{overflow-x:hidden}
   .universe-hero .game-hero-copy{width:88%;padding:24px}
 }
 @media(max-width:760px){
-  .games-directory{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:270px 220px 275px 275px;gap:10px}
+  .games-directory{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto 220px 275px 275px;gap:10px}
   .games-intro{grid-column:1/3;grid-row:1;min-height:0;padding:24px}
   .eco-multi{grid-column:1/2;grid-row:2;min-height:0;padding:14px 10px}
   .eco-retro{grid-column:2/3;grid-row:2;min-height:0;padding:14px 10px}
@@ -1507,7 +1511,6 @@ html{overflow-x:hidden}
   .eco-nintendo .ecosystem-visual,.eco-playstation .ecosystem-visual{min-height:100px}
   .ecosystem-links{gap:5px;margin-top:9px}
   .ecosystem-links a{padding:5px 7px;font-size:10px}
-  .ecosystem-cta{padding-top:10px;font-size:12px}
   .universe-layout{grid-template-columns:1fr;gap:10px}
   .universe-hero{min-height:420px}
   .universe-hero .game-hero-copy{width:100%;min-height:420px;padding:190px 22px 40px}
@@ -1517,6 +1520,39 @@ html{overflow-x:hidden}
   .universe-inventory-compact .universe-medal,.universe-inventory-compact .universe-medal:first-child{width:82px;min-width:82px;scroll-snap-align:start}
   .universe-inventory-compact .medal-art,.universe-inventory-compact .universe-medal:first-child .medal-art{width:66px;height:66px}
   .universe-inventory-all{margin-top:0}
+}
+
+/* Menu Games: dropdown Browse acessível no desktop e no mobile. */
+.main-nav{align-items:center}
+.nav-dropdown{position:relative;flex:none}
+.nav-dropdown>summary{display:flex;align-items:center;gap:7px;list-style:none;cursor:pointer;padding:8px 0;border-bottom:2px solid transparent;white-space:nowrap;font-size:13px;font-weight:600;color:#4A4641}
+.nav-dropdown>summary::-webkit-details-marker{display:none}
+.nav-dropdown>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .16s ease}
+.nav-dropdown[open]>summary::after{transform:rotate(225deg) translate(-1px,-1px)}
+.nav-dropdown>summary:hover,.nav-dropdown>summary[aria-current="page"]{border-color:var(--red);color:var(--ink)}
+.nav-dropdown-menu{position:absolute;z-index:90;top:calc(100% + 8px);left:-14px;display:grid;gap:2px;min-width:208px;padding:7px;border:1px solid #DED8CE;border-radius:14px;background:#FAF8F3;box-shadow:0 12px 30px rgba(32,28,23,.16)}
+.nav-dropdown-menu a{display:block;padding:10px 12px;border:0;border-radius:9px;color:#302C27;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap}
+.nav-dropdown-menu a:hover,.nav-dropdown-menu a:focus-visible{background:#EEE8DF;color:#171512}
+.nav-dropdown[open] .nav-dropdown-menu{animation:nav-drop-in .14s ease-out}
+@keyframes nav-drop-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){
+  .header-inner{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"brand nav inv" "search search search";gap:8px 9px}
+  .brand{width:142px}
+  .brand-logo{height:43px}
+  .main-nav{display:flex;grid-area:nav;gap:9px;margin:0;overflow:visible}
+  .main-nav>a{font-size:11px;padding:7px 0}
+  .nav-dropdown>summary{font-size:12px;padding:7px 0}
+  .nav-dropdown-menu{left:auto;right:-36px;top:calc(100% + 7px);min-width:194px}
+  .inv-link{grid-area:inv}
+}
+@media(max-width:380px){
+  .header-inner{column-gap:6px}
+  .brand{width:116px}
+  .brand-logo{height:38px}
+  .main-nav{gap:6px}
+  .main-nav>a{font-size:10px}
+  .nav-dropdown>summary{font-size:11px;gap:5px}
+  .inv-link{padding:8px}
 }
 @media(prefers-reduced-motion:reduce){.universe-hero-slide{transition:none}}
 .row-price-list .purchase-condition{font-size:12px}
