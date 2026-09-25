@@ -9,7 +9,7 @@ function parseHash(){
   return {path:path.replace(/\/$/,'')||'/',params:new URLSearchParams(qs)};
 }
 function navActive(path){
-  $$('.main-nav a,.inv-link').forEach(a=>a.removeAttribute('aria-current'));
+  $$('.main-nav a,.main-nav summary,.inv-link').forEach(a=>a.removeAttribute('aria-current'));
   const map={'/games':'nav-games','/merch':'nav-merch','/inventario':'nav-inv'};
   let key=map[path];
   if(path.startsWith('/universo/')||path.startsWith('/busca')||path.startsWith('/jogo/')||path.startsWith('/ofertas/'))key='nav-games';
@@ -17,6 +17,7 @@ function navActive(path){
 }
 function route(){
   const {path,params}=parseHash();
+  $$('.nav-dropdown[open]').forEach(menu=>menu.removeAttribute('open'));
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
   const token=++viewToken;
   document.body.classList.toggle('inventory-route',path==='/inventario');
@@ -62,7 +63,11 @@ searchInput.addEventListener('keydown',e=>{
   else if(e.key==='Enter'){e.preventDefault();if(sIndex>=0&&items[sIndex])items[sIndex].click();else{closeSuggest();goSearch(searchInput.value.trim())}}
   else if(e.key==='Escape')closeSuggest();
 });
-document.addEventListener('click',e=>{if(!e.target.closest('.search'))closeSuggest()});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search'))closeSuggest();
+  if(!e.target.closest('.nav-dropdown'))$$('.nav-dropdown[open]').forEach(menu=>menu.removeAttribute('open'));
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.nav-dropdown[open]').forEach(menu=>menu.removeAttribute('open'))});
 $('#searchGo').addEventListener('click',()=>{closeSuggest();goSearch(searchInput.value.trim())});
 
 /* ---------- toast ---------- */
