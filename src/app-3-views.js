@@ -780,10 +780,10 @@ function renderGames(){
   const retroUniverses=universes.filter(u=>titlesOf(u.slug).some(p=>p.variants.some(v=>isRetro(v[1])))).sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name));
   main.innerHTML=`<div class="games-directory">
     <section class="games-intro"><span class="eyebrow">CATÁLOGO DE JOGOS</span><h1>Escolha seu ecossistema.</h1><p>Explore franquias, complete sua coleção e encontre onde comprar.</p><a class="btn btn-dark" href="#/busca">Ver todos os jogos</a></section>
-    <section class="ecosystem-card eco-multi" aria-label="Multiplataforma"><div class="ecosystem-visual">${ico('gamepad',76)}</div><div class="ecosystem-links">${links('Multi',5)}</div><a class="ecosystem-cta" href="#/busca">Explorar multiplataforma →</a></section>
-    <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual">${ico('retro',76)}</div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div><a class="ecosystem-cta" href="#/busca?retro=1">Explorar retrô →</a></section>
-    <section class="ecosystem-card eco-nintendo" aria-label="Nintendo"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-nintendo" src="/assets/nintendo-logo.svg" alt="Nintendo"></div><div class="ecosystem-links">${links('Nintendo',7)}</div><a class="ecosystem-cta" href="#/busca?plat=${enc('Switch,Switch 2,3DS,DS,Wii U,Wii,GameCube,Nintendo 64,SNES,NES,Game Boy Advance,Game Boy Color,Game Boy')}">Explorar Nintendo →</a></section>
-    <section class="ecosystem-card eco-playstation" aria-label="PlayStation"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-playstation" src="/assets/playstation-logo.svg" alt="PlayStation"></div><div class="ecosystem-links">${links('PlayStation',7)}</div><a class="ecosystem-cta" href="#/busca?plat=${enc('PS5,PS4,PS3,PS2,PS1,PSP,PS Vita')}">Explorar PlayStation →</a></section>
+    <section class="ecosystem-card eco-multi" aria-label="Multiplataforma"><div class="ecosystem-visual">${ico('gamepad',76)}</div><div class="ecosystem-links">${links('Multi',5)}</div></section>
+    <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual">${ico('retro',76)}</div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div></section>
+    <section class="ecosystem-card eco-nintendo" aria-label="Nintendo"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-nintendo" src="/assets/nintendo-logo.svg" alt="Nintendo"></div><div class="ecosystem-links">${links('Nintendo',7)}</div></section>
+    <section class="ecosystem-card eco-playstation" aria-label="PlayStation"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-playstation" src="/assets/playstation-logo.svg" alt="PlayStation"></div><div class="ecosystem-links">${links('PlayStation',7)}</div></section>
   </div>`;
 }
 
