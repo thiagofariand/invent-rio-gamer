@@ -781,7 +781,7 @@ function renderGames(){
   main.innerHTML=`<div class="games-directory">
     <section class="games-intro"><span class="eyebrow">CATÁLOGO DE JOGOS</span><h1>Escolha seu ecossistema.</h1><p>Explore franquias, complete sua coleção e encontre onde comprar.</p><a class="btn btn-dark" href="#/busca">Ver todos os jogos</a></section>
     <section class="ecosystem-card eco-multi" aria-label="Multiplataforma"><div class="ecosystem-visual">${ico('gamepad',76)}</div><div class="ecosystem-links">${links('Multi',5)}</div></section>
-    <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual">${ico('retro',76)}</div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div></section>
+    <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual"><img class="ecosystem-retro-art" src="/assets/retro-gaming-tv.svg" alt=""></div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div></section>
     <section class="ecosystem-card eco-nintendo" aria-label="Nintendo"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-nintendo" src="/assets/nintendo-logo.svg" alt="Nintendo"></div><div class="ecosystem-links">${links('Nintendo',7)}</div></section>
     <section class="ecosystem-card eco-playstation" aria-label="PlayStation"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-playstation" src="/assets/playstation-logo.svg" alt="PlayStation"></div><div class="ecosystem-links">${links('PlayStation',7)}</div></section>
   </div>`;
