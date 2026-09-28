@@ -21,7 +21,10 @@
 
    Franquias precisam de 3+ jogos no catalog para ganhar página de universo
    (ver franchiseDirectory em catalog-data.js); Persona é exceção temporária
-   (2 jogos hoje, cor reservada para quando cruzar o piso).
+   (2 jogos hoje, cor reservada para quando cruzar o piso). Uma franquia que
+   cruzar o piso e ainda não tiver entrada aqui cai no fallback genérico
+   (ver universeColorsFor() em app-1-core.js) até alguém rodar o script de
+   novo pra ela.
    ============================================================ */
 window.UNIVERSE_COLORS = {
   'Mario': { seed:'#E4000F', seed2:'#0044CC', bg:'#a70008', panel:'#a00007', accent:'#3d7dff', logo:'white', fabText:'black', bgContrast:6.02, panelContrast:7.04 },
@@ -59,5 +62,6 @@ window.UNIVERSE_COLORS = {
   'The Elder Scrolls': { seed:'#4B3F72', seed2:null, bg:'#4b3f72', panel:'#514579', accent:'#887db5', logo:'white', fabText:'black', bgContrast:7.06, panelContrast:7.11 },
   'The Witcher': { seed:'#7A5C1E', seed2:null, bg:'#5d4200', panel:'#664801', accent:'#a08145', logo:'white', fabText:'black', bgContrast:7.11, panelContrast:7.04 },
   'EA Sports FC': { seed:'#1E9E4A', seed2:null, bg:'#007330', panel:'#006328', accent:'#21a04c', logo:'white', fabText:'black', bgContrast:4.52, panelContrast:6.24 },
-  'Alan Wake': { seed:'#C77B1E', seed2:null, bg:'#905500', panel:'#7d4900', accent:'#bd720c', logo:'white', fabText:'black', bgContrast:4.57, panelContrast:6.24 }
+  'Alan Wake': { seed:'#C77B1E', seed2:null, bg:'#905500', panel:'#7d4900', accent:'#bd720c', logo:'white', fabText:'black', bgContrast:4.57, panelContrast:6.24 },
+  'Donkey Kong': { seed:'#80502A', seed2:'#F2C94C', bg:'#693b13', panel:'#71421b', accent:'#a38200', logo:'white', fabText:'black', bgContrast:7.11, panelContrast:7.04 }
 };

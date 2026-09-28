@@ -72,7 +72,7 @@ async function hydrateHomeHero(root){
 }
 function initHomeCarousel(root){
   clearInterval(homeHeroTimer);
-  const slides=$$('[data-home-slide]',root),dots=$$('[data-home-dot]',root);
+  const slides=$$('[data-home-slide]',root),dots=$$('[data-home-dot]',root),counter=$('[data-home-counter]',root);
   if(slides.length<2||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
   let current=0,paused=false;
   const show=index=>{
@@ -84,6 +84,7 @@ function initHomeCarousel(root){
       $$('a,button',slide).forEach(el=>el.tabIndex=active?0:-1);
     });
     dots.forEach((dot,i)=>dot.setAttribute('aria-current',String(i===current)));
+    if(counter)counter.textContent=`${current+1}/${slides.length}`;
   };
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const start=()=>{
@@ -568,61 +569,44 @@ function marketShortcuts(name){
     <div class="shortcut-group"><h3>Fan-made e artesanais</h3><div class="shortcut-links">${merchLinks(name+' artesanal','fanmade')}</div></div>
   </div>`;
 }
-function universeMedal(p){
-  const state=invGet('game:'+p.slug);
-  const status=state?.status==='owned'?'owned':state?.status==='wanted'?'wanted':'';
-  const badge=status==='owned'?'Tenho':status==='wanted'?'Quero':'';
-  return `<a class="universe-medal ${status}" href="#/jogo/${p.slug}">
-    <span class="medal-art" style="--h:${hashStr(p.title)%360}" data-igdb-medal data-igdb-title="${esc(igdbTitleFor(p,p.variants?.[0]?.[1]||''))}" data-igdb-platform="${esc(p.variants?.[0]?.[1]||'')}" data-igdb-year="${esc(p.year||'')}"><b>${esc(initialsOf(p.title))}</b>${badge?`<i>${esc(badge)}</i>`:''}</span>
-    <span class="medal-title">${esc(p.title.replace(/^The Legend of Zelda:\s*/i,''))}</span><small>${esc(p.year||'')}</small>
-  </a>`;
-}
 function newestUniverseGames(titles,count=4){
   return [...titles].filter(Boolean).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title)).slice(0,count);
 }
-function universeHeroMarkup(u,titles){
+function universeHeroMarkup(u,titles,colors){
   const latest=newestUniverseGames(titles,4);
   const slides=latest.length?latest:[null];
+  const style=colors?` style="--u-bg:${esc(colors.bg)};--u-panel:${esc(colors.panel)};--u-accent:${esc(colors.accent)}"`:'';
   return `<section class="universe-feature-row">
-    <div class="game-hero universe-hero" data-universe-hero>
+    <div class="game-hero universe-hero" data-home-carousel${style}>
       <div class="universe-hero-slides">${slides.map((p,i)=>{
         const image=i===0?visualAsset('universes',u.slug,'hero'):'';
-        const src=localOrRemoteImage(image),title=p?.title||u.name,platform=p?.variants?.[0]?.[1]||'';
-        return `<div class="game-hero-art universe-hero-slide ${i===0?'is-active':''} ${src?'has-image':''}" style="${src?`--hero-img:url('${esc(src)}')`:''};--hero-h:${hashStr(title)%360}" ${p?`data-universe-hero-art data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}></div>`;
+        const src=localOrRemoteImage(image),platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
+        return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
+          <div class="home-feature-art ${src?'has-image':''}" style="${src?`--hero-img:url('${esc(src)}')`:''}" ${p?`data-igdb-hero-art data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}></div>
+          <div class="game-hero-copy">
+            <span class="game-hero-kicker">${esc(badge||ECO_LABEL[u.eco]||'')}</span>
+            <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
+            <p>${p?`${esc(platform)}${p.year?` · ${esc(p.year)}`:''}`:(titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.')}</p>
+            ${p?`<div class="game-hero-actions"><a class="btn btn-primary" href="#/jogo/${p.slug}">Ver ofertas</a></div>`:''}
+          </div>
+        </article>`;
       }).join('')}</div>
-      <div class="game-hero-copy"><span class="game-hero-kicker">${esc(ECO_LABEL[u.eco]||'')}</span><h1>Universo ${esc(u.name)}</h1><p>${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}</p></div>
-      ${slides.length>1?`<div class="universe-hero-dots" aria-label="Artes em destaque">${slides.map((_,i)=>`<span class="${i===0?'is-active':''}"></span>`).join('')}</div>`:''}
+      ${slides.length>1?`<div class="home-feature-controls" role="group" aria-label="Artes em destaque">${slides.map((_,i)=>`<button type="button" data-home-dot="${i}" aria-current="${i===0}" aria-label="Mostrar destaque ${i+1}"></button>`).join('')}</div>
+      <span class="universe-hero-count" data-home-counter aria-hidden="true">1/${slides.length}</span>
+      <button type="button" class="home-feature-nav prev" data-home-prev aria-label="Destaque anterior">‹</button>
+      <button type="button" class="home-feature-nav next" data-home-next aria-label="Próximo destaque">›</button>`:''}
     </div>
   </section>`;
 }
-async function hydrateUniverseHero(titles,token){
-  const root=main.querySelector('[data-universe-hero]');
-  if(!root)return;
-  const slides=Array.from(root.querySelectorAll('[data-universe-hero-art]'));
-  await mapLimit(slides,2,async el=>{
+function hydrateUniverseHero(root,token){
+  const arts=$$('[data-igdb-hero-art]',root);
+  mapLimit(arts,2,async el=>{
     const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'');
     if(token!==viewToken||!el.isConnected)return;
     const src=d?.hero?.preview||d?.hero?.url||d?.cover?.url;
-    if(src){el.style.setProperty('--hero-img',`url("${src.replace(/"/g,'%22')}")`);el.classList.add('has-image')}
+    if(src)setHeroBackground(el,src);
   });
-  if(slides.length<2)return;
-  const dots=Array.from(root.querySelectorAll('.universe-hero-dots span'));
-  let active=0;
-  const timer=setInterval(()=>{
-    if(!root.isConnected){clearInterval(timer);return}
-    slides[active].classList.remove('is-active');dots[active]?.classList.remove('is-active');
-    active=(active+1)%slides.length;
-    slides[active].classList.add('is-active');dots[active]?.classList.add('is-active');
-  },5500);
-}
-async function hydrateIgdbMedals(root=document){
-  const nodes=Array.from(root.querySelectorAll('[data-igdb-medal]')).slice(0,10);
-  await mapLimit(nodes,3,async el=>{
-    const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'');
-    if(!el.isConnected)return;
-    const src=d?.hero?.preview||d?.hero?.url||d?.cover?.url;
-    if(src){el.style.backgroundImage=`linear-gradient(180deg,transparent 48%,rgba(20,18,16,.36)),url("${src.replace(/"/g,'%22')}")`;el.classList.add('has-image')}
-  });
+  initHomeCarousel(root);
 }
 function dailyUniverseSelection(titles,slug,count=5){
   const day=new Date().toISOString().slice(0,10);
@@ -676,6 +660,31 @@ function universeDiscoveryCards(u){
     <a class="discovery-card decor" href="#/merch?cat=merch&uni=${u.slug}"><span class="discovery-art">${ico('bag',34)}</span><span><small>CATEGORIA</small><b>Decoração gamer</b><em>Quadros, luminárias, placas e itens para ambientes.</em></span><strong>Explorar →</strong></a>
   </div>`;
 }
+// Painel opaco (superfície tonal, nunca vidro) com a lista completa de jogos
+// da franquia, rolagem própria, e o toggle rápido de "Tenho" — fica ao lado
+// do hero na aba "tudo" da página de universo.
+function universeInventoryPanel(u,titles,colors){
+  const owned=invList().filter(i=>i.universe===u.slug&&i.status==='owned').length;
+  const style=colors?` style="--u-panel:${esc(colors.panel)}"`:'';
+  const rows=[...titles].sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title)).map(p=>{
+    const on=invGet('game:'+p.slug)?.status==='owned',platform=p.variants?.[0]?.[1]||'';
+    return `<li class="uinv-row ${on?'is-owned':''}">
+      <a class="uinv-link" href="#/jogo/${p.slug}">
+        <span class="uinv-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</span>
+        <span class="uinv-info"><span class="uinv-title">${esc(p.title)}</span><span class="uinv-meta">${esc(platform)}${p.year?` · ${esc(p.year)}`:''}</span></span>
+      </a>
+      <button type="button" class="uinv-check ${on?'is-on':''}" data-act="toggle-owned" data-id="game:${esc(p.slug)}" aria-pressed="${on}" aria-label="${on?'Marcado como Tenho':'Marcar como Tenho'}: ${esc(p.title)}">${ico('check',14)}<span>Tenho</span></button>
+    </li>`;
+  }).join('');
+  return `<aside class="universe-inventory-panel"${style} aria-labelledby="universe-games-title">
+    <div class="uinv-head">
+      <span class="eyebrow">SUA COLEÇÃO</span>
+      <h2 id="universe-games-title">Meu Inventário</h2>
+      <p><span data-uinv-count>${owned}</span> de ${titles.length} jogos marcados como Tenho</p>
+    </div>
+    <ul class="uinv-list">${rows}</ul>
+  </aside>`;
+}
 function renderUniverse(slug,params,token){
   const u=uMap.get(slug);
   if(!u)return renderNotFound();
@@ -701,13 +710,13 @@ function renderUniverse(slug,params,token){
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,5);
-    body=titles.length?`<aside class="universe-inventory universe-inventory-compact" aria-labelledby="universe-games-title"><div class="universe-inventory-copy"><span class="eyebrow">SUA COLEÇÃO</span><h2 id="universe-games-title">Meu Inventário</h2><p>${owned} de ${titles.length} jogos marcados como Tenho${want?` · ${want} na lista Quero`:''}.</p></div><div class="universe-medals">${newestUniverseGames(titles,4).map(universeMedal).join('')}</div><a class="universe-inventory-all" href="#/universo/${slug}?tab=games">Ver jogos →</a></aside>
-    <section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><span class="eyebrow">JOGOS DO UNIVERSO</span><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div></div><div class="universe-offer-grid">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog;
-    body+=`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><span class="eyebrow">DO MESMO UNIVERSO</span><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><span class="eyebrow">JOGOS DO UNIVERSO</span><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div></div><div class="universe-offer-grid">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
+    +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><span class="eyebrow">DO MESMO UNIVERSO</span><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
   }
+  const colors=tab==='tudo'?(universeColorsFor(u)||{bg:'#211E1B',panel:'#2A2521',accent:'var(--red)',fabText:'white',logo:'white'}):null;
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/games">Games</a> › <span>${esc(u.name)}</span></nav>
-  ${tab==='tudo'?`<div class="universe-layout">${universeHeroMarkup(u,titles)}${body&&titles.length?body.slice(0,body.indexOf('<section class="universe-game-shelf"')):''}</div>`:gameHeroMarkup({
+  ${tab==='tudo'?`<div class="universe-layout">${universeHeroMarkup(u,titles,colors)}${titles.length?universeInventoryPanel(u,titles,colors):''}</div>`:gameHeroMarkup({
     title:`Universo ${u.name}`,
     kicker:ECO_LABEL[u.eco]||'',
     copy:`${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}`,
@@ -715,11 +724,10 @@ function renderUniverse(slug,params,token){
     artLabel:'ARTE DA FRANQUIA'
   })}
   ${tab==='tudo'?'':`<div class="tabs universe-tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="#/universo/${slug}?tab=${k}" aria-current="${k===tab}">${l}</a>`).join('')}</div>`}
-  ${tab==='tudo'&&titles.length?body.slice(body.indexOf('<section class="universe-game-shelf"')):body}`;
-  if(tab==='tudo'&&titles.length)hydrateUniverseHero(newestUniverseGames(titles,4),token);
+  ${body}`;
+  if(tab==='tudo'&&titles.length)hydrateUniverseHero($('[data-home-carousel]',main),token);
   if(tab!=='tudo')hydrateFranchiseHero(u,titles);
   hydrateIgdbCovers(main,12);
-  hydrateIgdbMedals(main);
   if(tab==='tudo'&&featuredGames.length)hydrateUniverseOffers(featuredGames,token);
 }
 

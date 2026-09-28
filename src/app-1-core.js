@@ -87,6 +87,20 @@ function igdbTitleFor(p,platform){
   return (v&&v[2])||p.title;
 }
 
+// Paleta por franquia (universe-colors.js). Franquia que cruzou o piso de 3
+// jogos mas ainda não teve a cor gerada cai em null — quem chama decide o
+// fallback (hoje: o gradiente por hash que já existia).
+function universeColorsFor(u){
+  return (window.UNIVERSE_COLORS&&u&&window.UNIVERSE_COLORS[u.name])||null;
+}
+function releaseBadge(p){
+  if(!p||!p.releaseDate)return null;
+  const rd=new Date(p.releaseDate+'T00:00:00'),diffDays=(rd-new Date())/86400000;
+  if(diffDays>0)return 'PRÉ-VENDA';
+  if(diffDays>-10)return 'LANÇAMENTO';
+  return null;
+}
+
 const universes=[],uMap=new Map();
 function addUniverse(name,eco){
   const slug=slugify(name);

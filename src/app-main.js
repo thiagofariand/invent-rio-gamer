@@ -15,11 +15,46 @@ function navActive(path){
   if(path.startsWith('/universo/')||path.startsWith('/busca')||path.startsWith('/jogo/')||path.startsWith('/ofertas/'))key='nav-games';
   if(key){const el=document.getElementById(key);if(el)el.setAttribute('aria-current','page')}
 }
+/* ---------- cabeçalho sobre o bloco de cor do universo ---------- */
+const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
+const DEFAULT_LOGO='/inventario-logo-header.png?v=Teste-Layout-Beta1';
+const MONO_LOGO={white:'/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta1',black:'/assets/inventario-logo-mono-black.png?v=Teste-Layout-Beta1'};
+let heroLogoChoice=null; // 'white'|'black'|null — null = sempre a logo colorida padrão
+function syncHeaderScroll(){
+  const scrolled=window.scrollY>40;
+  siteHeader.classList.toggle('is-scrolled',scrolled);
+  // Sólido ao rolar = sempre a logo preta (funciona em qualquer fundo claro);
+  // só usa a logo mono escolhida pelo contraste enquanto o cabeçalho está
+  // transparente por cima do próprio bloco de cor do universo.
+  brandLogo.src=(heroLogoChoice&&!scrolled)?MONO_LOGO[heroLogoChoice]:(heroLogoChoice?MONO_LOGO.black:DEFAULT_LOGO);
+}
+function applyUniverseChrome(colors){
+  if(colors){
+    siteHeader.style.setProperty('--u-bg',colors.bg);
+    siteHeader.style.setProperty('--u-accent',colors.accent);
+    siteHeader.style.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
+    heroLogoChoice=colors.logo==='black'?'black':'white';
+  }else{
+    siteHeader.style.removeProperty('--u-bg');
+    siteHeader.style.removeProperty('--u-accent');
+    siteHeader.style.removeProperty('--u-fab-ink');
+    heroLogoChoice=null;
+  }
+  syncHeaderScroll();
+}
+window.addEventListener('scroll',()=>{
+  if(!document.body.classList.contains('universe-hero-route'))return;
+  syncHeaderScroll();
+},{passive:true});
+
 function route(){
   const {path,params}=parseHash();
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
   const token=++viewToken;
   document.body.classList.toggle('inventory-route',path==='/inventario');
+  const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
+  document.body.classList.toggle('universe-hero-route',isUniverseHero);
+  applyUniverseChrome(isUniverseHero?(universeColorsFor(uMap.get(path.slice(10)))||{bg:'#211E1B',accent:'var(--red)',fabText:'white',logo:'white'}):null);
   navActive(path);
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
@@ -195,6 +230,19 @@ document.addEventListener('click',e=>{
   if(!btn)return;
   const act=btn.dataset.act;
   if(act==='open-save'){openSaveModal(btn.dataset.id);return}
+  if(act==='toggle-owned'){
+    e.preventDefault();
+    const id=btn.dataset.id,p=catalogBySlug.get(id.slice(5));
+    if(!p)return;
+    const on=invGet(id)?.status==='owned';
+    invSet(gameRef(p),{status:on?null:'owned'});
+    btn.classList.toggle('is-on',!on);
+    btn.setAttribute('aria-pressed',String(!on));
+    btn.closest('.uinv-row')?.classList.toggle('is-owned',!on);
+    const countEl=$('[data-uinv-count]');
+    if(countEl)countEl.textContent=invList().filter(i=>i.universe===p.universe&&i.status==='owned').length;
+    return;
+  }
   if(act==='open-offers'){openOffersModal(btn.dataset.title,btn.dataset.platform,btn.dataset.cond);return}
   if(act==='open-merch-offers'){openMerchOffersModal(btn.dataset.id);return}
   if(act==='mock-item'){openMockItemModal(btn.dataset.id);return}
