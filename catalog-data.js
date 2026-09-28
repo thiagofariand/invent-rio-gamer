@@ -33,7 +33,7 @@ const trendingNow=[
   {title:'Astro Bot',tag:'JOGO DO ANO 2024',copy:'Vencedor de Jogo do Ano no The Game Awards 2024. Lançado em 06/09/2024 para PS5.',query:'astro bot ps5',digital:'https://www.playstation.com/pt-br/games/astro-bot/'}
 ];
 
-const franchiseDirectory={Nintendo:["Alan Wake","Assassin's Creed","Dark Souls","Diablo","EA Sports FC","Elden Ring","F-Zero","Final Fantasy","Kirby","Mario","Metroid","Mortal Kombat","Need for Speed","Paper Mario","Pokémon","Resident Evil","Sonic","Star Fox","Stellar Blade","Street Fighter","Super Smash Bros.","The Elder Scrolls","The Legend of Zelda","The Witcher","WarioWare","Yoshi"],PlayStation:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","God of War","Grand Theft Auto","Halo","LittleBigPlanet","Marvel Spider-Man","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher","inFAMOUS"],Multi:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","Grand Theft Auto","Halo","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher"]};
+const franchiseDirectory={Nintendo:["Alan Wake","Assassin's Creed","Dark Souls","Diablo","Donkey Kong","EA Sports FC","Elden Ring","F-Zero","Final Fantasy","Kirby","Mario","Metroid","Mortal Kombat","Need for Speed","Paper Mario","Pokémon","Resident Evil","Sonic","Star Fox","Stellar Blade","Street Fighter","Super Smash Bros.","The Elder Scrolls","The Legend of Zelda","The Witcher","WarioWare","Yoshi"],PlayStation:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","God of War","Grand Theft Auto","Halo","LittleBigPlanet","Marvel Spider-Man","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher","inFAMOUS"],Multi:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","Grand Theft Auto","Halo","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher"]};
 
 const collections={
   mario:{name:'Mario',short:'Mario',icon:'★',items:[
@@ -323,6 +323,11 @@ const catalog=[
 {franchise:'Clair Obscur',title:'Clair Obscur: Expedition 33',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S']],catalogSources:['TGA 2025','Google Year in Search 2025']},
 {franchise:'Death Stranding',title:'Death Stranding 2: On the Beach',aliases:[],variants:[['PlayStation','PS5']],catalogSources:['TGA 2025','TGA 2024 indicado']},
 {franchise:'Donkey Kong',title:'Donkey Kong Bananza',aliases:[],variants:[['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
+{franchise:'Donkey Kong',title:'Donkey Kong Country',aliases:['dkc','donkey kong country 1'],variants:[['Nintendo','SNES']]},
+{franchise:'Donkey Kong',title:"Donkey Kong Country 2: Diddy's Kong Quest",aliases:['dkc2','diddys kong quest'],variants:[['Nintendo','SNES']]},
+{franchise:'Donkey Kong',title:"Donkey Kong Country 3: Dixie Kong's Double Trouble!",aliases:['dkc3','dixie kongs double trouble'],variants:[['Nintendo','SNES']]},
+{franchise:'Donkey Kong',title:'Donkey Kong 64',aliases:['dk64'],variants:[['Nintendo','Nintendo 64']]},
+{franchise:'Donkey Kong',title:'Donkey Kong Country Returns',aliases:['dkc returns','donkey kong returns'],variants:[['Nintendo','Wii']]},
 {franchise:'Hades',title:'Hades II',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
 {franchise:'Hollow Knight',title:'Hollow Knight: Silksong',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
 {franchise:'Kingdom Come: Deliverance',title:'Kingdom Come: Deliverance II',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
@@ -376,7 +381,7 @@ const catalog=[
 {franchise:'Kirby',title:'Kirby and the Forgotten Land',aliases:[],variants:[['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada']},
 {franchise:'Metroid',title:'Metroid Dread',aliases:[],variants:[['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada']},
 {franchise:'Metroid',title:'Metroid Prime 4: Beyond',aliases:[],variants:[['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada','TGA 2024 indicado']},
-{franchise:'Donkey Kong',title:'Donkey Kong Country: Tropical Freeze',aliases:[],variants:[['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada']},
+{franchise:'Donkey Kong',title:'Donkey Kong Country: Tropical Freeze',aliases:[],variants:[['Nintendo','Wii U'],['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada']},
 {franchise:'Pikmin',title:'Pikmin 4',aliases:[],variants:[['Nintendo','Switch'],['Nintendo','Switch 2']],catalogSources:['Franquia priorizada','Nintendo Direct 2026-09']},
 {franchise:'The Last of Us',title:'The Last of Us Part I',aliases:[],variants:[['PlayStation','PS5']],catalogSources:['Franquia priorizada']},
 {franchise:'The Last of Us',title:'The Last of Us Part II Remastered',aliases:[],variants:[['PlayStation','PS5']],catalogSources:['Franquia priorizada','TGA 2024 anúncio: versão para PC']},
@@ -738,7 +743,7 @@ const genreByFranchise={
   'Call of Duty':['tiro'],'Grand Theft Auto':['acao'],'God of War':['acao'],
   'Resident Evil':['terror'],'Marvel Spider-Man':['acao','aventura'],
   'The Legend of Zelda':['aventura'],'Sonic':['plataforma'],'Pokémon':['rpg'],
-  'Mortal Kombat':['luta'],"Assassin's Creed":['acao','aventura'],'Mario':['plataforma'],'Splatoon':['tiro'],'Halo':['tiro'],'Final Fantasy':['rpg'],'Lies of P':['rpg'],'Marvel Tōkon':['luta'],'Grounded':['aventura'],'Metal Gear':['acao'],'Elden Ring':['acao','rpg'],'The Blood of Dawnwalker':['acao','rpg'],'Onimusha':['acao'],'Marvel Wolverine':['acao','aventura'],'Control':['acao'],'Silent Hill':['terror'],'EA Sports FC':['esporte'],'Minecraft Dungeons':['acao','rpg'],'Dynasty Warriors':['acao'],'Ace Combat':['acao'],'Gears of War':['tiro'],'Star Wars':['corrida'],'Castlevania':['acao','plataforma'],'Tales of':['rpg'],'Phantom Blade':['acao','rpg'],'Dragon Quest Monsters':['rpg'],'Dragon Quest':['rpg'],'The Duskbloods':['acao','rpg'],'Diablo':['rpg']
+  'Mortal Kombat':['luta'],"Assassin's Creed":['acao','aventura'],'Mario':['plataforma'],'Splatoon':['tiro'],'Halo':['tiro'],'Final Fantasy':['rpg'],'Lies of P':['rpg'],'Marvel Tōkon':['luta'],'Grounded':['aventura'],'Metal Gear':['acao'],'Elden Ring':['acao','rpg'],'The Blood of Dawnwalker':['acao','rpg'],'Onimusha':['acao'],'Marvel Wolverine':['acao','aventura'],'Control':['acao'],'Silent Hill':['terror'],'EA Sports FC':['esporte'],'Minecraft Dungeons':['acao','rpg'],'Dynasty Warriors':['acao'],'Ace Combat':['acao'],'Gears of War':['tiro'],'Star Wars':['corrida'],'Castlevania':['acao','plataforma'],'Tales of':['rpg'],'Phantom Blade':['acao','rpg'],'Dragon Quest Monsters':['rpg'],'Dragon Quest':['rpg'],'The Duskbloods':['acao','rpg'],'Diablo':['rpg'],'Donkey Kong':['plataforma']
 };
 catalog.forEach(p=>{
   const hit=genreByTitle.find(([re])=>re.test(p.title));
