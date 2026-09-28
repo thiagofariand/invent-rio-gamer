@@ -998,7 +998,7 @@ body{background:var(--store);color:var(--ink)}
 main{max-width:1240px;padding:34px 28px 80px}
 .site-header{background:rgba(250,248,243,.94);border-color:rgba(200,192,181,.72);backdrop-filter:blur(18px)}
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
-.brand{margin-left:calc(-1 * max(28px,(100vw - 1240px)/2 + 28px));width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
+.brand{margin-left:calc(-1 * max(28px,(var(--viewport-w,100vw) - 1240px)/2 + 28px));width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
 .brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:auto}
 /* Espelha o recuo negativo da logo: o FAB "Meu Inventário" também encosta
    na borda direita da tela, não só na borda do container de 1240px. Precisa
@@ -1006,7 +1006,7 @@ main{max-width:1240px;padding:34px 28px 80px}
    cabeçalho (a busca para de crescer em .search{max-width:590px} e sobrava
    espaço morto antes do FAB sem isso); o margin-right negativo então
    sangra esse espaço pra fora do padding do container, até a borda real. */
-.inv-link{margin-left:auto;margin-right:calc(-1 * max(28px,(100vw - 1240px)/2 + 28px))}
+.inv-link{margin-left:auto;margin-right:calc(-1 * max(28px,(var(--viewport-w,100vw) - 1240px)/2 + 28px))}
 .search{max-width:590px}
 .search input{height:48px;background:#F7F3EC;border-color:var(--line);border-radius:15px;clip-path:none;padding-left:44px}
 .search input:focus{background:#fff;border-color:#AE817B;box-shadow:0 0 0 4px rgba(181,45,38,.08)}
@@ -1303,10 +1303,10 @@ html{overflow-x:hidden}
   border-radius:0;
 }
 /* O texto continua alinhado com a mesma margem do resto do conteúdo (não gruda na borda da tela). */
-.home-feature-copy{padding-left:max(28px,calc((100vw - 1240px)/2 + 28px));padding-right:28px}
-.game-hero-copy{padding-left:max(28px,calc((100vw - 1240px)/2 + 28px));padding-right:28px}
-.merch-home-copy{padding-left:max(16px,calc((100vw - 1240px)/2 + 16px))}
-.merch-home-grid{padding-right:max(16px,calc((100vw - 1240px)/2 + 16px))}
+.home-feature-copy{padding-left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));padding-right:28px}
+.game-hero-copy{padding-left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));padding-right:28px}
+.merch-home-copy{padding-left:max(16px,calc((var(--viewport-w,100vw) - 1240px)/2 + 16px))}
+.merch-home-grid{padding-right:max(16px,calc((var(--viewport-w,100vw) - 1240px)/2 + 16px))}
 /* A prateleira de destaques (Wolverine/Ocarina/Fire Emblem) continua alinhada com o grid abaixo, só o hero atrás dela é que estoura. */
 .home-trending-cards{position:relative;z-index:5;max-width:1240px;margin-left:auto;margin-right:auto;padding:0 28px}
 @media(max-width:1040px){
@@ -1324,7 +1324,7 @@ html{overflow-x:hidden}
 .home-feature-slide{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .65s ease;z-index:1}
 .home-feature-slide.is-active{opacity:1;pointer-events:auto;z-index:2}
 .home-feature-slide .home-feature-art{z-index:0}
-.home-feature-controls{position:absolute;z-index:8;left:max(28px,calc((100vw - 1240px)/2 + 28px));bottom:84px;display:flex;gap:8px}
+.home-feature-controls{position:absolute;z-index:8;left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));bottom:84px;display:flex;gap:8px}
 .home-feature-controls button{width:28px;height:5px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.38);cursor:pointer;transition:width .2s ease,background .2s ease}
 .home-feature-controls button[aria-current="true"]{width:48px;background:#fff}
 

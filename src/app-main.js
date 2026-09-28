@@ -15,6 +15,18 @@ function navActive(path){
   if(path.startsWith('/universo/')||path.startsWith('/busca')||path.startsWith('/jogo/')||path.startsWith('/ofertas/'))key='nav-games';
   if(key){const el=document.getElementById(key);if(el)el.setAttribute('aria-current','page')}
 }
+/* ---------- largura real da tela (sem a barra de rolagem) ----------
+   100vw em CSS conta a faixa da barra de rolagem como se fosse tela — em
+   telas com barra "clássica" (a maioria fora de Mac com scroll por toque)
+   isso empurra qualquer elemento alinhado por 100vw pra fora da área
+   visível de verdade. document.documentElement.clientWidth já exclui a
+   barra; guardamos como variável CSS pra logo/FAB usarem no lugar de vw. */
+function updateViewportWidth(){
+  document.documentElement.style.setProperty('--viewport-w',document.documentElement.clientWidth+'px');
+}
+updateViewportWidth();
+window.addEventListener('resize',updateViewportWidth);
+
 /* ---------- cabeçalho sobre o bloco de cor do universo ---------- */
 const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
 const DEFAULT_LOGO='/inventario-logo-header.png?v=Teste-Layout-Beta2';
