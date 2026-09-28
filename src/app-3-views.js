@@ -437,7 +437,6 @@ function renderProduct(slug,params,token){
   const merchImage=visualAsset('games',p.slug,'merch');
   const fanImage=visualAsset('games',p.slug,'fanmade');
   const heroActions=`
-    <a class="btn btn-primary" href="#comprar-jogo">Onde comprar</a>
     ${saveButton(ref,{label:true})}
     ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
   const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
@@ -695,7 +694,6 @@ function renderTheme(slug){
   const fanImage=visualAsset('themes',t.slug,'fanmade');
   setTitle(t.short);
   const heroActions=`
-    <a class="btn btn-primary" href="#comprar-jogo">Onde comprar</a>
     ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
   const fakeProduct={title:t.title,slug:t.slug,variants:[['Demo',cfg.platform||'Plataforma']],physical:cfg.physical,digital:cfg.digital};
   main.innerHTML=`

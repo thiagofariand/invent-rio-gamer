@@ -112,6 +112,14 @@ curl -H "x-inventario-diagnostics: SEU_SEGREDO" https://inventario-gamer.vercel.
 curl -H "x-inventario-diagnostics: SEU_SEGREDO" https://inventario-gamer.vercel.app/api/ml/refresh
 ```
 
+## Renovação automática do Mercado Livre + painel de saúde
+
+- `lib/meli-token.js` guarda o par access/refresh token num Redis (Upstash, conectado pela aba Storage da Vercel — o "Vercel KV" antigo não existe mais) e renova sozinho quando faltam <10 min. Trava curta (`SET NX`) evita duas renovações simultâneas com refresh token rotativo. Sem Redis, cai no modo antigo (variáveis `MELI_ACCESS_TOKEN`/`MELI_REFRESH_TOKEN`, renovação manual).
+- Fluxo: abrir `/api/ml/connect` **uma vez** e autorizar. Com Redis, o callback grava os tokens e não mostra nada pra copiar.
+- `api/offers.js`: se o Mercado Livre responder token vencido, renova uma vez e repete a consulta.
+- `/painel.html`: painel de saúde em português (Mercado Livre, IGDB, RAWG). Pede o `DIAGNOSTICS_SECRET` no navegador (fica só em `sessionStorage`); dispensa terminal/curl.
+- `lib/rawg.js` + `/api/rawg/status`: RAWG isolada (chave `RAWG_API_KEY`). Ainda não ligada em nenhuma página — planejado: nota Metacritic na ficha do jogo e cross-check da IGDB.
+
 ## Limitação consciente do Mercado Livre
 
 **Atualização de 24/09/2026 — busca de Usado desativada por bloqueio da plataforma.** `sites/MLB/search` (usado por `searchUsedListings` em `lib/mercadolivre.js`) passou a retornar 403 Forbidden, mesmo com token válido (confirmado: `/users/me` e a API de Catálogo funcionam normalmente com o mesmo token). Pesquisa mostrou múltiplos relatos independentes de outros desenvolvedores com o mesmo sintoma desde março/2026, e o próprio suporte do Mercado Livre respondendo que dúvidas de API dependem do "nível de certificação" da aplicação — sugere que esse endpoint de busca geral foi reservado a parceiros certificados.

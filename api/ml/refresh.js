@@ -3,11 +3,24 @@ const {
   refreshAccessToken
 } = require('../../lib/meli-oauth');
 const { requireDiagnosticsAccess, safeError } = require('../../lib/http');
+const { kvConfig, getAccessToken, tokenInfo } = require('../../lib/meli-token');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
   if (!requireDiagnosticsAccess(req, res)) return;
+
+  // Com Redis conectado: renova agora, sem mostrar token nenhum.
+  if (kvConfig()) {
+    const token = await getAccessToken({ force: true });
+    const info = await tokenInfo();
+    return res.status(token ? 200 : 502).json({
+      ok: Boolean(token),
+      renewed: Boolean(token),
+      token: info,
+      hint: token ? null : 'Não consegui renovar. Reconecte em /api/ml/connect.'
+    });
+  }
 
   const clientId = process.env.MELI_CLIENT_ID;
   const clientSecret = process.env.MELI_CLIENT_SECRET;

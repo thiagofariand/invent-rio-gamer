@@ -1,6 +1,7 @@
 const { buildOffersResponse } = require('../lib/mercadolivre');
 const { manualShopeeOffers } = require('../lib/shopee-manual-offers');
 const { safeError } = require('../lib/http');
+const { getAccessToken, kvConfig } = require('../lib/meli-token');
 
 module.exports = async function handler(req, res) {
   const title = String(req.query?.title || req.query?.q || '');
@@ -9,11 +10,12 @@ module.exports = async function handler(req, res) {
 
   let body, statusCode, cacheControl;
   try {
-    const result = await buildOffersResponse({
-      method: req.method,
-      query: req.query || {},
-      token: process.env.MELI_ACCESS_TOKEN
-    });
+    const query = req.query || {};
+    let result = await buildOffersResponse({ method: req.method, query, token: await getAccessToken() });
+    // Se o Mercado Livre disser que o token venceu, renova uma vez e tenta de novo.
+    if (kvConfig() && result.body?.sources?.mercado_livre?.status === 'token_expired') {
+      result = await buildOffersResponse({ method: req.method, query, token: await getAccessToken({ force: true }) });
+    }
     body = result.body;
     statusCode = result.statusCode;
     cacheControl = result.cacheControl;

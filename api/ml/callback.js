@@ -4,6 +4,7 @@ const {
   parseCookies
 } = require('../../lib/meli-oauth');
 const { safeError } = require('../../lib/http');
+const { kvConfig, saveTokens } = require('../../lib/meli-token');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -23,9 +24,26 @@ module.exports = async function handler(req, res) {
 
   try {
     const data = await exchangeAuthorizationCode({ code, clientId, clientSecret });
+    res.setHeader('Set-Cookie', 'meli_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+
+    // Com Redis conectado: guarda os tokens sozinho e não mostra nada pra copiar.
+    if (kvConfig()) {
+      try {
+        await saveTokens(data);
+        return res.status(200).send(`<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventário • Mercado Livre conectado</title>
+<style>body{font-family:system-ui;background:#f7f7f4;color:#1f2937;max-width:640px;margin:40px auto;padding:0 20px}.box{background:#fff;border:1px solid #e5e7eb;padding:24px;border-radius:12px}.ok{color:#166534}</style>
+<body><div class="box"><h1 class="ok">Mercado Livre conectado ✓</h1>
+<p>Pronto. A renovação do token agora é <strong>automática</strong> — não precisa copiar nada nem mexer na Vercel.</p>
+<p>Pode fechar esta página. Pra conferir a saúde de tudo, abra <a href="/painel.html">/painel.html</a>.</p></div></body></html>`);
+      } catch (storeError) {
+        // Redis falhou: cai no fluxo manual abaixo, com aviso.
+      }
+    }
+
     const access = escapeHtml(data.access_token);
     const refresh = escapeHtml(data.refresh_token);
-    res.setHeader('Set-Cookie', 'meli_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
     return res.status(200).send(`<!doctype html>
 <html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inventário • Mercado Livre conectado</title>
