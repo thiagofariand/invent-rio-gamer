@@ -32,11 +32,13 @@ const rootStyle=document.documentElement.style;
 function applyUniverseChrome(colors){
   if(colors){
     rootStyle.setProperty('--u-bg',colors.bg);
+    rootStyle.setProperty('--u-panel',colors.panel);
     rootStyle.setProperty('--u-accent',colors.accent);
     rootStyle.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
     heroLogoChoice=colors.logo==='black'?'black':'white';
   }else{
     rootStyle.removeProperty('--u-bg');
+    rootStyle.removeProperty('--u-panel');
     rootStyle.removeProperty('--u-accent');
     rootStyle.removeProperty('--u-fab-ink');
     heroLogoChoice=null;
@@ -55,7 +57,7 @@ function route(){
   document.body.classList.toggle('inventory-route',path==='/inventario');
   const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
-  applyUniverseChrome(isUniverseHero?(universeColorsFor(uMap.get(path.slice(10)))||{bg:'#211E1B',accent:'var(--red)',fabText:'white',logo:'white'}):null);
+  applyUniverseChrome(isUniverseHero?(universeColorsFor(uMap.get(path.slice(10)))||{bg:'#211E1B',panel:'#2A2521',accent:'var(--red)',fabText:'white',logo:'white'}):null);
   navActive(path);
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
