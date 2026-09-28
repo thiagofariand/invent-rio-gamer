@@ -328,6 +328,10 @@ const catalog=[
 {franchise:'Donkey Kong',title:"Donkey Kong Country 3: Dixie Kong's Double Trouble!",aliases:['dkc3','dixie kongs double trouble'],variants:[['Nintendo','SNES']]},
 {franchise:'Donkey Kong',title:'Donkey Kong 64',aliases:['dk64'],variants:[['Nintendo','Nintendo 64']]},
 {franchise:'Donkey Kong',title:'Donkey Kong Country Returns',aliases:['dkc returns','donkey kong returns'],variants:[['Nintendo','Wii']]},
+{franchise:'Donkey Kong',title:'Donkey Kong Jungle Beat',aliases:['jungle beat'],variants:[['Nintendo','GameCube']]},
+{franchise:'Donkey Kong',title:'Donkey Konga',aliases:[],variants:[['Nintendo','GameCube']]},
+{franchise:'Donkey Kong',title:'Donkey Konga 2',aliases:[],variants:[['Nintendo','GameCube']]},
+{franchise:'Donkey Kong',title:'Donkey Konga 3',aliases:[],variants:[['Nintendo','GameCube']]},
 {franchise:'Hades',title:'Hades II',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
 {franchise:'Hollow Knight',title:'Hollow Knight: Silksong',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
 {franchise:'Kingdom Come: Deliverance',title:'Kingdom Come: Deliverance II',aliases:[],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S'],['Nintendo','Switch 2']],catalogSources:['TGA 2025']},
@@ -735,6 +739,7 @@ const genreByTitle=[
   [/^Mario Kart/,['corrida','familia']],
   [/^Super Mario Party/,['familia']],
   [/^Mario Golf/,['esporte','familia']],
+  [/^Donkey Konga/,['familia']],
   [/^Luigi's Mansion|^Captain Toad/,['aventura']],
   [/^Princess Peach/,['aventura','familia']],
   [/^God of War( \(2018\)| Ragnarök)$/,['acao','aventura']]
