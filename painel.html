@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Inventário Gamer • Painel de saúde</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#EDE8E0;color:#1F1B16;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+  h1{font-size:28px;margin:0 0 4px}
+  .sub{color:#6B6358;margin:0 0 22px}
+  .box{background:#FAF8F3;border:1px solid #DDD5C8;border-radius:16px;padding:18px 20px;margin-bottom:14px}
+  label{display:block;font-weight:600;margin-bottom:6px}
+  input{width:100%;padding:12px 14px;border:1px solid #CFC6B8;border-radius:10px;font:inherit;background:#fff}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button,.btn{appearance:none;border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+  .primary{background:#1F1B16;color:#fff}
+  .ghost{background:#fff;color:#1F1B16;border:1px solid #CFC6B8}
+  .card h2{display:flex;align-items:center;gap:10px;font-size:18px;margin:0 0 6px}
+  .dot{width:14px;height:14px;border-radius:50%;flex:none;background:#B8B0A3}
+  .ok .dot{background:#2E9E5B}.warn .dot{background:#E0A526}.bad .dot{background:#D2453B}
+  .card p{margin:4px 0;color:#3A342C}
+  .fine{color:#6B6358;font-size:14px}
+  .hint{margin-top:8px;padding:10px 12px;background:#FFF6DC;border:1px solid #EBD79A;border-radius:10px;font-size:14px}
+  .hidden{display:none}
+  #msg{margin:10px 0 0;font-size:14px;color:#8A2A22}
+</style>
+</head>
+<body>
+<main>
+  <h1>Painel de saúde</h1>
+  <p class="sub">Mostra, em português, se cada integração do site está funcionando. Nada aqui é público sem a senha.</p>
+
+  <section class="box" id="login">
+    <label for="secret">Senha de diagnóstico (a que você guardou como DIAGNOSTICS_SECRET)</label>
+    <input id="secret" type="password" autocomplete="off" placeholder="digite aqui e aperte Entrar">
+    <div class="row"><button class="primary" id="enter">Entrar</button></div>
+    <p id="msg"></p>
+    <p class="fine">A senha fica só na memória desta aba do navegador e some quando você fecha a aba.</p>
+  </section>
+
+  <section id="panel" class="hidden">
+    <div class="row" style="margin:0 0 14px">
+      <button class="primary" id="refreshAll">Atualizar tudo</button>
+      <button class="ghost" id="renewMl">Renovar Mercado Livre agora</button>
+      <a class="btn ghost" href="/api/ml/connect">Reconectar Mercado Livre</a>
+    </div>
+    <div id="cards"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let secret = sessionStorage.getItem('inv-secret') || '';
+
+async function call(path) {
+  const r = await fetch(path, { headers: { 'x-inventario-diagnostics': secret }, cache: 'no-store' });
+  let data = {};
+  try { data = await r.json(); } catch {}
+  return { status: r.status, data };
+}
+
+function card(level, title, lines, hint) {
+  const el = document.createElement('div');
+  el.className = 'box card ' + level;
+  const h = document.createElement('h2');
+  const dot = document.createElement('span'); dot.className = 'dot';
+  h.append(dot, document.createTextNode(title));
+  el.append(h);
+  lines.forEach(t => { const p = document.createElement('p'); p.textContent = t; el.append(p); });
+  if (hint) { const d = document.createElement('div'); d.className = 'hint'; d.textContent = hint; el.append(d); }
+  return el;
+}
+
+function mlCard(res) {
+  const d = res.data;
+  const t = d.token || {};
+  const lines = [];
+  let level = 'ok', hint = '';
+
+  if (!d.configured) {
+    return card('bad', 'Mercado Livre', ['Não estou conseguindo usar nenhum token.'],
+      'Clique em "Reconectar Mercado Livre" e autorize. Se aparecer erro de credencial, confira MELI_CLIENT_ID e MELI_CLIENT_SECRET na Vercel.');
+  }
+  if (t.mode === 'kv') {
+    lines.push(t.connected === false ? 'Renovação automática: ligada, mas ainda sem login.' : 'Renovação automática: LIGADA.');
+    if (t.expiresInMinutes != null) lines.push('O token atual vale por mais ' + Math.max(t.expiresInMinutes, 0) + ' min (renova sozinho antes de vencer).');
+    if (t.lastError) { level = 'warn'; lines.push('Última tentativa de renovar falhou: ' + t.lastError.message); hint = 'Clique em "Reconectar Mercado Livre" pra autorizar de novo.'; }
+    if (t.connected === false) { level = 'warn'; hint = 'Clique em "Reconectar Mercado Livre" uma vez. Depois disso não precisa mexer mais.'; }
+    if (t.redisError) { level = 'warn'; lines.push('Redis com problema: ' + t.redisError); }
+  } else {
+    level = 'warn';
+    lines.push('Renovação automática: DESLIGADA (o token vence a cada ~6h).');
+    hint = 'Pra ligar: na Vercel, aba Storage > Create Database > Upstash for Redis > Connect to Project. Depois reconecte o Mercado Livre aqui.';
+  }
+  const tc = d.tokenCheck || {}, ps = d.productSearchCheck || {}, us = d.usedSearchCheck || {};
+  lines.push(tc.ok ? 'Login/token: ok' + (tc.nickname ? ' (conta ' + tc.nickname + ')' : '') + '.' : 'Login/token: FALHOU (HTTP ' + tc.httpStatus + ').');
+  lines.push(ps.ok ? 'Preço de jogo NOVO: funcionando.' : 'Preço de jogo NOVO: FALHOU (HTTP ' + ps.httpStatus + ').');
+  lines.push(us.ok ? 'Busca de USADO: funcionando.' : 'Busca de USADO: bloqueada pelo próprio Mercado Livre (HTTP ' + us.httpStatus + ') — é esperado, o site usa link de busca no lugar.');
+  if (!tc.ok || !ps.ok) level = 'bad';
+  return card(level, 'Mercado Livre', lines, hint);
+}
+
+function igdbCard(res) {
+  const d = res.data;
+  if (!d.configured) return card('bad', 'IGDB (capas dos jogos)', ['Chaves não configuradas.'], 'Crie IGDB_CLIENT_ID e IGDB_CLIENT_SECRET na Vercel.');
+  if (d.tokenOk === false) return card('bad', 'IGDB (capas dos jogos)', ['Falhou: ' + (d.error || 'erro desconhecido')], 'Confira se IGDB_CLIENT_ID e IGDB_CLIENT_SECRET estão corretos.');
+  return card('ok', 'IGDB (capas dos jogos)', ['Funcionando' + (d.sample ? ' — teste achou "' + d.sample.name + '".' : '.')]);
+}
+
+function rawgCard(res) {
+  const d = res.data;
+  if (!d.configured) return card('warn', 'RAWG (nota Metacritic)', ['Ainda sem chave.'], 'Crie a chave grátis em rawg.io/apidocs e salve como RAWG_API_KEY na Vercel. Enquanto isso o site funciona normal, só sem notas.');
+  if (!d.apiOk) return card('bad', 'RAWG (nota Metacritic)', ['Falhou: ' + (d.message || 'erro desconhecido')], 'Confira a chave RAWG_API_KEY.');
+  return card('ok', 'RAWG (nota Metacritic)', ['Funcionando' + (d.sample ? ' — teste achou "' + d.sample.name + '", nota ' + (d.sample.metacritic ?? '—') + '.' : '.')]);
+}
+
+async function load() {
+  const box = $('#cards');
+  box.textContent = 'Consultando…';
+  const [ml, igdb, rawg] = await Promise.all([call('/api/ml/status'), call('/api/igdb/status'), call('/api/rawg/status')]);
+  if ([ml, igdb, rawg].some(r => r.status === 401)) return logout('Senha incorreta.');
+  if ([ml, igdb, rawg].some(r => r.status === 503)) return logout('DIAGNOSTICS_SECRET ainda não está configurado na Vercel (ou falta um redeploy).');
+  box.textContent = '';
+  box.append(mlCard(ml), igdbCard(igdb), rawgCard(rawg));
+}
+
+function logout(text) {
+  sessionStorage.removeItem('inv-secret'); secret = '';
+  $('#panel').classList.add('hidden'); $('#login').classList.remove('hidden');
+  $('#msg').textContent = text || '';
+}
+
+$('#enter').addEventListener('click', async () => {
+  secret = $('#secret').value.trim();
+  if (!secret) return;
+  sessionStorage.setItem('inv-secret', secret);
+  $('#msg').textContent = '';
+  $('#login').classList.add('hidden'); $('#panel').classList.remove('hidden');
+  await load();
+});
+$('#secret').addEventListener('keydown', e => { if (e.key === 'Enter') $('#enter').click(); });
+$('#refreshAll').addEventListener('click', load);
+$('#renewMl').addEventListener('click', async () => {
+  const r = await call('/api/ml/refresh');
+  alert(r.data.ok ? 'Token renovado.' : (r.data.hint || r.data.error || 'Não consegui renovar. Use "Reconectar Mercado Livre".'));
+  load();
+});
+
+if (secret) { $('#login').classList.add('hidden'); $('#panel').classList.remove('hidden'); load(); }
+</script>
+</body>
+</html>
