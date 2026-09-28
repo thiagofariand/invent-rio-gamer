@@ -584,7 +584,7 @@ function universeHeroMarkup(u,titles,colors){
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
           <div class="home-feature-art ${src?'has-image':''}" style="${src?`--hero-img:url('${esc(src)}')`:''}" ${p?`data-igdb-hero-art data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}></div>
           <div class="game-hero-copy">
-            <span class="game-hero-kicker">${esc(badge||ECO_LABEL[u.eco]||'')}</span>
+            ${badge?`<span class="game-hero-kicker">${esc(badge)}</span>`:''}
             <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
             <p>${p?`${esc(platform)}${p.year?` · ${esc(p.year)}`:''}`:(titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.')}</p>
             ${p?`<div class="game-hero-actions"><a class="btn btn-primary" href="#/jogo/${p.slug}">Ver ofertas</a></div>`:''}
@@ -673,7 +673,7 @@ function universeInventoryPanel(u,titles,colors){
         <span class="uinv-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</span>
         <span class="uinv-info"><span class="uinv-title">${esc(p.title)}</span><span class="uinv-meta">${esc(platform)}${p.year?` · ${esc(p.year)}`:''}</span></span>
       </a>
-      <button type="button" class="uinv-check ${on?'is-on':''}" data-act="toggle-owned" data-id="game:${esc(p.slug)}" aria-pressed="${on}" aria-label="${on?'Marcado como Tenho':'Marcar como Tenho'}: ${esc(p.title)}">${ico('check',14)}<span>Tenho</span></button>
+      <button type="button" class="uinv-check ${on?'is-on':''}" data-act="toggle-owned" data-id="game:${esc(p.slug)}" aria-pressed="${on}" aria-label="${on?'Marcado como Tenho':'Marcar como Tenho'}: ${esc(p.title)}">${ico('check',15)}</button>
     </li>`;
   }).join('');
   return `<aside class="universe-inventory-panel"${style} aria-labelledby="universe-games-title">

@@ -378,27 +378,36 @@ body{background:var(--store)}
   padding:8px 10px;font-size:13px
 }
 
-/* Cabeçalho sobre o bloco de cor do universo: transparente no topo, sólido ao
-   rolar (fallback puro CSS se JS/backdrop-filter faltar: fica sempre sólido). */
-.universe-hero-route .site-header{transition:background-color .25s ease,border-color .25s ease}
-.universe-hero-route .site-header:not(.is-scrolled){background:transparent;border-bottom-color:transparent;backdrop-filter:none}
-.universe-hero-route .site-header:not(.is-scrolled) .search input{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.34);color:#fff}
-.universe-hero-route .site-header:not(.is-scrolled) .search input::placeholder{color:rgba(255,255,255,.72)}
-.universe-hero-route .site-header:not(.is-scrolled) .search .s-ico{color:rgba(255,255,255,.85)}
-.universe-hero-route .site-header:not(.is-scrolled) .main-nav a{color:#fff}
-.universe-hero-route .site-header:not(.is-scrolled) .nav-caret{color:#fff}
-/* FAB "Meu Inventário": vermelho fixo da marca fora de universo; dentro,
-   usa o tom de acento da franquia com o texto que passou no teste de
-   contraste (--u-fab-ink, calculado em universe-colors.js). */
-.universe-hero-route .inv-link{background:var(--u-accent,var(--red-tint));color:var(--u-fab-ink,var(--red-ink));border-color:transparent}
-.universe-hero-route .site-header:not(.is-scrolled) .inv-link{box-shadow:0 2px 10px rgba(0,0,0,.22)}
-/* .site-header é sticky: em repouso ele ocupa espaço normal no fluxo, não
-   fica "por cima" de nada sozinho. Pra ele realmente sobrepor o bloco de
-   cor do universo, puxa as migalhas de pão (e, com elas, o hero que vem
-   logo depois) pra trás do cabeçalho — a régua de navegação fica escondida
-   atrás dele enquanto a página está no topo, e o hero preenche o espaço. */
-.universe-hero-route .crumbs{display:none}
-.universe-hero-route .universe-layout{margin-top:calc(-1 * var(--header-h))}
+/* Página de universo: o fundo geral também assume a cor da franquia (não só
+   o cartão do hero), pra não sobrar tarja cinza ao redor. */
+body.universe-hero-route{background:var(--u-bg,#211E1B)}
+.universe-hero-route .crumbs{color:rgba(255,255,255,.72)}
+.universe-hero-route .crumbs a{color:#fff}
+
+/* Cabeçalho sobre o bloco de cor do universo — só no desktop (no mobile o
+   cabeçalho já some ao rolar e o Meu Inventário já está na barra de baixo,
+   então fica sempre no padrão sólido). Vidro tingido com a cor da franquia
+   (--u-bg), não transparência pura: continua sendo "vidro" (é navegação),
+   só que combinando com o hero em vez de revelar o fundo da página. */
+@media(min-width:761px){
+  .universe-hero-route .site-header{transition:background-color .25s ease,border-color .25s ease}
+  .universe-hero-route .site-header:not(.is-scrolled){background:color-mix(in oklab,var(--u-bg,#211E1B) 78%,transparent);border-bottom-color:transparent;backdrop-filter:blur(14px)}
+  .universe-hero-route .site-header:not(.is-scrolled) .search input{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.34);color:#fff}
+  .universe-hero-route .site-header:not(.is-scrolled) .search input::placeholder{color:rgba(255,255,255,.72)}
+  .universe-hero-route .site-header:not(.is-scrolled) .search .s-ico{color:rgba(255,255,255,.85)}
+  .universe-hero-route .site-header:not(.is-scrolled) .main-nav a{color:#fff}
+  .universe-hero-route .site-header:not(.is-scrolled) .nav-caret{color:#fff}
+  /* FAB "Meu Inventário": vermelho fixo da marca fora de universo; dentro,
+     usa o tom de acento da franquia com o texto que passou no teste de
+     contraste (--u-fab-ink, calculado em universe-colors.js). */
+  .universe-hero-route .inv-link{background:var(--u-accent,var(--red-tint));color:var(--u-fab-ink,var(--red-ink));border-color:transparent}
+  .universe-hero-route .site-header:not(.is-scrolled) .inv-link{box-shadow:0 2px 10px rgba(0,0,0,.22)}
+}
+/* No mobile o botão de inventário do cabeçalho é redundante (já tem na
+   barra de navegação de baixo). */
+@media(max-width:760px){
+  .universe-hero-route .inv-link{display:none}
+}
 .inv-link:hover{background:#FFF8F7;border-color:#F2D3CF;color:var(--red-ink)}
 .inv-link[aria-current="page"]{box-shadow:none;border-color:var(--red)}
 .inv-pixel{width:8px;height:8px;background:var(--red);box-shadow:8px 0 #792019,0 8px #792019,8px 8px var(--red);margin-right:8px;transform:translate(-4px,-4px)}
@@ -1403,7 +1412,11 @@ html{overflow-x:hidden}
    .home-feature-slide/.home-feature-art/.home-feature-controls/.home-feature-nav
    (mesmo carrossel do destaque da Home — initHomeCarousel) só com o tamanho e
    o tom de fundo (--u-bg, vindo de universe-colors.js) ajustados aqui. */
-.universe-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.82fr);gap:14px;align-items:stretch}
+/* Altura fixa (não intrínseca): sem isso, uma lista de Meu Inventário longa
+   "empurra" a linha do grid inteira pra cima e o hero cresce junto — com
+   altura fixa, o container estica os dois lados igual e quem tem conteúdo
+   maior rola por dentro (.uinv-list) em vez de esticar a página toda. */
+.universe-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.82fr);gap:14px;align-items:stretch;height:560px}
 .universe-feature-row{min-width:0}
 .universe-hero{width:100%;min-height:460px;height:100%;margin:0;border-radius:22px;isolation:isolate;background:var(--u-bg,#211E1B)}
 .universe-hero-slides{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
@@ -1413,6 +1426,7 @@ html{overflow-x:hidden}
 .universe-hero .game-hero-copy{width:76%;min-height:390px;padding:32px;justify-content:flex-end}
 .universe-hero h1{font-size:clamp(36px,4.5vw,58px);max-width:12ch}
 .universe-hero .home-feature-controls{bottom:18px;left:32px}
+.universe-hero .home-feature-nav{top:24px;transform:none}
 .universe-hero-count{position:absolute;z-index:8;right:32px;bottom:22px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;letter-spacing:.03em}
 
 /* Meu Inventário: superfície opaca (nunca vidro), rolagem própria, ao lado do hero. */
@@ -1421,7 +1435,7 @@ html{overflow-x:hidden}
 .uinv-head .eyebrow{color:rgba(255,255,255,.62)}
 .uinv-head h2{font:500 clamp(21px,2.2vw,26px)/1.05 Georgia,"Times New Roman",serif;letter-spacing:-.03em;color:#fff;margin-top:4px}
 .uinv-head p{color:rgba(255,255,255,.72);font-size:12.5px;margin-top:6px}
-.uinv-list{flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin}
+.uinv-list{flex:1;min-height:0;max-height:252px;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin}
 .uinv-row{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:12px}
 .uinv-row:hover{background:rgba(255,255,255,.06)}
 .uinv-link{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-decoration:none}
@@ -1430,8 +1444,8 @@ html{overflow-x:hidden}
 .uinv-info{min-width:0;display:flex;flex-direction:column;gap:2px}
 .uinv-title{color:#fff;font-size:13px;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .uinv-meta{color:rgba(255,255,255,.6);font-size:11px}
-.uinv-check{flex:none;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.85);font-size:11px;font-weight:700}
-.uinv-check.is-on{background:#fff;color:#1F1A16;border-color:#fff}
+.uinv-check{flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:999px;border:1px solid rgba(255,255,255,.38);background:transparent;color:#fff}
+.uinv-check.is-on{background:#fff;color:var(--u-accent,var(--red));border-color:#fff}
 .uinv-row.is-owned .uinv-title{color:#fff}
 .universe-game-shelf{margin-top:26px}
 
@@ -1457,7 +1471,7 @@ html{overflow-x:hidden}
   .ecosystem-links{gap:5px;margin-top:9px}
   .ecosystem-links a{padding:5px 7px;font-size:10px}
   .ecosystem-cta{padding-top:10px;font-size:12px}
-  .universe-layout{grid-template-columns:1fr;gap:10px}
+  .universe-layout{grid-template-columns:1fr;gap:10px;height:auto}
   .universe-hero{min-height:420px}
   .universe-hero .game-hero-copy{width:100%;min-height:420px;padding:190px 22px 40px}
   .universe-hero .home-feature-controls{left:22px;bottom:18px}

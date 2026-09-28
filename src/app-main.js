@@ -28,16 +28,17 @@ function syncHeaderScroll(){
   // transparente por cima do próprio bloco de cor do universo.
   brandLogo.src=(heroLogoChoice&&!scrolled)?MONO_LOGO[heroLogoChoice]:(heroLogoChoice?MONO_LOGO.black:DEFAULT_LOGO);
 }
+const rootStyle=document.documentElement.style;
 function applyUniverseChrome(colors){
   if(colors){
-    siteHeader.style.setProperty('--u-bg',colors.bg);
-    siteHeader.style.setProperty('--u-accent',colors.accent);
-    siteHeader.style.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
+    rootStyle.setProperty('--u-bg',colors.bg);
+    rootStyle.setProperty('--u-accent',colors.accent);
+    rootStyle.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
     heroLogoChoice=colors.logo==='black'?'black':'white';
   }else{
-    siteHeader.style.removeProperty('--u-bg');
-    siteHeader.style.removeProperty('--u-accent');
-    siteHeader.style.removeProperty('--u-fab-ink');
+    rootStyle.removeProperty('--u-bg');
+    rootStyle.removeProperty('--u-accent');
+    rootStyle.removeProperty('--u-fab-ink');
     heroLogoChoice=null;
   }
   syncHeaderScroll();
