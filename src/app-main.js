@@ -17,8 +17,8 @@ function navActive(path){
 }
 /* ---------- cabeçalho sobre o bloco de cor do universo ---------- */
 const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
-const DEFAULT_LOGO='/inventario-logo-header.png?v=Teste-Layout-Beta1';
-const MONO_LOGO={white:'/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta1',black:'/assets/inventario-logo-mono-black.png?v=Teste-Layout-Beta1'};
+const DEFAULT_LOGO='/inventario-logo-header.png?v=Teste-Layout-Beta2';
+const MONO_LOGO={white:'/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta2',black:'/assets/inventario-logo-mono-black.png?v=Teste-Layout-Beta2'};
 let heroLogoChoice=null; // 'white'|'black'|null — null = sempre a logo colorida padrão
 function syncHeaderScroll(){
   const scrolled=window.scrollY>40;
