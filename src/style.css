@@ -397,15 +397,23 @@ body.universe-hero-route{
 :root{
   --accent:#E64236;
   --page-bg:#1f0b14;
+  /* --panel-base/--action/--on-action: paleta por universo (ver ajustes
+     fase 1, item E · src/data/paleta-universos.json). Valores daqui são o
+     bloco "padrao" (home e universo sem entrada na paleta); applyUniverseChrome()
+     em app-main.js os redefine ao entrar num universo com paleta própria. */
+  --panel-base:#2a1019;
+  --action:var(--accent);
+  --on-action:#000000;
   --glass-1:rgba(10,4,8,.55);
   --glass-2:rgba(10,4,8,.40);
   --glass-3:rgba(255,255,255,.06);
   --glass-border:rgba(255,255,255,.10);
   --glass-blur:blur(18px) saturate(140%);
-  /* Acento por franquia, clareado 70% em direção ao branco — mantém
-     contraste legível sobre vidro mesmo em universos de cor saturada
-     (vermelho, verde escuro etc.), usado no botão "Tenho" marcado. */
-  --accent-on-glass:color-mix(in oklab,var(--u-accent,var(--accent)) 70%,white);
+  /* --action clareado 60% em direção ao branco — usado em linhas finas
+     (contorno do "Tenho" marcado, item ativo da barra lateral e do menu do
+     cabeçalho) pra manter contraste legível sobre vidro mesmo com --action
+     saturado. */
+  --action-on-glass:color-mix(in oklab,var(--action) 60%,white);
 }
 
 /* O cabeçalho de vidro fumê em si (site inteiro, não só universo) está
@@ -1398,7 +1406,7 @@ html{overflow-x:hidden}
 .uoc-cover .cv-plat{display:none}
 .uoc-cover .cover:not(.has-image){
   display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(155deg,color-mix(in oklab,var(--u-bg,#2A2521) 82%,black 8%),color-mix(in oklab,var(--u-accent,var(--accent)) 55%,var(--u-bg,#2A2521) 45%));
+  background:linear-gradient(155deg,color-mix(in oklab,var(--page-bg,#2A2521) 82%,black 8%),color-mix(in oklab,var(--action,var(--accent)) 55%,var(--page-bg,#2A2521) 45%));
 }
 .uoc-cover .cv-ini{margin:0;align-self:auto;font-size:clamp(32px,5vw,56px);opacity:.16;color:#fff}
 .universe-offer-card .save-btn{position:absolute;z-index:3;top:16px;right:16px;background:rgba(0,0,0,.45);border:0;color:#fff}
@@ -1406,10 +1414,14 @@ html{overflow-x:hidden}
 .uoc-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .uoc-chips{display:flex;flex-wrap:wrap;gap:6px}
-.uoc-chip{position:relative;pointer-events:auto;display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 11px/1.3 var(--font-ui);text-decoration:none;white-space:nowrap}
-.uoc-chip:hover{background:rgba(255,255,255,.28)}
-.uoc-chip-wait{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
-.uoc-chip-digital{padding:3px 8px;font-size:10px;background:rgba(255,255,255,.1)}
+/* Chip principal (item F): sólido, sem vidro nem transparência — sempre a
+   cor de ação do universo, nunca confundível com o chip Digital. */
+.uoc-chip{position:relative;pointer-events:auto;display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--action);border:0;color:var(--on-action);font:500 12px/28px var(--font-ui);text-decoration:none;white-space:nowrap}
+.uoc-chip:hover{filter:brightness(1.08)}
+.uoc-chip-wait{background:var(--action);color:var(--on-action)}
+/* Digital: secundário, vidro --glass-3 (nunca sólido). */
+.uoc-chip-digital{height:28px;padding:0 10px;font-size:11px;line-height:26px;background:var(--glass-3);border:1px solid var(--glass-border);color:#fff}
+.uoc-chip-digital:hover{background:rgba(255,255,255,.14)}
 
 @media(max-width:1040px){
   .universe-offer-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
@@ -1489,8 +1501,8 @@ html{overflow-x:hidden}
    quem manda na altura é sempre var(--hero-h), nunca um piso maior. */
 .universe-hero{
   width:100%;height:var(--hero-h);min-height:0;margin:0;border-radius:18px;isolation:isolate;position:relative;overflow:hidden;
-  background:var(--u-bg,#211E1B);
-  --hero-base:color-mix(in oklab,var(--u-bg,var(--accent)) 35%,#000);
+  background:var(--page-bg,#211E1B);
+  --hero-base:color-mix(in oklab,var(--page-bg,var(--accent)) 35%,#000);
 }
 .universe-hero-slides{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 /* Arte cobrindo o hero inteiro — object-position 28% do topo: a maioria
@@ -1501,11 +1513,16 @@ html{overflow-x:hidden}
 .universe-hero-art .uh-art-img{width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block}
 .universe-hero-art .game-hero-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center}
 .universe-hero-art .game-hero-placeholder b{font:700 clamp(40px,6vw,84px)/1 var(--font-ui);letter-spacing:-.02em;color:rgba(255,255,255,.14)}
-/* Legibilidade do texto — tingida com --hero-base (cor da franquia),
-   nunca rgba(0,0,0,...) chapado sobre a arte. */
+/* Legibilidade do texto — tingida com --hero-base (cor da franquia), nunca
+   rgba(0,0,0,...) chapado sobre a arte. Ajustes fase 1, item H: degradê da
+   esquerda reforçado (92%/55%/72%) pra separar título e logo-na-arte (ex.
+   Tears of the Kingdom); + degradê na base pra ler o título em artes claras
+   no topo (ex. Mario). */
 .universe-hero-legibility{
   position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 88%,transparent) 0%,transparent 62%);
+  background:
+    linear-gradient(180deg,transparent 0%,transparent 70%,color-mix(in oklab,var(--hero-base) 60%,transparent) 100%),
+    linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,color-mix(in oklab,var(--hero-base) 55%,transparent) 40%,transparent 72%);
 }
 .universe-hero .game-hero-copy{width:45%;height:100%;min-height:0;padding:22px 28px;justify-content:flex-end;z-index:3}
 .universe-hero h1{
@@ -1514,15 +1531,24 @@ html{overflow-x:hidden}
 }
 .universe-hero .game-hero-copy p{margin-top:6px;font-size:13px}
 .universe-hero .game-hero-actions{margin-top:14px}
+/* Botão do hero e seta "próximo" do carrossel usam a cor de ação do
+   universo (ajustes fase 1, item E). */
+.universe-hero .btn-primary{background:var(--action);color:var(--on-action);border-color:transparent}
+.universe-hero .btn-primary:hover{filter:brightness(1.08)}
 /* Indicadores do carrossel encostam 12px abaixo do botão de preço — o
    botão sempre termina a 22px do rodapé do hero (padding-bottom fixo do
-   .game-hero-copy), então essa distância dá pra calcular sem JS. */
+   .game-hero-copy), então essa distância dá pra calcular sem JS. Setas com
+   inset 20px (item A: nunca coladas na borda do card). */
 .universe-hero .home-feature-controls{bottom:4px;left:28px}
-.universe-hero .home-feature-nav{top:18px;transform:none}
+.universe-hero .home-feature-nav{top:20px;transform:none}
+.universe-hero .home-feature-nav.prev{left:20px}
+.universe-hero .home-feature-nav.next{right:20px}
 .universe-hero-count{position:absolute;z-index:8;right:28px;bottom:18px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;letter-spacing:.03em}
 @media(max-width:760px){
   .universe-hero .game-hero-copy{width:100%}
-  .universe-hero-legibility{background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,transparent 85%)}
+  .universe-hero-legibility{background:
+    linear-gradient(180deg,transparent 0%,transparent 65%,color-mix(in oklab,var(--hero-base) 65%,transparent) 100%),
+    linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,transparent 85%)}
 }
 
 /* Meu Inventário: mesma superfície de vidro fumê do cabeçalho, rolagem
@@ -1533,13 +1559,13 @@ html{overflow-x:hidden}
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
 }
 @supports not (backdrop-filter:blur(1px)){
-  .universe-inventory-panel{background:color-mix(in oklab,var(--u-panel,#2A2521) 88%,black 4%)}
+  .universe-inventory-panel{background:color-mix(in oklab,var(--panel-base,#2A2521) 88%,black 4%)}
 }
 .uinv-head{padding:20px 20px 14px;flex:none}
 .uinv-head .eyebrow{color:rgba(255,255,255,.62)}
 .uinv-head h2{font:600 clamp(21px,2.2vw,26px)/1.05 var(--font-ui);letter-spacing:-.02em;color:#fff;margin-top:4px}
 .uinv-head p{color:rgba(255,255,255,.72);font-size:12.5px;margin-top:6px}
-.uinv-list{flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin}
+.uinv-list{flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
 .uinv-row{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:12px}
 .uinv-row:hover{background:rgba(255,255,255,.06)}
 .uinv-link{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-decoration:none}
@@ -1559,7 +1585,7 @@ html{overflow-x:hidden}
   transition:border-color 120ms ease,border-width 120ms ease;
 }
 .uinv-check svg{stroke-width:2.5;opacity:.45;transition:opacity 120ms ease}
-.uinv-check.is-on{background:transparent;border-width:2px;border-color:var(--accent-on-glass)}
+.uinv-check.is-on{background:transparent;border-width:2px;border-color:var(--action-on-glass)}
 .uinv-check.is-on svg{opacity:1}
 .uinv-check:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .uinv-row.is-owned .uinv-title{color:#fff}
@@ -1673,18 +1699,18 @@ html{overflow-x:hidden}
   .main-nav{align-items:center}
   .main-nav a{color:rgba(255,255,255,.85);border-bottom-color:transparent}
   .main-nav a:hover{color:#fff}
-  .main-nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--accent);font-weight:600}
+  .main-nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--action-on-glass);font-weight:600}
 }
-/* FAB "Meu Inventário": sempre vermelho da marca + texto branco (nunca a
-   cor da franquia) — em qualquer largura de tela. */
+/* FAB "Meu Inventário": cor de ação do universo ativo (ajustes fase 1, item
+   E) — fora de universo, --action cai no vermelho da marca (bloco padrao). */
 .inv-link{
-  background:var(--accent);color:#fff;
+  background:var(--action);color:var(--on-action);
   border-radius:12px;height:40px;padding:0 16px;
   white-space:nowrap;flex-shrink:0;
   box-shadow:none;
 }
-.inv-link:hover,.inv-link[aria-current="page"]{background:var(--red-cta-hover);color:#fff;border-color:transparent;box-shadow:none}
-.inv-link .count-badge{background:#fff;color:var(--red-ink)}
+.inv-link:hover,.inv-link[aria-current="page"]{filter:brightness(.92);color:var(--on-action);border-color:transparent;box-shadow:none}
+.inv-link .count-badge{background:var(--on-action);color:var(--action)}
 
 /* Espaçamento cabeçalho → conteúdo: header→breadcrumb 12px; breadcrumb→
    hero/conteúdo 16px; em página sem breadcrumb, header→conteúdo 20px. */
@@ -1703,19 +1729,40 @@ body.hide-breadcrumb .crumbs{display:none}
    por cima do conteúdo no hover, sem empurrar layout) na busca/jogo ou
    <1280px; vira gaveta <900px.
    ============================================================ */
-:root{--sidebar-w:252px;--sidebar-w-collapsed:72px;--page-margin:18px}
+/* --content-top: base do header (16px de margem + 56px de altura) + 12px —
+   mesma variável usada pelo topo da barra lateral e (ajustes fase 1, item A)
+   pelo padding-top de main, pra hero e barra lateral começarem alinhados. */
+:root{--sidebar-w:288px;--sidebar-w-collapsed:72px;--page-margin:18px;--content-top:calc(16px + 56px + 12px)}
 .app-sidebar{
-  position:fixed;left:var(--page-margin);top:84px;
-  width:var(--sidebar-w);height:calc(100vh - 84px - var(--page-margin));
+  position:fixed;left:var(--page-margin);top:var(--content-top);
+  width:var(--sidebar-w);height:calc(100vh - var(--content-top) - var(--page-margin));
   background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
   border-radius:16px;padding:14px;overflow-y:auto;overflow-x:hidden;
   display:flex;flex-direction:column;gap:20px;z-index:40;
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
   transition:width .18s ease;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent;
 }
 @supports not (backdrop-filter:blur(1px)){.app-sidebar{background:rgba(10,4,8,.86)}}
+/* Rolagem discreta (item D): trilho sempre transparente, thumb fino — vale
+   pra barra lateral, gaveta mobile (mesma classe) e Meu Inventário. */
+.app-sidebar::-webkit-scrollbar,.uinv-list::-webkit-scrollbar{width:6px}
+.app-sidebar::-webkit-scrollbar-track,.uinv-list::-webkit-scrollbar-track{background:transparent}
+.app-sidebar::-webkit-scrollbar-thumb,.uinv-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);border-radius:999px}
+.app-sidebar::-webkit-scrollbar-thumb:hover,.uinv-list::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.45)}
 .sidebar-drawer{display:none}
+/* Vão barra→conteúdo = 16px, sem padding extra: main perde o padding
+   horizontal herdado de eras anteriores (zerado logo abaixo, ≥900px) pra a
+   borda direita do conteúdo bater com a borda direita do cabeçalho. */
 main,.site-footer{margin-left:calc(var(--page-margin) + var(--sidebar-w) + 16px);margin-right:var(--page-margin);max-width:none}
+@media(min-width:900px){
+  main{padding-left:0;padding-right:0;padding-top:12px}
+  /* main:has(>.crumbs) [ver "Espaçamento cabeçalho → conteúdo" acima] tem
+     mais especificidade que "main" puro e ainda bate mesmo com as
+     migalhas escondidas (o elemento .crumbs continua no DOM) — repete o
+     valor aqui, com a mesma especificidade, pra não perder a atualização. */
+  main:has(>.crumbs){padding-top:12px}
+}
 body.sidebar-collapsed .app-sidebar{width:var(--sidebar-w-collapsed)}
 body.sidebar-collapsed .app-sidebar:hover,body.sidebar-collapsed .app-sidebar:focus-within{width:var(--sidebar-w);z-index:60;box-shadow:0 20px 44px rgba(0,0,0,.4)}
 body.sidebar-collapsed main,body.sidebar-collapsed .site-footer{margin-left:calc(var(--page-margin) + var(--sidebar-w-collapsed) + 16px)}
@@ -1724,23 +1771,29 @@ body.sidebar-hidden main,body.sidebar-hidden .site-footer{margin-left:var(--page
 .sidebar-drawer-btn{display:none;appearance:none;border:0;background:var(--glass-3);color:#fff;width:40px;height:40px;border-radius:12px;align-items:center;justify-content:center;flex:none}
 body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 
-.sidebar-nav{display:flex;flex-direction:column;gap:20px}
-.sidebar-group{display:flex;flex-direction:column;gap:2px;padding-bottom:20px;border-bottom:1px solid var(--glass-border)}
+.sidebar-nav{display:flex;flex-direction:column;gap:14px}
+.sidebar-group{display:flex;flex-direction:column;gap:2px;padding-bottom:14px;border-bottom:1px solid var(--glass-border)}
 .sidebar-group:last-child{border-bottom:0;padding-bottom:0}
-.sidebar-item{display:flex;align-items:center;gap:12px;height:40px;padding:0 10px;border-radius:12px;color:#fff;text-decoration:none;flex:none}
+.sidebar-item{display:flex;align-items:center;gap:12px;height:38px;padding:0 10px;border-radius:11px;color:#fff;text-decoration:none;flex:none}
 .sidebar-item .ico{flex:none;width:20px;height:20px}
-.sidebar-item span{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-item span{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-item:hover{background:rgba(255,255,255,.06)}
-.sidebar-item[aria-current="page"]{outline:1.5px solid var(--accent-on-glass);outline-offset:-1.5px;background:transparent}
+.sidebar-item[aria-current="page"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:transparent}
 .sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* "Universos em destaque": mostra de 3 a 5 conforme a altura da tela
+   (item C) — a lista some item a item antes de precisar rolar. */
 .sidebar-featured{display:flex;flex-direction:column}
 .sidebar-uni-list{display:flex;flex-direction:column;gap:2px}
-.sidebar-uni-item{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:12px;text-decoration:none;color:#fff}
+.sidebar-uni-item{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:11px;text-decoration:none;color:#fff}
 .sidebar-uni-item:hover{background:rgba(255,255,255,.06)}
 .sidebar-uni-item[aria-current="page"]{background:rgba(255,255,255,.08)}
-.sidebar-uni-dot{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
+.sidebar-uni-dot{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
 .sidebar-uni-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sidebar-footer{margin-top:auto;display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:12px;background:var(--glass-3);text-decoration:none;color:#fff;flex:none}
+.sidebar-uni-list>li:nth-child(4){display:none}
+.sidebar-uni-list>li:nth-child(5){display:none}
+@media(min-height:760px){.sidebar-uni-list>li:nth-child(4){display:block}}
+@media(min-height:860px){.sidebar-uni-list>li:nth-child(5){display:block}}
+.sidebar-footer{margin-top:auto;display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:12px;background:var(--glass-3);text-decoration:none;color:#fff;flex:none}
 .sidebar-footer .ico{flex:none}
 .sidebar-footer-info{display:flex;flex-direction:column;min-width:0}
 .sidebar-footer-info b{font-size:14px;font-weight:600}
@@ -1766,4 +1819,48 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
     padding-top:calc(14px + env(safe-area-inset-top));
   }
   .sidebar-drawer.is-open{transform:translateX(0)}
+}
+
+/* ============================================================
+   AJUSTES FASE 1 — RODADA 2
+   Item B: carrossel de ofertas em fileira única, reutilizável em qualquer
+   fileira do site (home "Ofertas em jogos", universo "Encontre o próximo
+   da coleção"). Substitui o grid/scroll-só-no-mobile por scroll horizontal
+   em qualquer largura, com setas quando há mais de 4 cards.
+   ============================================================ */
+.home-offer-grid,.universe-offer-grid{
+  display:flex;flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none;
+}
+.home-offer-grid::-webkit-scrollbar,.universe-offer-grid::-webkit-scrollbar{display:none}
+.home-offer-grid>*,.universe-offer-grid>*{scroll-snap-align:start;min-width:0}
+.home-offer-grid>*{flex:0 0 calc((100% - 3*15px)/4)}
+.universe-offer-grid>*{flex:0 0 calc((100% - 3*16px)/4)}
+@media(max-width:900px){
+  .home-offer-grid>*,.universe-offer-grid>*{flex-basis:calc((100% - 15px)/2)}
+}
+@media(max-width:560px){
+  .home-offer-grid>*{flex-basis:76%}
+  .universe-offer-grid>*{flex-basis:76%}
+}
+/* Setas: par vidro/sólido no canto superior direito da linha do título. */
+.offer-row-arrows{display:flex;gap:8px;flex:none;align-items:center}
+.offer-row-arrows[hidden]{display:none}
+.offer-arrow{width:36px;height:36px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font-size:18px;line-height:1;transition:opacity .15s,filter .15s}
+.offer-arrow.prev{background:var(--glass-3);border:1px solid var(--glass-border);color:#fff}
+.offer-arrow.prev:hover{background:rgba(255,255,255,.14)}
+.offer-arrow.next{background:var(--action);color:var(--on-action)}
+.offer-arrow.next:hover{filter:brightness(1.08)}
+.lux-section-head>.offer-row-arrows{margin-left:auto;margin-right:12px}
+.universe-game-shelf .lux-section-head{align-items:center}
+
+/* Item D: rolagem discreta também no track do carrossel quando ele não
+   usa o scrollbar-width:none acima (mantido some por padrão, arrastar
+   com o dedo/mouse continua funcionando). */
+
+/* Item A: sem padding horizontal herdado em telas médias (sidebar
+   recolhida, 900–1279px) — mesma regra do bloco ≥900px acima, redundante
+   de propósito pra não depender só de ordem de cascata. */
+@media(min-width:900px) and (max-width:1279px){
+  main{padding-left:0;padding-right:0}
 }

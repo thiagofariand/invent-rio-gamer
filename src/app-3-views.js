@@ -136,8 +136,8 @@ function renderHome(){
   ${homeFeatureMarkup(slides)}
   ${top.length?`<div class="home-trending-cards" aria-label="Outros destaques">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><span class="eyebrow">${esc(sentence(t.tag))}</span><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>`:''}
 
-  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas em jogos</h2></div><a href="#/busca?cond=usado">Ver todas →</a></div>
-    <div class="home-offer-grid">${featured.map(([p,label])=>homeOfferCard(p,label)).join('')}</div>
+  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas em jogos</h2></div>${offerRowArrowsMarkup('home-offers')}<a href="#/busca?cond=usado">Ver todas →</a></div>
+    <div class="home-offer-grid" data-offer-row="home-offers">${featured.map(([p,label])=>homeOfferCard(p,label)).join('')}</div>
   </section>
 
   <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><span class="eyebrow">ALÉM DOS JOGOS</span><h2 id="home-merch-title">Complete o seu espaço gamer.</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
@@ -152,6 +152,7 @@ function renderHome(){
   hydrateHomeHero(carousel);
   loadDailyHomeTrends(renderId);
   hydrateIgdbCovers(main,12);
+  initOfferCarousels(main);
 }
 
 /* ---------- busca e resultados ---------- */
@@ -593,12 +594,11 @@ function universeHeroCtaMarkup(p,platform){
   if(!best)return `<a class="btn btn-primary" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
   return `<a class="btn btn-primary" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} a partir de ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''} →</a>`;
 }
-function universeHeroMarkup(u,titles,colors){
+function universeHeroMarkup(u,titles){
   const latest=newestUniverseGames(titles,4);
   const slides=latest.length?latest:[null];
-  const style=colors?` style="--u-bg:${esc(colors.bg)};--u-panel:${esc(colors.panel)};--u-accent:${esc(colors.accent)}"`:'';
   return `<section class="universe-feature-row">
-    <div class="game-hero universe-hero" data-home-carousel${style}>
+    <div class="game-hero universe-hero" data-home-carousel>
       <div class="universe-hero-slides">${slides.map((p,i)=>{
         const platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
@@ -678,6 +678,43 @@ function universeOfferPriceChipsMarkup(p,platform){
   if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}</a>`);
   return chips.join('');
 }
+/* ---------- carrossel de ofertas (ajustes fase 1, item B) ----------
+   Componente reutilizável: fileira única (o CSS cuida do flex/scroll-snap),
+   setas que rolam 4 cards por clique, escondidas com 4 ou menos cards. Um
+   único id por fileira (ex. "home-offers", "uni-offers") liga o par de
+   setas ao container via data-offer-row/data-offer-arrows. */
+function offerRowArrowsMarkup(id){
+  return `<div class="offer-row-arrows" data-offer-arrows="${id}" hidden>
+    <button type="button" class="offer-arrow prev" data-offer-prev="${id}" aria-label="Itens anteriores">‹</button>
+    <button type="button" class="offer-arrow next" data-offer-next="${id}" aria-label="Próximos itens">›</button>
+  </div>`;
+}
+function initOfferCarousels(root){
+  $$('[data-offer-row]',root).forEach(track=>{
+    const id=track.dataset.offerRow;
+    const arrows=root.querySelector(`[data-offer-arrows="${id}"]`);
+    if(!arrows)return;
+    const count=track.children.length;
+    if(count<=4){arrows.hidden=true;return}
+    arrows.hidden=false;
+    const prev=arrows.querySelector('[data-offer-prev]'),next=arrows.querySelector('[data-offer-next]');
+    const step=()=>(track.children[0]?.getBoundingClientRect().width||300)+16;
+    const update=()=>{
+      const max=track.scrollWidth-track.clientWidth;
+      prev.style.opacity=track.scrollLeft<=4?'.4':'1';
+      next.style.opacity=track.scrollLeft>=max-4?'.4':'1';
+    };
+    prev.addEventListener('click',()=>track.scrollBy({left:-step()*4,behavior:'smooth'}));
+    next.addEventListener('click',()=>track.scrollBy({left:step()*4,behavior:'smooth'}));
+    track.addEventListener('scroll',update,{passive:true});
+    track.setAttribute('tabindex','0');
+    track.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){track.scrollBy({left:step(),behavior:'smooth'});e.preventDefault()}
+      else if(e.key==='ArrowLeft'){track.scrollBy({left:-step(),behavior:'smooth'});e.preventDefault()}
+    });
+    update();
+  });
+}
 function universeOfferCard(p){
   const platform=p.variants?.[0]?.[1]||'';
   const best=universeOfferPhysicalBest(p,platform);
@@ -715,9 +752,9 @@ function universeDiscoveryCards(u){
 // Painel opaco (superfície tonal, nunca vidro) com a lista completa de jogos
 // da franquia, rolagem própria, e o toggle rápido de "Tenho" — fica ao lado
 // do hero na aba "tudo" da página de universo.
-function universeInventoryPanel(u,titles,colors){
+function universeInventoryPanel(u,titles){
   const owned=invList().filter(i=>i.universe===u.slug&&i.status==='owned').length;
-  const style=colors?` style="--u-panel:${esc(colors.panel)}"`:'';
+  const style='';
   const rows=[...titles].sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title)).map(p=>{
     const on=invGet('game:'+p.slug)?.status==='owned',platform=p.variants?.[0]?.[1]||'';
     return `<li class="uinv-row ${on?'is-owned':''}">
@@ -761,14 +798,16 @@ function renderUniverse(slug,params,token){
     body=(list.length?originLegend()+`<div class="cards4">${list.map(merchCard).join('')}</div>`:'<div class="empty"><p>Ainda não temos itens desta categoria para este universo.</p></div>')
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
-    featuredGames=dailyUniverseSelection(titles,slug,5);
-    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div></div><div class="universe-offer-grid">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
+    featuredGames=dailyUniverseSelection(titles,slug,12);
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div>${offerRowArrowsMarkup('uni-offers')}</div><div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
     +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
   }
-  const colors=tab==='tudo'?(universeColorsFor(u)||{bg:'#211E1B',panel:'#2A2521',accent:'var(--red)',fabText:'white',logo:'white'}):null;
+  // Cores do universo (fundo/painel/ação) vêm dos tokens globais que
+  // applyUniverseChrome() já definiu no :root pra rota universe-hero — não
+  // precisa de style inline aqui, evita duas fontes de cor coexistindo.
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/games">Games</a> › <span>${esc(u.name)}</span></nav>
-  ${tab==='tudo'?`<div class="universe-layout">${universeHeroMarkup(u,titles,colors)}${titles.length?universeInventoryPanel(u,titles,colors):''}</div>`:gameHeroMarkup({
+  ${tab==='tudo'?`<div class="universe-layout">${universeHeroMarkup(u,titles)}${titles.length?universeInventoryPanel(u,titles):''}</div>`:gameHeroMarkup({
     title:`Universo ${u.name}`,
     kicker:ECO_LABEL[u.eco]||'',
     copy:`${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}`,
@@ -785,6 +824,7 @@ function renderUniverse(slug,params,token){
   // oferta (que vêm depois no DOM) nunca chegavam a ser hidratados.
   hydrateIgdbCovers(main,tab==='tudo'?titles.length+featuredGames.length+4:12);
   if(tab==='tudo'&&featuredGames.length)hydrateUniverseOffers(featuredGames,token);
+  initOfferCarousels(main);
 }
 
 /* ---------- tema em alta ---------- */
@@ -1004,19 +1044,28 @@ function goNav(slug){
 }
 // Fonte da lista "Universos em destaque" da sidebar — só slugs, curados à
 // mão; trocar aqui não mexe em nada da UI.
-const SIDEBAR_FEATURED_UNIVERSES=['mario','the-legend-of-zelda','pokemon','god-of-war','resident-evil'];
+// Campos manuais (item C): nome de exibição, sigla (monograma) e aliases de
+// busca não derivam mais do título do catálogo — cada universo em destaque
+// escreve os seus. slug precisa bater com uMap (catalog-data.js/franchise).
+const SIDEBAR_FEATURED_UNIVERSES=[
+  {slug:'mario',nome:'Super Mario',sigla:'SM',aliases:['mario','mario kart']},
+  {slug:'the-legend-of-zelda',nome:'The Legend of Zelda',sigla:'Z',aliases:['zelda']},
+  {slug:'pokemon',nome:'Pokémon',sigla:'PK',aliases:['pokemon']},
+  {slug:'god-of-war',nome:'God of War',sigla:'GoW',aliases:['god of war']},
+  {slug:'resident-evil',nome:'Resident Evil',sigla:'RE',aliases:['resident evil']}
+];
 function sidebarItem(slug,label,icon){
   const href=goNav(slug);
   const active=location.hash===href;
   return `<a class="sidebar-item" href="${href}"${active?' aria-current="page"':''}>${ico(icon,20)}<span>${esc(label)}</span></a>`;
 }
-function sidebarUniverseItem(u){
-  const path=`#/universo/${u.slug}`;
+function sidebarUniverseItem(entry){
+  const path=`#/universo/${entry.slug}`;
   const active=location.hash===path||location.hash.startsWith(path+'?');
-  return `<li><a class="sidebar-uni-item" href="${path}"${active?' aria-current="page"':''}><span class="sidebar-uni-dot" aria-hidden="true">${esc(initialsOf(u.name).slice(0,2))}</span><span class="sidebar-uni-name">${esc(u.name)}</span></a></li>`;
+  return `<li><a class="sidebar-uni-item" href="${path}"${active?' aria-current="page"':''}><span class="sidebar-uni-dot" aria-hidden="true">${esc(entry.sigla)}</span><span class="sidebar-uni-name">${esc(entry.nome)}</span></a></li>`;
 }
 function sidebarContent(){
-  const featured=SIDEBAR_FEATURED_UNIVERSES.map(slug=>uMap.get(slug)).filter(Boolean).slice(0,5);
+  const featured=SIDEBAR_FEATURED_UNIVERSES.filter(entry=>uMap.has(entry.slug));
   const owned=invList().filter(i=>i.kind==='game'&&i.status==='owned').length;
   const invActive=location.hash==='#/inventario';
   return `
@@ -1033,7 +1082,7 @@ function sidebarContent(){
       <div class="sidebar-group">
         ${sidebarItem('retro','Retrô','retro')}
         ${sidebarItem('multiplataforma','Multiplataforma','cube')}
-        ${sidebarItem('merch','Colecionáveis e merch','bag')}
+        ${sidebarItem('merch','Colecionáveis','bag')}
       </div>
     </nav>
     ${featured.length?`<div class="sidebar-featured"><ul class="sidebar-uni-list">${featured.map(sidebarUniverseItem).join('')}</ul></div>`:''}

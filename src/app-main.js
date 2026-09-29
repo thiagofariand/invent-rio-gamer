@@ -29,7 +29,10 @@ window.addEventListener('resize',updateViewportWidth);
 
 /* ---------- cabeçalho: cartão de vidro escuro em toda página ---------- */
 const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
-const MONO_LOGO_WHITE='/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta2';
+// Logo com a mochila nas cores originais + texto branco (não o monograma
+// totalmente branco, que achata os detalhes da mochila em cima do vidro
+// escuro do cabeçalho — ver ajustes-fase-1, item G).
+const MONO_LOGO_WHITE='/assets/inventario-logo-color-darkbg.png?v=Teste-Layout-Beta2';
 // O cabeçalho é sempre vidro escuro agora (não só sobre o bloco de cor do
 // universo) — a logo fica sempre na versão clara, em qualquer scroll.
 brandLogo.src=MONO_LOGO_WHITE;
@@ -37,22 +40,21 @@ function syncHeaderScroll(){
   siteHeader.classList.toggle('is-scrolled',window.scrollY>40);
 }
 const rootStyle=document.documentElement.style;
-function applyUniverseChrome(colors){
-  if(colors){
-    rootStyle.setProperty('--u-bg',colors.bg);
-    rootStyle.setProperty('--u-panel',colors.panel);
-    rootStyle.setProperty('--u-accent',colors.accent);
-    rootStyle.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
-    // --accent fica fixo no vermelho da marca (usado no FAB do cabeçalho,
-    // que é sempre vermelho/branco, nunca a cor da franquia — só o fundo
-    // ambiente da página (--page-bg/--u-bg/--u-panel) varia por universo.
-    rootStyle.setProperty('--page-bg',colors.bg);
+// Ajustes fase 1, item E: paleta por universo (src/data/paleta-universos.json,
+// via paletteForUniverse() em app-1-core.js). --page-bg/--panel-base/--action/
+// --on-action nascem no :root com os valores do bloco "padrao" (home e
+// universo sem entrada própria) — aqui só sobrescreve quando há paleta.
+function applyUniverseChrome(pal){
+  if(pal){
+    rootStyle.setProperty('--page-bg',pal.fundo);
+    rootStyle.setProperty('--panel-base',pal.painel);
+    rootStyle.setProperty('--action',pal.acao);
+    rootStyle.setProperty('--on-action',pal.acaoTexto);
   }else{
-    rootStyle.removeProperty('--u-bg');
-    rootStyle.removeProperty('--u-panel');
-    rootStyle.removeProperty('--u-accent');
-    rootStyle.removeProperty('--u-fab-ink');
     rootStyle.removeProperty('--page-bg');
+    rootStyle.removeProperty('--panel-base');
+    rootStyle.removeProperty('--action');
+    rootStyle.removeProperty('--on-action');
   }
   syncHeaderScroll();
 }
@@ -69,7 +71,7 @@ function route(){
   document.body.classList.toggle('inventory-route',path==='/inventario');
   const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
-  applyUniverseChrome(isUniverseHero?(universeColorsFor(uMap.get(path.slice(10)))||{bg:'#211E1B',panel:'#2A2521',accent:'var(--red)',fabText:'white',logo:'white'}):null);
+  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):null);
   navActive(path);
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);

@@ -94,11 +94,29 @@ function igdbTitleFor(p,platform){
   return (v&&v[2])||p.title;
 }
 
-// Paleta por franquia (universe-colors.js). Franquia que cruzou o piso de 3
-// jogos mas ainda não teve a cor gerada cai em null — quem chama decide o
-// fallback (hoje: o gradiente por hash que já existia).
-function universeColorsFor(u){
-  return (window.UNIVERSE_COLORS&&u&&window.UNIVERSE_COLORS[u.name])||null;
+// Paleta por franquia (ajustes fase 1, item E · src/data/paleta-universos.json).
+// Carregada de forma síncrona: é um arquivo local pequeno e precisa estar
+// pronta já no primeiro render (senão o universo abriria com a cor errada
+// por um instante até um fetch assíncrono voltar).
+let PALETA_UNIVERSOS={padrao:{fundo:'#1f0b14',painel:'#2a1019',acao:'#E64236',acaoTexto:'#000000'},universos:[]};
+try{
+  const xhrPal=new XMLHttpRequest();
+  xhrPal.open('GET','/src/data/paleta-universos.json?v=Teste-Layout-Beta2',false);
+  xhrPal.send(null);
+  if(xhrPal.status===200)PALETA_UNIVERSOS=JSON.parse(xhrPal.responseText);
+}catch(e){/* mantém o fallback "padrao" acima */}
+const paletaIdx=new Map();
+(PALETA_UNIVERSOS.universos||[]).forEach(p=>{
+  paletaIdx.set(p.slug,p);
+  (p.aliases||[]).forEach(a=>paletaIdx.set(norm(a),p));
+  paletaIdx.set(norm(p.nome),p);
+});
+// Franquia que cruzou o piso de 3 jogos mas ainda não tem entrada na paleta
+// (ex.: Donkey Kong) cai em null — quem chama usa o bloco "padrao" (tokens
+// --page-bg/--panel-base/--action já nascem com esses valores no :root).
+function paletteForUniverse(u){
+  if(!u)return null;
+  return paletaIdx.get(u.slug)||paletaIdx.get(norm(u.name))||null;
 }
 function releaseBadge(p){
   if(!p||!p.releaseDate)return null;
