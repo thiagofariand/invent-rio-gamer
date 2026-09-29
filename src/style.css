@@ -1391,9 +1391,11 @@ html{overflow-x:hidden}
 .universe-game-shelf .lux-section-head h2{font-size:32px}
 .universe-offer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 .universe-offer-card{position:relative;min-width:0;aspect-ratio:1/1;border-radius:15px;overflow:hidden;isolation:isolate;background:#1c1712}
+/* Acabamento rodada 3, item 4: degradê cobrindo os 55% de baixo — título e
+   chip legíveis mesmo sobre capa clara (Mario Golf, Echoes of Wisdom). */
 .universe-offer-card::after{
-  content:"";position:absolute;left:0;right:0;bottom:0;height:38%;z-index:1;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,0));
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,transparent 0%,transparent 45%,rgba(0,0,0,.92) 100%);
 }
 /* Mesma fonte de capa do Meu Inventário: igdb-cover-slot hidratado por
    hydrateIgdbCovers (ver renderUniverse). Sem capa, fica só a sigla
@@ -1412,7 +1414,7 @@ html{overflow-x:hidden}
 .universe-offer-card .save-btn{position:absolute;z-index:3;top:16px;right:16px;background:rgba(0,0,0,.45);border:0;color:#fff}
 .universe-offer-card .save-btn:hover{background:rgba(0,0,0,.65)}
 .uoc-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .uoc-chips{display:flex;flex-wrap:wrap;gap:6px}
 /* Chip principal (item F): sólido, sem vidro nem transparência — sempre a
    cor de ação do universo, nunca confundível com o chip Digital. */
@@ -1522,12 +1524,13 @@ html{overflow-x:hidden}
   position:absolute;inset:0;z-index:2;pointer-events:none;
   background:
     linear-gradient(180deg,transparent 0%,transparent 70%,color-mix(in oklab,var(--hero-base) 60%,transparent) 100%),
-    linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,color-mix(in oklab,var(--hero-base) 55%,transparent) 40%,transparent 72%);
+    linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,color-mix(in oklab,var(--hero-base) 60%,transparent) 35%,transparent 72%);
 }
 .universe-hero .game-hero-copy{width:45%;height:100%;min-height:0;padding:22px 28px;justify-content:flex-end;z-index:3}
 .universe-hero h1{
   font-size:clamp(28px,2.6vw,38px);max-width:15ch;line-height:1.15;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  text-shadow:0 1px 8px rgba(0,0,0,.45);
 }
 .universe-hero .game-hero-copy p{margin-top:6px;font-size:13px}
 .universe-hero .game-hero-actions{margin-top:14px}
@@ -1630,9 +1633,19 @@ html{overflow-x:hidden}
   .row.row-game{grid-template-columns:76px minmax(0,1fr)}
 }
 
-/* ---------- setas manuais do carrossel do hero ---------- */
-.home-feature-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:44px;height:44px;border-radius:999px;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
-.home-feature-nav:hover{background:rgba(0,0,0,.55)}
+/* ---------- setas manuais do carrossel do hero ----------
+   Acabamento rodada 3, item 1: vidro fumê (não preto translúcido genérico)
+   pra continuar visível em qualquer arte, inclusive claras (Mario Kart
+   World) — antes a seta clara sobre fundo claro quase sumia. */
+.home-feature-nav{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:6;
+  width:40px;height:40px;border-radius:999px;
+  background:rgba(10,4,8,.55);border:1px solid var(--glass-border);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:#fff;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;
+}
+@supports not (backdrop-filter:blur(1px)){.home-feature-nav{background:rgba(10,4,8,.82)}}
+.home-feature-nav:hover{background:rgba(10,4,8,.72)}
 .home-feature-nav.prev{left:18px}
 .home-feature-nav.next{right:18px}
 @media (max-width:760px){
@@ -1786,7 +1799,7 @@ body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 .sidebar-uni-list{display:flex;flex-direction:column;gap:2px}
 .sidebar-uni-item{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:11px;text-decoration:none;color:#fff}
 .sidebar-uni-item:hover{background:rgba(255,255,255,.06)}
-.sidebar-uni-item[aria-current="page"]{background:rgba(255,255,255,.08)}
+.sidebar-uni-item[aria-current="page"]{background:transparent;outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px}
 .sidebar-uni-dot{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
 .sidebar-uni-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-uni-list>li:nth-child(4){display:none}
