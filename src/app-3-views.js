@@ -617,31 +617,38 @@ function dailyUniverseSelection(titles,slug,count=5){
   const day=new Date().toISOString().slice(0,10);
   return [...titles].sort((a,b)=>hashStr(`${day}|${slug}|${a.slug}`)-hashStr(`${day}|${slug}|${b.slug}`)).slice(0,count);
 }
-function universeOfferSnapshot(p,platform){
-  let best=null;
-  for(const cond of ['used','new']){
-    if((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false))continue;
-    const s=summaryOf(cond,p.title,platform);
-    if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)continue;
-    if(!best||s.min<best.summary.min)best={cond,summary:s};
-  }
-  return best;
+// Preços por condição (Novo/Usado/Digital) pro card de oferta do universo —
+// só entra condição com oferta real validada (mesmo filtro de sempre: sem
+// mock, status ok, com contagem e preço mínimo). Digital hoje nunca tem
+// preço real (só lojas/links), então o chip simplesmente não aparece — a
+// função já lida com isso sem precisar de caso especial.
+function universeOfferConditions(p,platform){
+  return ['new','used','digital']
+    .filter(cond=>!((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false)))
+    .map(cond=>{
+      const s=summaryOf(cond,p.title,platform);
+      if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)return null;
+      return {cond,summary:s};
+    })
+    .filter(Boolean);
 }
-function universeOfferPriceMarkup(p,platform){
-  const best=universeOfferSnapshot(p,platform);
-  if(!best)return '<span class="universe-price-wait">Ver ofertas</span>';
-  return `<span>${esc(COND_LABEL[best.cond])} a partir de</span><strong>${esc(best.summary.minDisplay)}</strong>`;
+function universeOfferPriceChipsMarkup(p,platform){
+  const list=universeOfferConditions(p,platform);
+  if(!list.length)return '<span class="uoc-chip uoc-chip-wait">Ver ofertas</span>';
+  // No mobile, se sobrarem 3 chips, mostra só os 2 mais baratos — marca a
+  // condição mais cara pra CSS esconder abaixo de 760px.
+  const costliest=list.length>=3?list.reduce((a,b)=>b.summary.min>a.summary.min?b:a).cond:null;
+  return list.map(({cond,summary})=>`<a class="uoc-chip${cond===costliest?' uoc-chip-drop-mobile':''}" href="${comparisonHref(p,platform,cond)}">${esc(COND_LABEL[cond])} ${esc(summary.minDisplay)}</a>`).join('');
 }
 function universeOfferCard(p){
   const platform=p.variants?.[0]?.[1]||'';
-  const current=universeOfferSnapshot(p,platform);
-  const cond=current?.cond||(p.used===false?'new':'used');
   return `<article class="universe-offer-card">
-    <a class="universe-offer-cover igdb-cover-slot" href="#/jogo/${p.slug}?plat=${enc(platform)}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+    <a class="uoc-cover igdb-cover-slot" href="${comparisonHref(p,platform,'all')}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false,fullTitle:true})}</a>
     ${saveButton(gameRef(p))}
-    <h3><a href="#/jogo/${p.slug}?plat=${enc(platform)}">${esc(p.title)}</a></h3>
-    <p>${esc(platform)} · ${p.physical===false?'digital':'físico'}</p>
-    <a class="universe-offer-action" data-universe-offer-link="${esc(p.slug)}" href="${comparisonHref(p,platform,cond)}"><span data-universe-offer-price="${esc(p.slug)}">${universeOfferPriceMarkup(p,platform)}</span><b>Ver mais →</b></a>
+    <div class="uoc-overlay">
+      <h3 class="uoc-title">${esc(p.title)}</h3>
+      <div class="uoc-chips" data-universe-offer-price="${esc(p.slug)}">${universeOfferPriceChipsMarkup(p,platform)}</div>
+    </div>
   </article>`;
 }
 async function hydrateUniverseOffers(games,token){
@@ -651,11 +658,8 @@ async function hydrateUniverseOffers(games,token){
     await Promise.all(conds.map(cond=>fetchCond(p.title,platform,cond)));
     if(token!==viewToken)return;
     const slot=main.querySelector(`[data-universe-offer-price="${p.slug}"]`);
-    const link=main.querySelector(`[data-universe-offer-link="${p.slug}"]`);
-    if(!slot||!link)return;
-    const best=universeOfferSnapshot(p,platform);
-    slot.innerHTML=universeOfferPriceMarkup(p,platform);
-    link.href=comparisonHref(p,platform,best?.cond||(p.used===false?'new':'used'));
+    if(!slot)return;
+    slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
   });
 }
 function universeDiscoveryCards(u){

@@ -380,28 +380,58 @@ body{background:var(--store)}
 
 /* Página de universo: o fundo geral também assume a cor da franquia (não só
    o cartão do hero), pra não sobrar tarja cinza ao redor. */
-body.universe-hero-route{background:var(--u-bg,#211E1B)}
+body.universe-hero-route{
+  background:
+    radial-gradient(120% 90% at 82% -8%,color-mix(in oklab,var(--accent) 32%,transparent),transparent 60%),
+    var(--page-bg);
+}
 .universe-hero-route .crumbs{color:rgba(255,255,255,.72)}
 .universe-hero-route .crumbs a{color:#fff}
 
-/* Cabeçalho sobre o bloco de cor do universo — só no desktop (no mobile o
-   cabeçalho já some ao rolar e o Meu Inventário já está na barra de baixo,
-   então fica sempre no padrão sólido). Vidro tingido com a cor da franquia
-   (--u-bg), não transparência pura: continua sendo "vidro" (é navegação),
-   só que combinando com o hero em vez de revelar o fundo da página. */
+/* ---- material "vidro fumê": tokens globais, usados só em navegação
+   (cabeçalho, menu lateral/painel) — nunca em cards/conteúdo. --accent e
+   --page-bg são redefinidos por JS (app-main.js/applyUniverseChrome) com a
+   cor da franquia; sem universo ativo caem no vermelho da marca. */
+:root{
+  --accent:#E64236;
+  --page-bg:#1f0b14;
+  --glass-1:rgba(10,4,8,.55);
+  --glass-2:rgba(10,4,8,.40);
+  --glass-3:rgba(255,255,255,.06);
+  --glass-border:rgba(255,255,255,.10);
+  --glass-blur:blur(18px) saturate(140%);
+}
+
+/* Cabeçalho sobre o bloco de cor do universo: cartão de vidro flutuante,
+   não mais faixa full-width — só no desktop (no mobile o cabeçalho já some
+   ao rolar e o Meu Inventário já está na barra de baixo). */
 @media(min-width:761px){
-  .universe-hero-route .site-header{transition:background-color .25s ease,border-color .25s ease}
-  .universe-hero-route .site-header:not(.is-scrolled){background:color-mix(in oklab,var(--u-panel,#2A2521) 82%,transparent);border-bottom-color:transparent;backdrop-filter:blur(14px)}
-  .universe-hero-route .site-header:not(.is-scrolled) .search input{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.34);color:#fff}
-  .universe-hero-route .site-header:not(.is-scrolled) .search input::placeholder{color:rgba(255,255,255,.72)}
-  .universe-hero-route .site-header:not(.is-scrolled) .search .s-ico{color:rgba(255,255,255,.85)}
-  .universe-hero-route .site-header:not(.is-scrolled) .main-nav a{color:#fff}
-  .universe-hero-route .site-header:not(.is-scrolled) .nav-caret{color:#fff}
+  .universe-hero-route .site-header{
+    position:sticky;top:12px;
+    max-width:1240px;margin:16px auto 0;
+    border-radius:20px;
+    min-height:64px;
+    background:var(--glass-1);
+    border:1px solid var(--glass-border);
+    border-top-color:rgba(255,255,255,.16);
+    backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    box-shadow:0 14px 32px rgba(0,0,0,.28);
+  }
+  @supports not (backdrop-filter:blur(1px)){
+    .universe-hero-route .site-header{background:rgba(10,4,8,.86)}
+  }
+  .universe-hero-route .site-header .header-inner{min-height:64px}
+  .universe-hero-route .site-header .search input{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:#fff}
+  .universe-hero-route .site-header .search input::placeholder{color:rgba(255,255,255,.72)}
+  .universe-hero-route .site-header .search .s-ico{color:rgba(255,255,255,.85)}
+  .universe-hero-route .site-header .main-nav a{color:#fff}
+  .universe-hero-route .site-header .nav-caret{color:#fff;width:44px;height:44px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border)}
+  .universe-hero-route .site-header .nav-caret:hover{background:rgba(255,255,255,.12)}
   /* FAB "Meu Inventário": vermelho fixo da marca fora de universo; dentro,
      usa o tom de acento da franquia com o texto que passou no teste de
      contraste (--u-fab-ink, calculado em universe-colors.js). */
-  .universe-hero-route .inv-link{background:var(--u-accent,var(--red-tint));color:var(--u-fab-ink,var(--red-ink));border-color:transparent}
-  .universe-hero-route .site-header:not(.is-scrolled) .inv-link{box-shadow:0 2px 10px rgba(0,0,0,.22)}
+  .universe-hero-route .inv-link{background:var(--accent);color:var(--u-fab-ink,var(--red-ink));border-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.22)}
 }
 /* No mobile o botão de inventário do cabeçalho é redundante (já tem na
    barra de navegação de baixo). */
@@ -444,7 +474,7 @@ main{max-width:1200px;padding-top:28px}
 .cover.has-image::before{display:none}
 .cv-img{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);object-fit:cover;display:block;z-index:1}
 .cover.has-image .cv-plat{position:relative;z-index:4;background:rgba(255,255,255,.94);color:#363B44;border:1px solid #D6D9DE;padding:2px 5px;font-size:9px}
-.cv-ini{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:0}
+.cv-ini{font-family:var(--font-ui);font-weight:700;letter-spacing:0}
 .cv-note{font-size:9px;letter-spacing:.05em;text-transform:uppercase}
 .cover.mini{clip-path:polygon(3px 0,calc(100% - 3px) 0,100% 3px,100% calc(100% - 3px),calc(100% - 3px) 100%,3px 100%,0 calc(100% - 3px),0 3px);border-width:1px;box-shadow:none}
 .cover.mini::after{display:none}
@@ -678,8 +708,8 @@ body.inventory-route .site-footer{background:var(--night);color:#9EA3B0;border-c
   text-transform:uppercase;
 }
 .game-hero-placeholder b{
-  font:500 clamp(44px,7vw,78px)/1 Georgia,"Times New Roman",serif;
-  letter-spacing:-.01em;
+  font:700 clamp(44px,7vw,78px)/1 var(--font-ui);
+  letter-spacing:-.02em;
   text-shadow:0 3px 0 rgba(0,0,0,.16);
 }
 .game-hero-placeholder span{
@@ -1021,7 +1051,8 @@ main{max-width:1240px;padding:34px 28px 80px}
 .site-footer{background:#E7E1D7;border-color:var(--line);color:#625C54}
 
 h1,h2,h3{color:var(--ink)}
-.page-h,.home-feature h1,.games-intro h1,.lux-section-head h2,.compare-heading h1{font-family:Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.035em}
+.page-h,.home-feature h1,.compare-heading h1{font-family:var(--font-ui);font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.games-intro h1,.lux-section-head h2{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em}
 .eyebrow{display:block;color:var(--red-ink);font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
 .btn{border-radius:11px;clip-path:none;padding:11px 17px}
 .btn-primary{background:var(--red);box-shadow:0 7px 20px rgba(181,45,38,.17)}
@@ -1093,12 +1124,12 @@ h1,h2,h3{color:var(--ink)}
 .merch-home-stage::after{width:180px;height:180px;right:-60px;top:-90px}
 .merch-home-copy{position:relative;z-index:2}
 .merch-home-copy .eyebrow{color:#EAB69A}
-.merch-home-copy h2{color:#fff;font:500 clamp(34px,4vw,50px)/.98 Georgia,"Times New Roman",serif;margin-top:8px}
+.merch-home-copy h2{color:#fff;font:700 clamp(34px,4vw,50px)/1.05 var(--font-ui);letter-spacing:-.02em;margin-top:8px}
 .merch-home-copy p{color:#E8DDD4;margin:16px 0 22px}
 .merch-home-grid{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
 .merch-home-card{min-height:225px;padding:20px;border-radius:16px;background:#FBF8F2;color:var(--ink);text-decoration:none;display:flex;flex-direction:column;box-shadow:var(--shadow-float)}
 .merch-home-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#EDE4D9;color:#704B38;margin-bottom:auto}
-.merch-home-card b{display:block;font:500 21px/1.05 Georgia,"Times New Roman",serif;margin-top:18px}
+.merch-home-card b{display:block;font:600 21px/1.05 var(--font-ui);margin-top:18px}
 .merch-home-card small{display:block;color:var(--muted);margin-top:8px;line-height:1.35}
 .merch-home-card>span:last-child{margin-top:16px;color:var(--red-ink);font-weight:800}
 
@@ -1122,7 +1153,7 @@ h1,h2,h3{color:var(--ink)}
 .game-hero-art::before,.game-hero-art.has-image::before{background:linear-gradient(90deg,rgba(20,18,16,.9),rgba(20,18,16,.18) 74%,transparent)}
 .game-hero-copy{position:relative;z-index:3;width:min(650px,60%);min-height:420px;padding:52px;justify-content:center}
 .game-hero-kicker{border-radius:999px;background:rgba(250,248,243,.12);border-color:rgba(250,248,243,.22);padding:5px 10px}
-.game-hero h1{font-family:Georgia,"Times New Roman",serif;font-weight:500;color:#fff;font-size:clamp(43px,5vw,66px);line-height:.96;letter-spacing:-.05em;max-width:13ch}
+.game-hero h1{font-family:var(--font-ui);font-weight:700;color:#fff;font-size:clamp(43px,5vw,66px);line-height:1.05;letter-spacing:-.02em;max-width:13ch}
 .game-hero-copy p{color:#E4DCD4}
 .game-hero .btn,.game-hero .save-btn{border-radius:11px;clip-path:none}
 .game-commerce-grid{grid-template-columns:minmax(0,1.45fr) minmax(220px,1fr) minmax(220px,1fr);gap:16px;margin-top:22px}
@@ -1130,7 +1161,7 @@ h1,h2,h3{color:var(--ink)}
 .purchase-module{padding:18px;grid-template-columns:minmax(0,165px) minmax(0,1fr)}
 .purchase-cover .cover{border-radius:14px!important}
 .purchase-title-row,.visual-menu-art{border-color:var(--line)}
-.purchase-title-row h2,.visual-menu-body h2{font-family:Georgia,"Times New Roman",serif;font-weight:500}
+.purchase-title-row h2,.visual-menu-body h2{font-family:var(--font-ui);font-weight:600}
 .purchase-title-row h2{font-size:24px}
 .purchase-media-group{border-color:var(--line);background:#F5F1EA;border-radius:13px;padding:13px}
 .purchase-price-row{grid-template-columns:70px minmax(0,1fr) auto;text-decoration:none;color:inherit;border-color:#E2DCD3;border-radius:8px;padding:9px 7px;margin:0 -7px}
@@ -1151,7 +1182,7 @@ h1,h2,h3{color:var(--ink)}
 .discovery-card{min-height:260px;padding:22px;border-radius:18px;background:#FAF8F3;border:1px solid var(--line);display:flex;flex-direction:column;text-decoration:none;box-shadow:0 1px 0 rgba(43,36,28,.03)}
 .discovery-art{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:#E8DED2;color:#604738;margin-bottom:auto}
 .discovery-card.fanmade .discovery-art{background:#D9E6E3;color:#2F5B5C}.discovery-card.decor .discovery-art{background:#E7E0D0;color:#6B5936}
-.discovery-card small{display:block;color:var(--red-ink);font-size:9px;font-weight:800;letter-spacing:.12em;margin-top:22px}.discovery-card b{display:block;font:500 24px/1.05 Georgia,"Times New Roman",serif;margin-top:5px}.discovery-card em{display:block;color:var(--muted);font-style:normal;font-size:13px;margin-top:9px}.discovery-card strong{margin-top:18px;color:var(--red-ink)}
+.discovery-card small{display:block;color:var(--red-ink);font-size:9px;font-weight:800;letter-spacing:.12em;margin-top:22px}.discovery-card b{display:block;font:600 24px/1.05 var(--font-ui);margin-top:5px}.discovery-card em{display:block;color:var(--muted);font-style:normal;font-size:13px;margin-top:9px}.discovery-card strong{margin-top:18px;color:var(--red-ink)}
 
 /* Comparador de ofertas */
 .compare-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
@@ -1159,7 +1190,7 @@ h1,h2,h3{color:var(--ink)}
 .compare-filterbar{display:flex;gap:18px;flex-wrap:wrap;padding:14px 16px;background:#E5DED4;border-radius:15px;margin-bottom:18px}
 .compare-filterbar>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.compare-filterbar span{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#686159;margin-right:3px}.compare-filterbar a{padding:7px 11px;border-radius:999px;background:#F6F2EB;border:1px solid transparent;text-decoration:none;font-size:12px;font-weight:700}.compare-filterbar a[aria-current="true"]{background:#28231F;color:#fff}
 .compare-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,.72fr);gap:24px;align-items:start}
-.compare-results-head{display:flex;justify-content:space-between;align-items:center;margin:4px 0 15px}.compare-results-head h2{font:500 27px/1.05 Georgia,"Times New Roman",serif}.compare-results-head p{color:var(--muted);font-size:13px;margin-top:5px}
+.compare-results-head{display:flex;justify-content:space-between;align-items:center;margin:4px 0 15px}.compare-results-head h2{font:600 27px/1.05 var(--font-ui)}.compare-results-head p{color:var(--muted);font-size:13px;margin-top:5px}
 .compare-spinner{width:18px;height:18px;border-radius:50%;border:2px solid #CABFB2;border-top-color:var(--red);animation:spin .85s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .compare-offers{display:grid;gap:14px}
@@ -1168,7 +1199,7 @@ h1,h2,h3{color:var(--ink)}
 .compare-listing{display:grid;grid-template-columns:50px minmax(0,1fr);gap:11px;align-items:center}.compare-listing img,.compare-thumb-empty{width:50px;height:62px;border-radius:9px;object-fit:cover;background:#E8E1D8;border:1px solid var(--line);display:grid;place-items:center}.compare-listing strong{font-size:13px;line-height:1.25;display:block}.compare-listing small{display:block;color:var(--muted);margin-top:5px}
 .compare-price{display:flex;flex-direction:column;align-items:flex-end}.compare-price span{font-size:11px;color:var(--muted)}.compare-price b{font-size:22px}.compare-price del{font-size:11px;color:var(--muted)}
 .compare-game-card{position:sticky;top:calc(var(--header-h) + 18px);padding:22px;border-radius:18px;background:#F9F6F0;border:1px solid var(--line);box-shadow:var(--shadow-soft)}
-.compare-cover{max-width:205px;margin:15px auto}.compare-cover .cover{width:100%;aspect-ratio:3/4}.compare-game-card h2{font:500 28px/1.02 Georgia,"Times New Roman",serif;margin-top:16px}.compare-game-card dl{margin:18px 0}.compare-game-card dl>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}.compare-game-card dt{color:var(--muted);font-size:12px}.compare-game-card dd{margin:0;font-size:13px;font-weight:700}.compare-summary{color:var(--muted);font-size:13px;line-height:1.55}.compare-game-card>a{display:inline-block;margin-top:18px;color:var(--red-ink);font-weight:750;text-decoration:none}
+.compare-cover{max-width:205px;margin:15px auto}.compare-cover .cover{width:100%;aspect-ratio:3/4}.compare-game-card h2{font:600 28px/1.05 var(--font-ui);margin-top:16px}.compare-game-card dl{margin:18px 0}.compare-game-card dl>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}.compare-game-card dt{color:var(--muted);font-size:12px}.compare-game-card dd{margin:0;font-size:13px;font-weight:700}.compare-summary{color:var(--muted);font-size:13px;line-height:1.55}.compare-game-card>a{display:inline-block;margin-top:18px;color:var(--red-ink);font-weight:750;text-decoration:none}
 .compare-loading{display:grid;gap:14px}.compare-loading span{height:128px;border-radius:17px;background:linear-gradient(90deg,#E6DED4 25%,#F1ECE5 50%,#E6DED4 75%);background-size:200% 100%;animation:loading 1.2s infinite}
 @keyframes loading{to{background-position:-200% 0}}
 
@@ -1234,7 +1265,7 @@ h1,h2,h3{color:var(--ink)}
 
 /* ---- monograma: sai do centro, vira marca de canto discreta ---- */
 .cv-ini{
-  align-self:flex-end;margin:auto 0 0;font-family:Georgia,"Times New Roman",serif;font-weight:500;
+  align-self:flex-end;margin:auto 0 0;font-family:var(--font-ui);font-weight:600;
   font-size:clamp(15px,1.6vw,19px);letter-spacing:0;opacity:.55;color:hsl(var(--h,28) 30% 22%);
 }
 .cover.wide .cv-ini{font-size:clamp(17px,2vw,22px)}
@@ -1246,7 +1277,7 @@ h1,h2,h3{color:var(--ink)}
   position:absolute;inset:auto 28px 26px auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right;
 }
 .game-hero-placeholder b{
-  font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:clamp(48px,7vw,96px);line-height:.9;
+  font-family:var(--font-ui);font-weight:700;font-size:clamp(48px,7vw,96px);line-height:.9;
   color:hsl(var(--hero-h,28) 40% 96% / .16);letter-spacing:-.03em;
 }
 .game-hero-placeholder span{opacity:.55}
@@ -1321,8 +1352,8 @@ html{overflow-x:hidden}
    ============================================================ */
 
 /* Hero Em alta: três franquias, sem alterar a faixa edge-to-edge. */
-.home-feature-slide{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .65s ease;z-index:1}
-.home-feature-slide.is-active{opacity:1;pointer-events:auto;z-index:2}
+.home-feature-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .65s ease,visibility 0s linear .65s;z-index:1}
+.home-feature-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .65s ease,visibility 0s linear;z-index:2}
 .home-feature-slide .home-feature-art{z-index:0}
 .home-feature-controls{position:absolute;z-index:8;left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));bottom:84px;display:flex;gap:8px}
 .home-feature-controls button{width:28px;height:5px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.38);cursor:pointer;transition:width .2s ease,background .2s ease}
@@ -1336,25 +1367,45 @@ html{overflow-x:hidden}
 .ecosystem-links{display:flex;justify-content:center;align-content:flex-end;margin-top:22px}
 .ecosystem-links a{text-align:center;font-weight:700;background:rgba(255,255,255,.13)}
 
-/* Universo: cinco jogos com menor preço real encontrado. */
+/* Universo: cinco jogos com menor preço real encontrado. Card de oferta:
+   a capa ocupa o card inteiro, degradê no 1/4 inferior com nome + chips de
+   preço por condição. Card inteiro abre o comparador ("Todos"); cada chip
+   abre o comparador já filtrado na condição. Sem blur (performance) — só
+   cor semitransparente. */
 .universe-game-shelf{margin-top:26px}
 .universe-offer-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-.universe-offer-card{position:relative;min-width:0;padding:7px 7px 0;background:#FAF8F3;border:1px solid var(--line);border-radius:15px;overflow:hidden}
-.universe-offer-cover{display:block;text-decoration:none}
-.universe-offer-cover .cover{width:100%;aspect-ratio:3/4;border-radius:10px!important}
-.universe-offer-card>.save-btn{position:absolute;z-index:3;top:14px;right:14px;background:rgba(250,248,243,.94);border-color:rgba(216,210,200,.95)}
-.universe-offer-card h3{font-size:13px;line-height:1.16;margin:10px 3px 0;min-height:31px}
-.universe-offer-card h3 a{text-decoration:none}
-.universe-offer-card>p{font-size:11px;color:var(--muted);margin:4px 3px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.universe-offer-action{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;margin:0 -7px;text-decoration:none;border-top:1px solid var(--line);color:var(--ink)}
-.universe-offer-action>span{display:flex;min-height:47px;flex-direction:column;justify-content:center;padding:7px 10px;font-size:9px;color:var(--muted)}
-.universe-offer-action strong{font-size:16px;color:var(--ink)}
-.universe-offer-action>b{display:grid;place-items:center;padding:7px 10px;background:var(--red);color:#fff;font-size:11px;white-space:nowrap}
-.universe-price-wait{font-size:12px;color:var(--ink);font-weight:750}
+.universe-offer-card{position:relative;min-width:0;aspect-ratio:3/4;border-radius:15px;overflow:hidden;isolation:isolate;background:#1c1712}
+.universe-offer-card::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:38%;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,0));
+}
+.uoc-cover{position:absolute;inset:0;display:block;z-index:0}
+.uoc-cover .cover{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:0!important;border:0;padding:0;box-shadow:none;clip-path:none;background-image:none}
+.uoc-cover .cover::before,.uoc-cover .cover::after{display:none}
+.uoc-cover .cv-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.uoc-cover .cv-plat{display:none}
+/* Sem capa: degradê com a cor do universo + nome do jogo em destaque
+   (DM Sans 700) — nada de textura granulada aqui. */
+.uoc-cover .cover.cover-name{
+  display:flex;align-items:flex-start;padding:14px;padding-bottom:38%;
+  background:linear-gradient(155deg,color-mix(in oklab,var(--u-bg,#2A2521) 82%,black 8%),color-mix(in oklab,var(--u-accent,var(--accent)) 55%,var(--u-bg,#2A2521) 45%));
+}
+.cv-name{font:700 clamp(15px,2.4vw,20px)/1.18 var(--font-ui);letter-spacing:-.01em;color:rgba(255,255,255,.42);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.universe-offer-card .save-btn{position:absolute;z-index:3;top:10px;right:10px;background:rgba(0,0,0,.45);border:0;color:#fff}
+.universe-offer-card .save-btn:hover{background:rgba(0,0,0,.65)}
+.uoc-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.uoc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.uoc-chip{position:relative;pointer-events:auto;display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 11px/1.3 var(--font-ui);text-decoration:none;white-space:nowrap}
+.uoc-chip:hover{background:rgba(255,255,255,.28)}
+.uoc-chip-wait{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
 
 @media(max-width:1040px){
   .universe-offer-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
   .universe-offer-card{min-width:220px;scroll-snap-align:start}
+}
+@media(max-width:760px){
+  .uoc-chip-drop-mobile{display:none}
 }
 @media(max-width:760px){
   .home-feature-controls{left:22px;bottom:72px}
@@ -1379,11 +1430,10 @@ html{overflow-x:hidden}
    Ajustes alinhados para a página Games e a capa de franquia.
    ============================================================ */
 :root{--font-ui:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
-/* DM Sans é a fonte padrão (nav, botão, corpo, formulário). Sem !important
-   de propósito: assim os títulos/monogramas que já usam Georgia (mais
-   específicos que este seletor universal) continuam vencendo a cascata
-   normalmente — mantém as duas fontes, como decidido, em vez de forçar
-   tudo pra uma coisa só. */
+/* DM Sans é a única fonte do projeto (a serifada foi removida). Sem
+   !important de propósito: qualquer regra mais específica que precise de
+   um peso diferente (700 em títulos grandes, 600 em seção/nome de card)
+   já declara var(--font-ui) explicitamente. */
 *,*::before,*::after{font-family:var(--font-ui)}
 
 /* Bento de ecossistemas: intro na lateral, Multiplataforma e Retrô lado a
@@ -1394,7 +1444,7 @@ html{overflow-x:hidden}
 .eco-nintendo{background:radial-gradient(120% 140% at 88% -14%,rgba(255,255,255,.14),transparent 55%),linear-gradient(150deg,#8E2620,#B93A30)}
 .eco-playstation{background:radial-gradient(120% 140% at 88% -14%,rgba(255,255,255,.14),transparent 55%),linear-gradient(150deg,#153A5C,#205E8C)}
 .ecosystem-card{color:#fff;display:flex;flex-direction:column;box-shadow:0 1px 0 rgba(43,36,28,.08);position:relative;overflow:hidden}
-.ecosystem-card::before{content:attr(data-mark);position:absolute;right:-.06em;bottom:-.18em;z-index:0;font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:clamp(90px,11vw,168px);line-height:1;color:rgba(255,255,255,.09);letter-spacing:-.04em;pointer-events:none}
+.ecosystem-card::before{content:attr(data-mark);position:absolute;right:-.06em;bottom:-.18em;z-index:0;font-family:var(--font-ui);font-weight:700;font-size:clamp(90px,11vw,168px);line-height:1;color:rgba(255,255,255,.09);letter-spacing:-.04em;pointer-events:none}
 .ecosystem-card::after{content:"";position:absolute;inset:0;background-image:var(--grain);background-size:140px 140px;opacity:.5;mix-blend-mode:overlay;pointer-events:none}
 .ecosystem-card>*{position:relative;z-index:1}
 .games-intro,.ecosystem-card{border-radius:22px;position:relative;overflow:hidden}
@@ -1421,11 +1471,13 @@ html{overflow-x:hidden}
    o tom de fundo (--u-bg, vindo de universe-colors.js) ajustados aqui. */
 /* Altura fixa (não intrínseca): sem isso, uma lista de Meu Inventário longa
    "empurra" a linha do grid inteira pra cima e o hero cresce junto — com
-   altura fixa, o container estica os dois lados igual e quem tem conteúdo
-   maior rola por dentro (.uinv-list) em vez de esticar a página toda. */
-.universe-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.82fr);gap:14px;align-items:stretch;height:560px}
-.universe-feature-row{min-width:0}
-.universe-hero{width:100%;min-height:460px;height:100%;margin:0;border-radius:22px;isolation:isolate;background:var(--u-bg,#211E1B)}
+   altura fixa (var(--hero-h)) hero e painel ficam do mesmo tamanho e quem
+   tem conteúdo maior rola por dentro (.uinv-list) em vez de esticar a
+   página toda. align-items:start (em vez de stretch): só o card pinta
+   fundo — as colunas do grid em si ficam transparentes, sem esticar. */
+.universe-layout{--hero-h:560px;display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.82fr);gap:14px;align-items:start;background:transparent}
+.universe-feature-row{min-width:0;height:var(--hero-h);background:transparent;border:0;padding:0}
+.universe-hero{width:100%;height:var(--hero-h);margin:0;border-radius:22px;isolation:isolate;background:var(--u-bg,#211E1B)}
 .universe-hero-slides{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 .universe-hero .home-feature-art{background:var(--u-bg,#211E1B)}
 .universe-hero .home-feature-art.has-image{background-image:linear-gradient(90deg,rgba(20,18,16,.88),rgba(20,18,16,.24) 78%,rgba(20,18,16,.04)),var(--hero-img);background-size:cover;background-position:center}
@@ -1436,11 +1488,19 @@ html{overflow-x:hidden}
 .universe-hero .home-feature-nav{top:24px;transform:none}
 .universe-hero-count{position:absolute;z-index:8;right:32px;bottom:22px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;letter-spacing:.03em}
 
-/* Meu Inventário: superfície opaca (nunca vidro), rolagem própria, ao lado do hero. */
-.universe-inventory-panel{height:100%;max-height:100%;display:flex;flex-direction:column;border-radius:22px;background:var(--u-panel,#2A2521);overflow:hidden}
+/* Meu Inventário: mesma superfície de vidro fumê do cabeçalho, rolagem
+   própria, ao lado do hero. */
+.universe-inventory-panel{
+  height:var(--hero-h);display:flex;flex-direction:column;border-radius:20px;overflow:hidden;
+  background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+}
+@supports not (backdrop-filter:blur(1px)){
+  .universe-inventory-panel{background:color-mix(in oklab,var(--u-panel,#2A2521) 88%,black 4%)}
+}
 .uinv-head{padding:20px 20px 14px;flex:none}
 .uinv-head .eyebrow{color:rgba(255,255,255,.62)}
-.uinv-head h2{font:500 clamp(21px,2.2vw,26px)/1.05 Georgia,"Times New Roman",serif;letter-spacing:-.03em;color:#fff;margin-top:4px}
+.uinv-head h2{font:600 clamp(21px,2.2vw,26px)/1.05 var(--font-ui);letter-spacing:-.02em;color:#fff;margin-top:4px}
 .uinv-head p{color:rgba(255,255,255,.72);font-size:12.5px;margin-top:6px}
 .uinv-list{flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin}
 .uinv-row{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:12px}
@@ -1478,12 +1538,13 @@ html{overflow-x:hidden}
   .ecosystem-links{gap:5px;margin-top:9px}
   .ecosystem-links a{padding:5px 7px;font-size:10px}
   .ecosystem-cta{padding-top:10px;font-size:12px}
-  .universe-layout{grid-template-columns:1fr;gap:10px;height:auto}
-  .universe-hero{min-height:420px}
+  .universe-layout{grid-template-columns:1fr;gap:10px;--hero-h:420px}
+  .universe-feature-row{height:auto}
+  .universe-hero{height:var(--hero-h);min-height:420px}
   .universe-hero .game-hero-copy{width:100%;min-height:420px;padding:190px 22px 40px}
   .universe-hero .home-feature-controls{left:22px;bottom:18px}
   .universe-hero-count{right:22px;bottom:22px}
-  .universe-inventory-panel{height:auto;max-height:420px}
+  .universe-inventory-panel{height:var(--hero-h);max-height:420px}
 }
 .row-price-list .purchase-condition{font-size:12px}
 .row-price-list .purchase-value strong{font-size:19px}

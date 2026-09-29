@@ -131,11 +131,14 @@ function initialsOf(title){
   const letters=words.slice(0,3).map(w=>/^\d+$/.test(w)?w:w[0].toUpperCase()).join('');
   return letters.slice(0,4)||'?';
 }
-function coverTile(title,{platform='',size='',note=true,mock=false,image=''}={}){
+function coverTile(title,{platform='',size='',note=true,mock=false,image='',fullTitle=false}={}){
   const h=hashStr(title)%360;
   const src=safeUrl(image);
   const pic=src!=='#'?`<img class="cv-img" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'';
-  return `<div class="cover ${size} ${pic?'has-image':''}" style="--h:${h}" aria-hidden="true">${pic}${platform?`<span class="cv-plat">${esc(platform)}</span>`:'<span></span>'}${pic?'':`<span class="cv-ini">${esc(initialsOf(title))}</span>${note?'<span class="cv-note">capa em carregamento</span>':'<span></span>'}`}${mock?mockChip():''}</div>`;
+  const placeholder=fullTitle
+    ?`<span class="cv-name">${esc(title)}</span>`
+    :`<span class="cv-ini">${esc(initialsOf(title))}</span>${note?'<span class="cv-note">capa em carregamento</span>':'<span></span>'}`;
+  return `<div class="cover ${size} ${pic?'has-image':''} ${fullTitle&&!pic?'cover-name':''}" style="--h:${h}" aria-hidden="true">${pic}${platform?`<span class="cv-plat">${esc(platform)}</span>`:'<span></span>'}${pic?'':placeholder}${mock?mockChip():''}</div>`;
 }
 
 /* ---------- Meu Inventário: dados locais (sem login) ---------- */
