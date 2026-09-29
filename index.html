@@ -26,15 +26,12 @@
     </div>
     <button id="searchGo" class="search-go" aria-label="Buscar">Buscar</button>
     <nav class="main-nav" aria-label="Categorias">
-      <div class="nav-browse" id="navBrowse">
-        <a id="nav-games" href="#/games">Games</a>
-        <button type="button" class="nav-caret" id="browseToggle" aria-expanded="false" aria-controls="browsePanel" aria-label="Abrir menu de jogos por plataforma e gênero">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="browse-panel" id="browsePanel" hidden></div>
-      </div>
+      <a id="nav-universos" href="#/universos">Universos</a>
       <a id="nav-merch" href="#/merch">Colecionáveis</a>
     </nav>
+    <button type="button" class="sidebar-drawer-btn" id="sidebarDrawerBtn" aria-expanded="false" aria-controls="sidebarDrawer" aria-label="Abrir menu de navegação">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <a id="nav-inv" class="inv-link" href="#/inventario">
       <svg class="inv-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M8 7V6a4 4 0 0 1 8 0v1M6.5 7.5h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/>
@@ -45,6 +42,10 @@
     </a>
   </div>
 </header>
+
+<aside class="app-sidebar" id="appSidebar" aria-label="Navegação principal"></aside>
+<div class="sidebar-drawer-overlay" id="sidebarDrawerOverlay" hidden></div>
+<aside class="app-sidebar sidebar-drawer" id="sidebarDrawer" aria-label="Navegação principal" hidden></aside>
 
 <main id="main" tabindex="-1"></main>
 

@@ -39,7 +39,11 @@ const ICONS={
   gamepad:'<rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 10v4M6 12h4"/><circle cx="15.500" cy="11" r=".6"/><circle cx="17.500" cy="13" r=".6"/>',
   retro:'<rect x="3" y="6" width="7" height="14" rx="1.2"/><path d="M5.500 6V3.800h2v2.200"/><circle cx="16.700" cy="13" r="5.300"/><circle cx="16.700" cy="13" r="1.300"/>',
   cube:'<path d="M12 3 4 7.500v9L12 21l8-4.500v-9z"/><path d="m4 7.500 8 4.500 8-4.500M12 12v9"/>',
-  brush:'<path d="M4 20c0-3 2-4 4-4l1 1c0 2-1 3-5 3z"/><path d="m9 16 9.500-9.500a2 2 0 0 0-3-3L6 13z"/>'
+  brush:'<path d="M4 20c0-3 2-4 4-4l1 1c0 2-1 3-5 3z"/><path d="m9 16 9.500-9.500a2 2 0 0 0-3-3L6 13z"/>',
+  trend:'<path d="m3 17 6-6 4 4 8-8"/><path d="M15 6h6v6"/>',
+  tag:'<path d="M20 12.5 12.5 20 4 11.5V4h7.5z"/><circle cx="8.5" cy="8.5" r="1.5"/>',
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  chest:'<rect x="3" y="10" width="18" height="10" rx="2"/><path d="M3 10a9 9 0 0 1 18 0"/><path d="M10 14h4"/>'
 };
 const ico=(n,s=18,cls='')=>`<svg class="ico ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
 
@@ -55,6 +59,9 @@ const mockOn=()=>{const s=LS.get(KEYS.mock,null);return s===null?!!M.config.enab
 const mockOffers=()=>mockOn()&&!!M.config.offers;
 const mockMerch=()=>mockOn()&&!!M.config.merch;
 const GENRES=D.genreList||[];
+// Fase 1: com a barra lateral cuidando da navegação, a migalha de pão some
+// das páginas — flag única pra religar se precisar no futuro.
+const SHOW_BREADCRUMB=false;
 const genreLabel=k=>(GENRES.find(g=>g.slug===k)||{}).label||k;
 const mockChip=()=>'<span class="mock-chip">EXEMPLO</span>';
 // Selo de tipo de loja. "Oficial" só existe com prova real (loja da própria

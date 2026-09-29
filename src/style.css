@@ -1005,7 +1005,12 @@ body.inventory-route .site-footer{background:var(--night);color:#9EA3B0;border-c
 html{scroll-padding-top:calc(var(--header-h) + 16px)}
 body{background:var(--store);color:var(--ink)}
 main{max-width:1240px;padding:34px 28px 80px}
-.site-header{background:rgba(250,248,243,.94);border-color:rgba(200,192,181,.72);backdrop-filter:blur(18px)}
+/* Vidro fumê em qualquer largura (não só desktop) — a logo é sempre clara
+   agora, então o cabeçalho não pode mais virar claro no mobile. */
+.site-header{background:var(--glass-1);border-color:var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+@supports not (backdrop-filter:blur(1px)){
+  .site-header{background:rgba(10,4,8,.86)}
+}
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
 .brand{width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
 .brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:auto}
@@ -1013,15 +1018,27 @@ main{max-width:1240px;padding:34px 28px 80px}
    contidos pelo padding normal do .header-inner (ver "PARTE A" mais
    abaixo, que redefine o cabeçalho inteiro como um único cartão de vidro). */
 .inv-link{margin-left:auto}
+/* Cabeçalho é vidro escuro fixo em qualquer página — texto sempre claro
+   aqui, nunca var(--text-1/2) (que muda com o fundo da página). */
 .search{max-width:590px}
-.search input{height:48px;background:#F7F3EC;border-color:var(--line);border-radius:15px;clip-path:none;padding-left:44px}
-.search input:focus{background:#fff;border-color:#AE817B;box-shadow:0 0 0 4px rgba(181,45,38,.08)}
-.suggest{background:#FCFAF6;border-color:var(--line);border-radius:16px;box-shadow:var(--shadow-float)}
+.search input{height:48px;background:var(--glass-3);border:1px solid var(--glass-border);border-radius:15px;clip-path:none;padding-left:44px;color:#fff}
+.search input::placeholder{color:rgba(255,255,255,.7)}
+.search input:focus{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.36);box-shadow:none}
+.search .s-ico{color:rgba(255,255,255,.85)}
+.suggest{background:var(--glass-1);border-color:var(--glass-border);border-radius:16px;box-shadow:var(--shadow-float);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+@supports not (backdrop-filter:blur(1px)){
+  .suggest{background:rgba(10,4,8,.92)}
+}
 .sg-item{border-radius:11px}
+.sg-title{color:#fff}
+.sg-sub,.sg-price{color:rgba(255,255,255,.7)}
+.sg-price b{color:#fff}
+.sg-item[aria-selected="true"],.sg-item:hover{background:rgba(255,255,255,.08)}
+.sg-head{color:rgba(255,255,255,.55)}
 .main-nav{gap:18px}
-.main-nav a{font-size:13px;color:#4A4641}
-.inv-link{border-radius:13px;background:#24211E;color:#F7F2E9;border:1px solid #24211E;padding:10px 13px}
-.inv-link:hover,.inv-link[aria-current="page"]{background:#3A332E;color:#fff;border-color:#3A332E;box-shadow:none}
+.main-nav a{font-size:13px;color:rgba(255,255,255,.7)}
+.main-nav a:hover{color:#fff}
+.main-nav a[aria-current="page"]{color:#fff;font-weight:600}
 .inv-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .inv-pixel{display:none}
 .site-footer{background:#E7E1D7;border-color:var(--line);color:#625C54}
@@ -1311,17 +1328,15 @@ h1,h2,h3{color:var(--text-1)}
    de borda a borda — sem alterar nada do resto do layout.
    ============================================================ */
 html{overflow-x:hidden}
-.home-feature,.game-hero,.merch-home-stage{
-  width:100vw;
-  margin-left:calc(50% - 50vw);
-  margin-right:calc(50% - 50vw);
-  border-radius:0;
-}
-/* O texto continua alinhado com a mesma margem do resto do conteúdo (não gruda na borda da tela). */
-.home-feature-copy{padding-left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));padding-right:28px}
-.game-hero-copy{padding-left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));padding-right:28px}
-.merch-home-copy{padding-left:max(16px,calc((var(--viewport-w,100vw) - 1240px)/2 + 16px))}
-.merch-home-grid{padding-right:max(16px,calc((var(--viewport-w,100vw) - 1240px)/2 + 16px))}
+/* Fase 1: a faixa edge-to-edge (borda-a-borda com a janela) parava embaixo
+   da barra lateral, já que ela furava o layout até a viewport inteira sem
+   saber que a barra reserva espaço à esquerda agora. Desligada — esses
+   heróis ficam contidos como o resto do conteúdo até isso ser redesenhado
+   na Fase 6. */
+.home-feature-copy{padding-left:28px;padding-right:28px}
+.game-hero-copy{padding-left:28px;padding-right:28px}
+.merch-home-copy{padding-left:16px}
+.merch-home-grid{padding-right:16px}
 /* A prateleira de destaques (Wolverine/Ocarina/Fire Emblem) continua alinhada com o grid abaixo, só o hero atrás dela é que estoura. */
 .home-trending-cards{position:relative;z-index:5;max-width:1240px;margin-left:auto;margin-right:auto;padding:0 28px}
 @media(max-width:1040px){
@@ -1339,7 +1354,7 @@ html{overflow-x:hidden}
 .home-feature-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .65s ease,visibility 0s linear .65s;z-index:1}
 .home-feature-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .65s ease,visibility 0s linear;z-index:2}
 .home-feature-slide .home-feature-art{z-index:0}
-.home-feature-controls{position:absolute;z-index:8;left:max(28px,calc((var(--viewport-w,100vw) - 1240px)/2 + 28px));bottom:84px;display:flex;gap:8px}
+.home-feature-controls{position:absolute;z-index:8;left:28px;bottom:84px;display:flex;gap:8px}
 .home-feature-controls button{width:28px;height:5px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.38);cursor:pointer;transition:width .2s ease,background .2s ease}
 .home-feature-controls button[aria-current="true"]{width:48px;background:#fff}
 
@@ -1366,8 +1381,8 @@ html{overflow-x:hidden}
 .universe-game-shelf{margin-top:var(--space-hero-section)}
 .universe-game-shelf .lux-section-head,.universe-related .lux-section-head{margin-bottom:var(--space-title-cards)}
 .universe-game-shelf .lux-section-head h2{font-size:32px}
-.universe-offer-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-.universe-offer-card{position:relative;min-width:0;aspect-ratio:4/5;border-radius:15px;overflow:hidden;isolation:isolate;background:#1c1712}
+.universe-offer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.universe-offer-card{position:relative;min-width:0;aspect-ratio:1/1;border-radius:15px;overflow:hidden;isolation:isolate;background:#1c1712}
 .universe-offer-card::after{
   content:"";position:absolute;left:0;right:0;bottom:0;height:38%;z-index:1;pointer-events:none;
   background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,0));
@@ -1386,7 +1401,7 @@ html{overflow-x:hidden}
   background:linear-gradient(155deg,color-mix(in oklab,var(--u-bg,#2A2521) 82%,black 8%),color-mix(in oklab,var(--u-accent,var(--accent)) 55%,var(--u-bg,#2A2521) 45%));
 }
 .uoc-cover .cv-ini{margin:0;align-self:auto;font-size:clamp(32px,5vw,56px);opacity:.16;color:#fff}
-.universe-offer-card .save-btn{position:absolute;z-index:3;top:10px;right:10px;background:rgba(0,0,0,.45);border:0;color:#fff}
+.universe-offer-card .save-btn{position:absolute;z-index:3;top:16px;right:16px;background:rgba(0,0,0,.45);border:0;color:#fff}
 .universe-offer-card .save-btn:hover{background:rgba(0,0,0,.65)}
 .uoc-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1394,13 +1409,11 @@ html{overflow-x:hidden}
 .uoc-chip{position:relative;pointer-events:auto;display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 11px/1.3 var(--font-ui);text-decoration:none;white-space:nowrap}
 .uoc-chip:hover{background:rgba(255,255,255,.28)}
 .uoc-chip-wait{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
+.uoc-chip-digital{padding:3px 8px;font-size:10px;background:rgba(255,255,255,.1)}
 
 @media(max-width:1040px){
   .universe-offer-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px}
   .universe-offer-card{min-width:220px;scroll-snap-align:start}
-}
-@media(max-width:760px){
-  .uoc-chip-drop-mobile{display:none}
 }
 @media(max-width:760px){
   .home-feature-controls{left:22px;bottom:72px}
@@ -1470,43 +1483,29 @@ html{overflow-x:hidden}
    tem conteúdo maior rola por dentro (.uinv-list) em vez de esticar a
    página toda. align-items:start (em vez de stretch): só o card pinta
    fundo — as colunas do grid em si ficam transparentes, sem esticar. */
-.universe-layout{--hero-h:clamp(260px,34vh,300px);display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.82fr);gap:14px;align-items:start;background:transparent}
-.universe-feature-row{min-width:0;height:var(--hero-h);background:transparent;border:0;padding:0;container-type:inline-size;container-name:universe-hero}
+.universe-layout{--hero-h:clamp(300px,44.4vh,360px);display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start;background:transparent}
+.universe-feature-row{min-width:0;height:var(--hero-h);background:transparent;border:0;padding:0}
 /* min-height:0 cancela o .game-hero{min-height:420px} genérico — aqui
    quem manda na altura é sempre var(--hero-h), nunca um piso maior. */
 .universe-hero{
   width:100%;height:var(--hero-h);min-height:0;margin:0;border-radius:18px;isolation:isolate;position:relative;overflow:hidden;
   background:var(--u-bg,#211E1B);
-  --hero-base:color-mix(in oklab,var(--u-accent,var(--accent)) 35%,#000);
+  --hero-base:color-mix(in oklab,var(--u-bg,var(--accent)) 35%,#000);
 }
 .universe-hero-slides{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
-/* ---- camada 1: fundo borrado com a MESMA imagem (mesma URL que a arte
-   nítida — o navegador já tem em cache, não dispara 2ª requisição), pra
-   preencher o hero inteiro sem faixa sólida nem vinheta da própria foto. */
-.universe-hero-backdrop{position:absolute;inset:-10%;overflow:hidden;z-index:0;background:var(--hero-base)}
-.universe-hero-backdrop .uh-backdrop-img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  filter:blur(48px) saturate(1.3) brightness(.55);
-  transform:scale(1.2);
-}
-/* ---- camada 2: keyart 16:9 nítida, ancorada à direita, altura igual à
-   do hero. mask-image (não um overlay pintado) — onde a máscara é
-   transparente, quem aparece é o fundo borrado da camada 1 (mesma
-   imagem), então a transição é um desfoque suave, nunca uma emenda
-   escura de verdade. */
-.universe-hero-art{position:absolute;top:0;right:0;height:100%;aspect-ratio:16/9;overflow:hidden;z-index:1}
-.universe-hero-art .uh-art-img{width:100%;height:100%;object-fit:cover;display:block}
-.universe-hero-art.has-image{
-  mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.35) 14%,rgba(0,0,0,.8) 32%,#000 50%);
-  -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.35) 14%,rgba(0,0,0,.8) 32%,#000 50%);
-}
+/* Arte cobrindo o hero inteiro — object-position 28% do topo: a maioria
+   das key arts/screenshots tem o assunto principal aí, evita cortar
+   cabeça/logo. --hero-base é o fundo sólido enquanto carrega/sem imagem
+   (nunca cinza genérico — muda por franquia). */
+.universe-hero-art{position:absolute;inset:0;width:100%;height:100%;background:var(--hero-base)}
+.universe-hero-art .uh-art-img{width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block}
 .universe-hero-art .game-hero-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center}
 .universe-hero-art .game-hero-placeholder b{font:700 clamp(40px,6vw,84px)/1 var(--font-ui);letter-spacing:-.02em;color:rgba(255,255,255,.14)}
-/* ---- camada 3: legibilidade do texto — tingida com --hero-base (cor da
-   franquia), nunca preto puro sobre a arte. */
+/* Legibilidade do texto — tingida com --hero-base (cor da franquia),
+   nunca rgba(0,0,0,...) chapado sobre a arte. */
 .universe-hero-legibility{
   position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 85%,transparent) 0%,transparent 62%);
+  background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 88%,transparent) 0%,transparent 62%);
 }
 .universe-hero .game-hero-copy{width:45%;height:100%;min-height:0;padding:22px 28px;justify-content:flex-end;z-index:3}
 .universe-hero h1{
@@ -1521,23 +1520,9 @@ html{overflow-x:hidden}
 .universe-hero .home-feature-controls{bottom:4px;left:28px}
 .universe-hero .home-feature-nav{top:18px;transform:none}
 .universe-hero-count{position:absolute;z-index:8;right:28px;bottom:18px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;letter-spacing:.03em}
-/* Mobile e prefers-reduced-motion: sem a camada de blur (custo de
-   render) — fica só --hero-base sólido atrás da arte mascarada. */
-@media(max-width:760px),(prefers-reduced-motion:reduce){
-  .universe-hero-backdrop .uh-backdrop-img{display:none}
-}
-/* Hero estreito (coluna comprimida num tablet, por ex.) ou mobile: a
-   imagem cobre o hero inteiro, sem blur atrás (não tem emenda pra
-   disfarçar) e com máscara mais forte pra legibilidade. */
-@container universe-hero (max-width:640px){
-  .universe-hero-backdrop{display:none}
-  /* Sem backdrop nesse modo (a arte já cobre 100%, não sobra emenda pra
-     disfarçar) — por isso nenhuma máscara aqui: mascarar cortaria a
-     imagem de verdade, sem nada atrás pra preencher o buraco. A
-     legibilidade do texto vem só da camada 3, mais forte. */
-  .universe-hero-art{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;mask-image:none;-webkit-mask-image:none}
-  .universe-hero-legibility{background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,transparent 85%)}
+@media(max-width:760px){
   .universe-hero .game-hero-copy{width:100%}
+  .universe-hero-legibility{background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 92%,transparent) 0%,transparent 85%)}
 }
 
 /* Meu Inventário: mesma superfície de vidro fumê do cabeçalho, rolagem
@@ -1586,7 +1571,7 @@ html{overflow-x:hidden}
   .eco-retro{grid-column:4/7;grid-row:2}
   .eco-nintendo{grid-column:1/4;grid-row:3}
   .eco-playstation{grid-column:4/7;grid-row:3}
-  .universe-layout{grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr)}
+  .universe-layout{grid-template-columns:minmax(0,1fr) 300px}
 }
 @media(max-width:760px){
   .games-directory{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:270px 220px 275px 275px;gap:10px}
@@ -1634,47 +1619,9 @@ html{overflow-x:hidden}
 .retail-chip{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid #CFC6B8;background:#fff;color:#5A5348;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.6;vertical-align:middle;white-space:nowrap}
 .retail-chip.oficial{background:#1F4A3A;border-color:#1F4A3A;color:#fff}
 
-/* ---------- Browse: popover simples de plataforma (PARTE A2) ----------
-   3 blocos clicáveis (PlayStation/Nintendo/Xbox) + rodapé com Retrô e
-   Multiplataforma. --glass-overlay é opaco o bastante pra nada da página
-   atravessar (diferente do --glass-1 do cabeçalho, que é navegação fina). */
+/* ---------- token de popover opaco (menus/gavetas futuras) ---------- */
 :root{--glass-overlay:rgba(14,6,10,.94);--glass-overlay-blur:blur(24px) saturate(140%)}
 .header-inner{position:relative}
-.nav-browse{display:flex;align-items:center;gap:2px}
-.nav-caret{appearance:none;border:0;background:none;color:inherit;cursor:pointer;padding:0;margin-left:2px;display:inline-grid;place-items:center}
-.nav-caret svg{width:16px;height:16px;transition:transform .18s ease}
-.nav-browse.open .nav-caret svg{transform:rotate(180deg)}
-.nav-caret:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:4px}
-.browse-panel{position:absolute;right:16px;top:100%;padding-top:10px;z-index:70;width:min(480px,calc(100vw - 32px))}
-.browse-panel[hidden]{display:none}
-.browse-card{
-  background:var(--glass-overlay);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
-  border-radius:20px;overflow:hidden;box-shadow:0 22px 48px rgba(0,0,0,.32);
-  backdrop-filter:var(--glass-overlay-blur);-webkit-backdrop-filter:var(--glass-overlay-blur);
-}
-@supports not (backdrop-filter:blur(1px)){
-  .browse-card{background:#0e060a}
-}
-.browse-items{display:flex;flex-direction:column;padding:8px}
-.browse-item{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:12px;text-decoration:none;color:#fff}
-.browse-item:hover,.browse-item:focus-visible{background:rgba(255,255,255,.08)}
-.browse-item:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:-2px}
-.browse-dot{width:8px;height:8px;border-radius:50%;flex:none}
-.browse-item.ps .browse-dot{background:#4FA8E0}
-.browse-item.nin .browse-dot{background:#E4483C}
-.browse-item.xbx .browse-dot{background:#3CB46E}
-.browse-item-name{flex:1;font-size:15px;font-weight:600}
-.browse-item-cta{font-size:13px;color:rgba(255,255,255,.6);font-weight:600}
-.browse-item:hover .browse-item-cta,.browse-item:focus-visible .browse-item-cta{color:#fff}
-.browse-foot{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--glass-border);color:rgba(255,255,255,.6);font-size:13px}
-.browse-foot span{opacity:.5}
-.main-nav .browse-panel .browse-foot a{padding:0;color:rgba(255,255,255,.88);font-size:13px;font-weight:600;display:inline;text-decoration:none}
-.main-nav .browse-panel .browse-foot a:hover{color:#fff;text-decoration:underline}
-@media (max-width:760px){.nav-browse{display:none}}
-@media (max-width:520px){
-  .browse-panel{right:8px;left:8px;width:auto}
-  .browse-items{gap:2px}
-}
 
 /* Comparador: blocos por formato (Novo / Usado / Digital) */
 .compare-block{margin-bottom:22px}
@@ -1695,7 +1642,7 @@ html{overflow-x:hidden}
 @media(min-width:761px){
   .site-header{
     position:sticky;top:12px;
-    max-width:1240px;margin:16px auto 0;
+    max-width:none;width:auto;margin:16px 18px 0;
     border-radius:20px;
     background:var(--glass-1);
     border:1px solid var(--glass-border);
@@ -1707,7 +1654,7 @@ html{overflow-x:hidden}
   @supports not (backdrop-filter:blur(1px)){
     .site-header{background:rgba(10,4,8,.86)}
   }
-  .header-inner{height:56px;min-height:56px;padding:0 16px;gap:20px}
+  .header-inner{max-width:none;height:56px;min-height:56px;padding:0 16px;gap:20px}
   .brand{margin:0}
   .search{background:none}
   .search input{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:#fff}
@@ -1727,9 +1674,6 @@ html{overflow-x:hidden}
   .main-nav a{color:rgba(255,255,255,.85);border-bottom-color:transparent}
   .main-nav a:hover{color:#fff}
   .main-nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--accent);font-weight:600}
-  .nav-browse{align-items:center}
-  .nav-caret{color:rgba(255,255,255,.85)}
-  .nav-caret:hover{color:#fff}
 }
 /* FAB "Meu Inventário": sempre vermelho da marca + texto branco (nunca a
    cor da franquia) — em qualquer largura de tela. */
@@ -1750,3 +1694,76 @@ main{padding-top:20px}
    na página compactada de universo). */
 main:has(>.crumbs){padding-top:4px}
 .crumbs{margin:8px 0}
+body.hide-breadcrumb .crumbs{display:none}
+
+/* ============================================================
+   FASE 1 — BARRA LATERAL
+   Flutuante, vidro fumê, 3 grupos sem rótulo + universos em destaque +
+   rodapé do inventário. Aberta em 1280px+; recolhida (só ícones, expande
+   por cima do conteúdo no hover, sem empurrar layout) na busca/jogo ou
+   <1280px; vira gaveta <900px.
+   ============================================================ */
+:root{--sidebar-w:252px;--sidebar-w-collapsed:72px;--page-margin:18px}
+.app-sidebar{
+  position:fixed;left:var(--page-margin);top:84px;
+  width:var(--sidebar-w);height:calc(100vh - 84px - var(--page-margin));
+  background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
+  border-radius:16px;padding:14px;overflow-y:auto;overflow-x:hidden;
+  display:flex;flex-direction:column;gap:20px;z-index:40;
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  transition:width .18s ease;
+}
+@supports not (backdrop-filter:blur(1px)){.app-sidebar{background:rgba(10,4,8,.86)}}
+.sidebar-drawer{display:none}
+main,.site-footer{margin-left:calc(var(--page-margin) + var(--sidebar-w) + 16px);margin-right:var(--page-margin);max-width:none}
+body.sidebar-collapsed .app-sidebar{width:var(--sidebar-w-collapsed)}
+body.sidebar-collapsed .app-sidebar:hover,body.sidebar-collapsed .app-sidebar:focus-within{width:var(--sidebar-w);z-index:60;box-shadow:0 20px 44px rgba(0,0,0,.4)}
+body.sidebar-collapsed main,body.sidebar-collapsed .site-footer{margin-left:calc(var(--page-margin) + var(--sidebar-w-collapsed) + 16px)}
+body.sidebar-hidden .app-sidebar:not(.sidebar-drawer){display:none}
+body.sidebar-hidden main,body.sidebar-hidden .site-footer{margin-left:var(--page-margin)}
+.sidebar-drawer-btn{display:none;appearance:none;border:0;background:var(--glass-3);color:#fff;width:40px;height:40px;border-radius:12px;align-items:center;justify-content:center;flex:none}
+body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
+
+.sidebar-nav{display:flex;flex-direction:column;gap:20px}
+.sidebar-group{display:flex;flex-direction:column;gap:2px;padding-bottom:20px;border-bottom:1px solid var(--glass-border)}
+.sidebar-group:last-child{border-bottom:0;padding-bottom:0}
+.sidebar-item{display:flex;align-items:center;gap:12px;height:40px;padding:0 10px;border-radius:12px;color:#fff;text-decoration:none;flex:none}
+.sidebar-item .ico{flex:none;width:20px;height:20px}
+.sidebar-item span{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-item:hover{background:rgba(255,255,255,.06)}
+.sidebar-item[aria-current="page"]{outline:1.5px solid var(--accent-on-glass);outline-offset:-1.5px;background:transparent}
+.sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sidebar-featured{display:flex;flex-direction:column}
+.sidebar-uni-list{display:flex;flex-direction:column;gap:2px}
+.sidebar-uni-item{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:12px;text-decoration:none;color:#fff}
+.sidebar-uni-item:hover{background:rgba(255,255,255,.06)}
+.sidebar-uni-item[aria-current="page"]{background:rgba(255,255,255,.08)}
+.sidebar-uni-dot{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
+.sidebar-uni-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-footer{margin-top:auto;display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:12px;background:var(--glass-3);text-decoration:none;color:#fff;flex:none}
+.sidebar-footer .ico{flex:none}
+.sidebar-footer-info{display:flex;flex-direction:column;min-width:0}
+.sidebar-footer-info b{font-size:14px;font-weight:600}
+.sidebar-footer-info small{font-size:12px;color:rgba(255,255,255,.65)}
+/* Recolhida: só os círculos/ícones ficam visíveis, texto fecha via
+   width+overflow (não display:none, senão o hover-expand acima "pula"). */
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-item span,
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-uni-name,
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-footer-info{
+  opacity:0;width:0;
+}
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-item,
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-uni-item{justify-content:center;padding:0}
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-footer{justify-content:center;padding:12px}
+
+/* Gaveta (<900px): mesmo conteúdo, painel fixo de borda a borda */
+@media(max-width:899px){
+  .sidebar-drawer-overlay[hidden],.sidebar-drawer[hidden]{display:none}
+  .sidebar-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+  .sidebar-drawer{
+    display:flex;position:fixed;left:0;top:0;bottom:0;width:min(300px,84vw);z-index:95;
+    border-radius:0 18px 18px 0;transform:translateX(-100%);transition:transform .22s ease;
+    padding-top:calc(14px + env(safe-area-inset-top));
+  }
+  .sidebar-drawer.is-open{transform:translateX(0)}
+}

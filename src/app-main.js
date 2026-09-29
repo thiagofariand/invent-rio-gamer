@@ -10,9 +10,9 @@ function parseHash(){
 }
 function navActive(path){
   $$('.main-nav a,.inv-link').forEach(a=>a.removeAttribute('aria-current'));
-  const map={'/games':'nav-games','/merch':'nav-merch','/inventario':'nav-inv'};
+  const map={'/games':'nav-universos','/universos':'nav-universos','/merch':'nav-merch','/inventario':'nav-inv'};
   let key=map[path];
-  if(path.startsWith('/universo/')||path.startsWith('/busca')||path.startsWith('/jogo/')||path.startsWith('/ofertas/'))key='nav-games';
+  if(path.startsWith('/universo/')||path.startsWith('/busca')||path.startsWith('/jogo/')||path.startsWith('/ofertas/')||path.startsWith('/plataforma/'))key='nav-universos';
   if(key){const el=document.getElementById(key);if(el)el.setAttribute('aria-current','page')}
 }
 /* ---------- largura real da tela (sem a barra de rolagem) ----------
@@ -27,18 +27,14 @@ function updateViewportWidth(){
 updateViewportWidth();
 window.addEventListener('resize',updateViewportWidth);
 
-/* ---------- cabeçalho sobre o bloco de cor do universo ---------- */
+/* ---------- cabeçalho: cartão de vidro escuro em toda página ---------- */
 const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
-const DEFAULT_LOGO='/inventario-logo-header.png?v=Teste-Layout-Beta2';
-const MONO_LOGO={white:'/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta2',black:'/assets/inventario-logo-mono-black.png?v=Teste-Layout-Beta2'};
-let heroLogoChoice=null; // 'white'|'black'|null — null = sempre a logo colorida padrão
+const MONO_LOGO_WHITE='/assets/inventario-logo-mono-white.png?v=Teste-Layout-Beta2';
+// O cabeçalho é sempre vidro escuro agora (não só sobre o bloco de cor do
+// universo) — a logo fica sempre na versão clara, em qualquer scroll.
+brandLogo.src=MONO_LOGO_WHITE;
 function syncHeaderScroll(){
-  const scrolled=window.scrollY>40;
-  siteHeader.classList.toggle('is-scrolled',scrolled);
-  // Sólido ao rolar = sempre a logo preta (funciona em qualquer fundo claro);
-  // só usa a logo mono escolhida pelo contraste enquanto o cabeçalho está
-  // transparente por cima do próprio bloco de cor do universo.
-  brandLogo.src=(heroLogoChoice&&!scrolled)?MONO_LOGO[heroLogoChoice]:(heroLogoChoice?MONO_LOGO.black:DEFAULT_LOGO);
+  siteHeader.classList.toggle('is-scrolled',window.scrollY>40);
 }
 const rootStyle=document.documentElement.style;
 function applyUniverseChrome(colors){
@@ -51,14 +47,12 @@ function applyUniverseChrome(colors){
     // que é sempre vermelho/branco, nunca a cor da franquia — só o fundo
     // ambiente da página (--page-bg/--u-bg/--u-panel) varia por universo.
     rootStyle.setProperty('--page-bg',colors.bg);
-    heroLogoChoice=colors.logo==='black'?'black':'white';
   }else{
     rootStyle.removeProperty('--u-bg');
     rootStyle.removeProperty('--u-panel');
     rootStyle.removeProperty('--u-accent');
     rootStyle.removeProperty('--u-fab-ink');
     rootStyle.removeProperty('--page-bg');
-    heroLogoChoice=null;
   }
   syncHeaderScroll();
 }
@@ -67,6 +61,7 @@ window.addEventListener('scroll',()=>{
   syncHeaderScroll();
 },{passive:true});
 
+document.body.classList.toggle('hide-breadcrumb',!SHOW_BREADCRUMB);
 function route(){
   const {path,params}=parseHash();
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
@@ -84,13 +79,16 @@ function route(){
   else if(path.startsWith('/tema/'))renderTheme(path.slice(6));
   else if(path==='/em-alta')renderTrendingPage();
   else if(path==='/games')renderGames();
+  else if(path==='/universos')renderUniverses(params);
   else if(path==='/merch')renderMerch(params);
   else if(path==='/inventario')renderInventory(params);
   else renderNotFound();
   main.focus({preventScroll:true});
   window.scrollTo(0,0);
   closeSuggest();
-  closeBrowse();
+  closeSidebarDrawer();
+  syncSidebarMode();
+  renderSidebar();
 }
 window.addEventListener('hashchange',route);
 
@@ -352,46 +350,44 @@ updateMockToggleLabel();
 const _origInvSet=invSet;
 invSet=function(ref,patch){_origInvSet(ref,patch);refreshSaveButtons()};
 
+/* ---------- barra lateral: modo (aberta/recolhida/gaveta) ---------- */
+const sidebarDrawerBtn=document.getElementById('sidebarDrawerBtn');
+const sidebarDrawer=document.getElementById('sidebarDrawer');
+const sidebarDrawerOverlay=document.getElementById('sidebarDrawerOverlay');
+// Aberta (252px) na home/universo/plataforma; recolhida (72px, só ícones,
+// expande por cima do conteúdo no hover — via CSS, não JS) na busca, na
+// ficha do jogo e em qualquer tela <1280px; <900px some e vira gaveta.
+function syncSidebarMode(){
+  const {path}=parseHash();
+  const width=document.documentElement.clientWidth;
+  const hidden=width<900;
+  const forceCollapse=width<1280||path.startsWith('/busca')||path.startsWith('/jogo/');
+  document.body.classList.toggle('sidebar-hidden',hidden);
+  document.body.classList.toggle('sidebar-collapsed',!hidden&&forceCollapse);
+}
+window.addEventListener('resize',syncSidebarMode);
+function openSidebarDrawer(){
+  if(!sidebarDrawer||!sidebarDrawerOverlay)return;
+  sidebarDrawer.hidden=false;sidebarDrawerOverlay.hidden=false;
+  sidebarDrawerBtn?.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>sidebarDrawer.classList.add('is-open'));
+}
+function closeSidebarDrawer(){
+  if(!sidebarDrawer||sidebarDrawer.hidden)return;
+  sidebarDrawer.classList.remove('is-open');
+  sidebarDrawerBtn?.setAttribute('aria-expanded','false');
+  setTimeout(()=>{if(sidebarDrawer)sidebarDrawer.hidden=true;if(sidebarDrawerOverlay)sidebarDrawerOverlay.hidden=true},200);
+}
+sidebarDrawerBtn?.addEventListener('click',()=>{
+  if(!sidebarDrawer)return;
+  sidebarDrawer.hidden?openSidebarDrawer():closeSidebarDrawer();
+});
+sidebarDrawerOverlay?.addEventListener('click',closeSidebarDrawer);
+sidebarDrawer?.addEventListener('click',e=>{if(e.target.closest('a'))closeSidebarDrawer()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sidebarDrawer&&!sidebarDrawer.hidden)closeSidebarDrawer()});
+
 /* ---------- partida ---------- */
 updateBadge();
-/* ---------- Browse do cabeçalho: abre no hover (desktop) ou no clique/teclado ---------- */
-const browseWrap=document.getElementById('navBrowse'),browsePanel=document.getElementById('browsePanel'),browseBtn=document.getElementById('browseToggle');
-let browseTimer=null;
-function setBrowse(open){
-  if(!browsePanel||!browseBtn)return;
-  browsePanel.hidden=!open;
-  browseBtn.setAttribute('aria-expanded',String(open));
-  browseWrap.classList.toggle('open',open);
-}
-function closeBrowse(){clearTimeout(browseTimer);setBrowse(false)}
-if(browseWrap&&browsePanel&&browseBtn){
-  buildBrowseMenu();
-  const canHover=window.matchMedia('(hover:hover)').matches;
-  browseBtn.addEventListener('click',e=>{
-    e.preventDefault();
-    const open=browsePanel.hidden;
-    setBrowse(open);
-    if(open)browsePanel.querySelector('a')?.focus();
-  });
-  if(canHover){
-    browseWrap.addEventListener('mouseenter',()=>{clearTimeout(browseTimer);setBrowse(true)});
-    browseWrap.addEventListener('mouseleave',()=>{browseTimer=setTimeout(()=>setBrowse(false),160)});
-  }
-  document.addEventListener('click',e=>{if(!browseWrap.contains(e.target))closeBrowse()});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!browsePanel.hidden){closeBrowse();browseBtn.focus()}});
-  browsePanel.addEventListener('click',e=>{if(e.target.closest('a'))closeBrowse()});
-  browsePanel.addEventListener('keydown',e=>{
-    if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
-    const focusable=$$('a',browsePanel);
-    if(!focusable.length)return;
-    e.preventDefault();
-    const i=focusable.indexOf(document.activeElement);
-    const next=e.key==='ArrowDown'?focusable[(i+1)%focusable.length]
-      :e.key==='ArrowUp'?focusable[(i-1+focusable.length)%focusable.length]
-      :e.key==='Home'?focusable[0]:focusable[focusable.length-1];
-    next.focus();
-  });
-}
 
 route();
 

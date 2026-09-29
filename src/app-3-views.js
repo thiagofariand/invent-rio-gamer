@@ -602,7 +602,6 @@ function universeHeroMarkup(u,titles,colors){
       <div class="universe-hero-slides">${slides.map((p,i)=>{
         const platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
-          <div class="universe-hero-backdrop" data-uh-backdrop aria-hidden="true"></div>
           <div class="universe-hero-art" ${p?`data-igdb-hero-art data-igdb-eager="${i===0}" data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}>
             <span class="game-hero-placeholder"><b>${esc(initialsOf(p?p.title:u.name))}</b></span>
           </div>
@@ -622,13 +621,13 @@ function universeHeroMarkup(u,titles,colors){
     </div>
   </section>`;
 }
-// Alvo 16:9 de verdade — a keyart agora é uma caixa própria ancorada à
-// direita do hero (não mais um background full-bleed atrás do texto).
+// Alvo 16:9 só como critério de desempate no fallback do pickHero() — a
+// arte agora cobre o hero inteiro (object-fit:cover), não é mais uma caixa
+// própria. Artworks primeiro, depois screenshots (pickHero() no back-end
+// já filtra paisagem w/h>=1.6 e largura>=1280, pega a maior); nunca a
+// capa — sem nenhuma imagem que bata o critério, fica no fallback
+// (degradê da franquia + sigla) já presente no HTML.
 const UNIVERSE_HERO_RATIO=(16/9).toFixed(3);
-// Artworks primeiro, depois screenshots (pickHero() no back-end já filtra
-// paisagem w/h>=1.6 e largura>=1280, pega a maior); nunca a capa — sem
-// nenhuma imagem que bata o critério, fica no fallback (degradê + sigla)
-// já presente no HTML, sem precisar trocar nada aqui.
 function hydrateUniverseHero(root,token){
   const arts=$$('[data-igdb-hero-art]',root);
   mapLimit(arts,2,async el=>{
@@ -639,11 +638,6 @@ function hydrateUniverseHero(root,token){
     if(!src)return;
     el.classList.add('has-image');
     el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
-    // Mesma URL, sem segunda requisição (o navegador já tem no cache) — só
-    // reaproveitada numa camada borrada/escurecida atrás pra preencher o
-    // hero inteiro sem faixa sólida na emenda com o texto.
-    const backdrop=el.closest('.home-feature-slide')?.querySelector('[data-uh-backdrop]');
-    if(backdrop)backdrop.innerHTML=`<img class="uh-backdrop-img" src="${esc(src)}" alt="" aria-hidden="true" loading="${eager?'eager':'lazy'}">`;
   });
   initHomeCarousel(root);
 }
@@ -656,28 +650,43 @@ function dailyUniverseSelection(titles,slug,count=5){
 // mock, status ok, com contagem e preço mínimo). Digital hoje nunca tem
 // preço real (só lojas/links), então o chip simplesmente não aparece — a
 // função já lida com isso sem precisar de caso especial.
-function universeOfferConditions(p,platform){
-  return ['new','used','digital']
-    .filter(cond=>!((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false)))
-    .map(cond=>{
-      const s=summaryOf(cond,p.title,platform);
-      if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)return null;
-      return {cond,summary:s};
-    })
-    .filter(Boolean);
+// Físico (Novo/Usado) e Digital nunca dividem o mesmo "a partir de" — o
+// card mostra no máximo 2 chips: o físico mais barato (com a condição
+// escrita) e, se existir, o Digital à parte. Digital nunca entra no
+// cálculo do menor preço físico.
+function universeOfferPhysicalBest(p,platform){
+  let best=null;
+  for(const cond of ['new','used']){
+    if((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false))continue;
+    const s=summaryOf(cond,p.title,platform);
+    if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)continue;
+    if(!best||s.min<best.summary.min)best={cond,summary:s};
+  }
+  return best;
+}
+function universeOfferDigital(p,platform){
+  const s=summaryOf('digital',p.title,platform);
+  if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)return null;
+  return s;
 }
 function universeOfferPriceChipsMarkup(p,platform){
-  const list=universeOfferConditions(p,platform);
-  if(!list.length)return '<span class="uoc-chip uoc-chip-wait">Ver ofertas</span>';
-  // No mobile, se sobrarem 3 chips, mostra só os 2 mais baratos — marca a
-  // condição mais cara pra CSS esconder abaixo de 760px.
-  const costliest=list.length>=3?list.reduce((a,b)=>b.summary.min>a.summary.min?b:a).cond:null;
-  return list.map(({cond,summary})=>`<a class="uoc-chip${cond===costliest?' uoc-chip-drop-mobile':''}" href="${comparisonHref(p,platform,cond)}">${esc(COND_LABEL[cond])} ${esc(summary.minDisplay)}</a>`).join('');
+  const best=universeOfferPhysicalBest(p,platform);
+  const digital=universeOfferDigital(p,platform);
+  if(!best&&!digital)return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
+  const chips=[];
+  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}</a>`);
+  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}</a>`);
+  return chips.join('');
 }
 function universeOfferCard(p){
   const platform=p.variants?.[0]?.[1]||'';
+  const best=universeOfferPhysicalBest(p,platform);
+  const digital=universeOfferDigital(p,platform);
+  // Card inteiro abre na aba do chip principal (o físico mais barato, ou
+  // o digital se só ele existir; sem nenhuma oferta, vai pra ficha do jogo).
+  const mainHref=best?comparisonHref(p,platform,best.cond):digital?comparisonHref(p,platform,'digital'):`#/jogo/${p.slug}?plat=${enc(platform)}`;
   return `<article class="universe-offer-card">
-    <a class="uoc-cover igdb-cover-slot" href="${comparisonHref(p,platform,'all')}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false})}</a>
+    <a class="uoc-cover igdb-cover-slot" href="${mainHref}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false})}</a>
     ${saveButton(gameRef(p))}
     <div class="uoc-overlay">
       <h3 class="uoc-title">${esc(p.title)}</h3>
@@ -869,6 +878,44 @@ function renderGames(){
   </div>`;
 }
 
+/* ---------- diretório de universos (#/universos) ---------- */
+function universeDirectoryCard(u){
+  const rep=representativeFranchiseGame(titlesOf(u.slug));
+  const plat=rep?.variants?.[0]?.[1]||'';
+  return `<a class="card" href="#/universo/${u.slug}" style="text-decoration:none">
+    <div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,plat):u.name)}" data-igdb-platform="${esc(plat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
+    <div class="card-title">${esc(u.name)}</div>
+    <div class="card-ctx">${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</div>
+  </a>`;
+}
+function renderUniverses(params){
+  setTitle('Universos');
+  const q=norm(params.get('q')||'');
+  const eco=params.get('eco')||'';
+  // Universo só existe com 3+ jogos (regra do catálogo) — franquias de
+  // 1-2 jogos ficam de fora do diretório, igual já vale pro resto do site.
+  const list=universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
+    .filter(u=>!eco||u.eco===eco)
+    .filter(u=>!q||norm(u.name).includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  const ecoTabs=[['','Todos'],['Nintendo','Nintendo'],['PlayStation','PlayStation'],['Xbox','Xbox'],['Multi','Multi']];
+  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('eco',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  main.innerHTML=`
+  <h1 class="page-h">Universos</h1>
+  <p class="lede">Explore franquias e encontre onde comprar cada jogo.</p>
+  <div class="section-gap" style="margin-top:16px"><input id="uniSearchInput" type="search" class="select" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}" style="max-width:320px;width:100%"></div>
+  <div class="tabs" role="tablist" style="margin-top:14px">${ecoTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===eco}">${esc(l)}</a>`).join('')}</div>
+  <div class="cards4" style="margin-top:16px">${list.map(universeDirectoryCard).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
+  hydrateIgdbCovers(main,list.length);
+  const searchEl=$('#uniSearchInput');
+  searchEl?.addEventListener('input',()=>{
+    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    if(searchEl.value)p.set('q',searchEl.value);else p.delete('q');
+    history.replaceState(null,'','#/universos'+(p.toString()?'?'+p:''));
+    renderUniverses(p);
+  });
+}
+
 /* ---------- merch, colecionáveis e fan-made ---------- */
 function renderMerch(params){
   const cat=params.get('cat')||'',tipo=params.get('tipo')||'',uni=params.get('uni')||'';
@@ -932,35 +979,73 @@ function renderNotFound(){
 }
 
 
-/* ---------- menu Browse do cabeçalho (Nintendo | PlayStation × gênero) ---------- */
+/* ---------- navegação: destino único + barra lateral ---------- */
 function ecoPlatforms(eco){
   const set=new Set();
   catalog.forEach(p=>p.variants.forEach(v=>{if(v[0]===eco)set.add(v[1])}));
   return [...set];
 }
-// Destino centralizado de "ver tudo de uma plataforma": usa #/plataforma/:slug
-// quando essa rota existir no roteador; até lá, cai na busca filtrada por
-// plataforma (comportamento de hoje). Só precisa trocar PLATFORM_ROUTE_READY
-// quando a rota nascer — nenhum outro lugar do menu sabe qual é o destino.
+// Destino único de navegação por slug (header, sidebar, hub etc.). Enquanto
+// a rota nova (plataforma, universos) não existir, cai na busca filtrada
+// equivalente — trocar aqui, não espalhado pelo site.
 const PLATFORM_ROUTE_READY=false;
-function goPlatform(eco){
-  if(PLATFORM_ROUTE_READY)return `#/plataforma/${slugify(eco)}`;
-  return `#/busca?plat=${enc(ecoPlatforms(eco).join(','))}`;
-}
-function buildBrowseMenu(){
-  const panel=document.getElementById('browsePanel');
-  if(!panel)return;
-  const item=(eco,label,accent)=>{
-    if(!ecoPlatforms(eco).length)return '';
-    return `<a class="browse-item ${accent}" href="${goPlatform(eco)}">
-      <span class="browse-dot" aria-hidden="true"></span>
-      <span class="browse-item-name">${esc(label)}</span>
-      <span class="browse-item-cta">Ver tudo →</span>
-    </a>`;
+function goNav(slug){
+  const eco={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'}[slug];
+  if(eco)return PLATFORM_ROUTE_READY?`#/plataforma/${slug}`:`#/busca?plat=${enc(ecoPlatforms(eco).join(','))}`;
+  const routes={
+    universos:'#/universos',
+    retro:'#/busca?retro=1',
+    multiplataforma:'#/busca',
+    'em-alta':'#/em-alta',
+    ofertas:'#/busca?cond=usado',
+    merch:'#/merch'
   };
-  const items=[item('PlayStation','PlayStation','ps'),item('Nintendo','Nintendo','nin'),item('Xbox','Xbox','xbx')].filter(Boolean);
-  panel.innerHTML=`<div class="browse-card" role="menu">
-    <div class="browse-items">${items.join('')}</div>
-    <div class="browse-foot"><a href="#/busca?retro=1">Retrô</a><span aria-hidden="true">·</span><a href="#/busca">Multiplataforma</a></div>
-  </div>`;
+  return routes[slug]||'#/busca';
+}
+// Fonte da lista "Universos em destaque" da sidebar — só slugs, curados à
+// mão; trocar aqui não mexe em nada da UI.
+const SIDEBAR_FEATURED_UNIVERSES=['mario','the-legend-of-zelda','pokemon','god-of-war','resident-evil'];
+function sidebarItem(slug,label,icon){
+  const href=goNav(slug);
+  const active=location.hash===href;
+  return `<a class="sidebar-item" href="${href}"${active?' aria-current="page"':''}>${ico(icon,20)}<span>${esc(label)}</span></a>`;
+}
+function sidebarUniverseItem(u){
+  const path=`#/universo/${u.slug}`;
+  const active=location.hash===path||location.hash.startsWith(path+'?');
+  return `<li><a class="sidebar-uni-item" href="${path}"${active?' aria-current="page"':''}><span class="sidebar-uni-dot" aria-hidden="true">${esc(initialsOf(u.name).slice(0,2))}</span><span class="sidebar-uni-name">${esc(u.name)}</span></a></li>`;
+}
+function sidebarContent(){
+  const featured=SIDEBAR_FEATURED_UNIVERSES.map(slug=>uMap.get(slug)).filter(Boolean).slice(0,5);
+  const owned=invList().filter(i=>i.kind==='game'&&i.status==='owned').length;
+  const invActive=location.hash==='#/inventario';
+  return `
+    <nav class="sidebar-nav" aria-label="Navegação principal">
+      <div class="sidebar-group">
+        ${sidebarItem('em-alta','Em alta','trend')}
+        ${sidebarItem('ofertas','Ofertas','tag')}
+      </div>
+      <div class="sidebar-group">
+        ${sidebarItem('nintendo','Nintendo','gamepad')}
+        ${sidebarItem('playstation','PlayStation','gamepad')}
+        ${sidebarItem('xbox','Xbox','gamepad')}
+      </div>
+      <div class="sidebar-group">
+        ${sidebarItem('retro','Retrô','retro')}
+        ${sidebarItem('multiplataforma','Multiplataforma','cube')}
+        ${sidebarItem('merch','Colecionáveis e merch','bag')}
+      </div>
+    </nav>
+    ${featured.length?`<div class="sidebar-featured"><ul class="sidebar-uni-list">${featured.map(sidebarUniverseItem).join('')}</ul></div>`:''}
+    <a class="sidebar-footer" href="#/inventario"${invActive?' aria-current="page"':''}>
+      ${ico('chest',22)}
+      <span class="sidebar-footer-info"><b>Meu Inventário</b><small>${owned} de ${catalog.length} jogos</small></span>
+    </a>`;
+}
+function renderSidebar(){
+  const html=sidebarContent();
+  const desktop=document.getElementById('appSidebar');
+  const drawer=document.getElementById('sidebarDrawer');
+  if(desktop)desktop.innerHTML=html;
+  if(drawer)drawer.innerHTML=html;
 }
