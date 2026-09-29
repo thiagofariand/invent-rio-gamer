@@ -600,10 +600,11 @@ function universeHeroMarkup(u,titles,colors){
   return `<section class="universe-feature-row">
     <div class="game-hero universe-hero" data-home-carousel${style}>
       <div class="universe-hero-slides">${slides.map((p,i)=>{
-        const image=i===0?visualAsset('universes',u.slug,'hero'):'';
-        const src=localOrRemoteImage(image),platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
+        const platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
-          <div class="home-feature-art ${src?'has-image':''}" style="${src?`--hero-img:url('${esc(src)}')`:''}" ${p?`data-igdb-hero-art data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}></div>
+          <div class="universe-hero-art" ${p?`data-igdb-hero-art data-igdb-eager="${i===0}" data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}>
+            <span class="game-hero-placeholder"><b>${esc(initialsOf(p?p.title:u.name))}</b></span>
+          </div>
           <div class="game-hero-copy">
             ${badge?`<span class="game-hero-kicker">${esc(badge)}</span>`:''}
             <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
@@ -619,17 +620,23 @@ function universeHeroMarkup(u,titles,colors){
     </div>
   </section>`;
 }
-// Proporção real da coluna do hero de universo (largura da coluna 1.8fr contra
-// os 560px fixos de .universe-layout, no container de 1240px) — bem menos
-// larga que o hero full-bleed da Home/ficha de jogo, que mira 16:9 por padrão.
-const UNIVERSE_HERO_RATIO='1.436';
+// Alvo 16:9 de verdade — a keyart agora é uma caixa própria ancorada à
+// direita do hero (não mais um background full-bleed atrás do texto).
+const UNIVERSE_HERO_RATIO=(16/9).toFixed(3);
+// Artworks primeiro, depois screenshots (pickHero() no back-end já filtra
+// paisagem w/h>=1.6 e largura>=1280, pega a maior); nunca a capa — sem
+// nenhuma imagem que bata o critério, fica no fallback (degradê + sigla)
+// já presente no HTML, sem precisar trocar nada aqui.
 function hydrateUniverseHero(root,token){
   const arts=$$('[data-igdb-hero-art]',root);
   mapLimit(arts,2,async el=>{
+    const eager=el.dataset.igdbEager==='true';
     const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO);
     if(token!==viewToken||!el.isConnected)return;
-    const src=d?.hero?.preview||d?.hero?.url||d?.cover?.url;
-    if(src)setHeroBackground(el,src);
+    const src=d?.hero?.url;
+    if(!src)return;
+    el.classList.add('has-image');
+    el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
   });
   initHomeCarousel(root);
 }
@@ -663,7 +670,7 @@ function universeOfferPriceChipsMarkup(p,platform){
 function universeOfferCard(p){
   const platform=p.variants?.[0]?.[1]||'';
   return `<article class="universe-offer-card">
-    <a class="uoc-cover igdb-cover-slot" href="${comparisonHref(p,platform,'all')}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false,fullTitle:true})}</a>
+    <a class="uoc-cover igdb-cover-slot" href="${comparisonHref(p,platform,'all')}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false})}</a>
     ${saveButton(gameRef(p))}
     <div class="uoc-overlay">
       <h3 class="uoc-title">${esc(p.title)}</h3>
@@ -756,7 +763,11 @@ function renderUniverse(slug,params,token){
   ${body}`;
   if(tab==='tudo'&&titles.length)hydrateUniverseHero($('[data-home-carousel]',main),token);
   if(tab!=='tudo')hydrateFranchiseHero(u,titles);
-  hydrateIgdbCovers(main,12);
+  // Na aba "tudo", a lista inteira do Meu Inventário também tem
+  // data-igdb-cover (mesmo rolando por dentro) — sem folga aqui, uma
+  // franquia com mais de 12 jogos comia o limite todo e os cards de
+  // oferta (que vêm depois no DOM) nunca chegavam a ser hidratados.
+  hydrateIgdbCovers(main,tab==='tudo'?titles.length+featuredGames.length+4:12);
   if(tab==='tudo'&&featuredGames.length)hydrateUniverseOffers(featuredGames,token);
 }
 
