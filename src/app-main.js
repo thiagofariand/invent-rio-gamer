@@ -47,7 +47,9 @@ function applyUniverseChrome(colors){
     rootStyle.setProperty('--u-panel',colors.panel);
     rootStyle.setProperty('--u-accent',colors.accent);
     rootStyle.setProperty('--u-fab-ink',colors.fabText==='white'?'#fff':'#1F1A16');
-    rootStyle.setProperty('--accent',colors.accent);
+    // --accent fica fixo no vermelho da marca (usado no FAB do cabeçalho,
+    // que é sempre vermelho/branco, nunca a cor da franquia — só o fundo
+    // ambiente da página (--page-bg/--u-bg/--u-panel) varia por universo.
     rootStyle.setProperty('--page-bg',colors.bg);
     heroLogoChoice=colors.logo==='black'?'black':'white';
   }else{
@@ -55,7 +57,6 @@ function applyUniverseChrome(colors){
     rootStyle.removeProperty('--u-panel');
     rootStyle.removeProperty('--u-accent');
     rootStyle.removeProperty('--u-fab-ink');
-    rootStyle.removeProperty('--accent');
     rootStyle.removeProperty('--page-bg');
     heroLogoChoice=null;
   }

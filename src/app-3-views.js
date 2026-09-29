@@ -903,19 +903,29 @@ function ecoPlatforms(eco){
 function buildBrowseMenu(){
   const panel=document.getElementById('browsePanel');
   if(!panel)return;
+  // Mesmas 8 primeiras entradas de GENRES em toda coluna (fixas, não
+  // filtradas por contagem) — garante o mesmo número de linhas em
+  // PlayStation/Nintendo/Xbox, então as colunas ficam com a mesma altura
+  // e "Ver tudo de X" alinha no rodapé de todas ao mesmo tempo.
+  const TOP_GENRES=GENRES.slice(0,8);
   const column=(eco,label,accent)=>{
     const plats=ecoPlatforms(eco);
+    if(!plats.length)return '';
     const games=catalog.filter(p=>p.variants.some(v=>v[0]===eco));
     const platParam=enc(plats.join(','));
-    const rows=GENRES.map(g=>({g,n:games.filter(p=>(p.genres||[]).includes(g.slug)).length})).filter(x=>x.n>0);
+    const rows=TOP_GENRES.map(g=>{
+      const n=games.filter(p=>(p.genres||[]).includes(g.slug)).length;
+      return `<li><a href="#/busca?plat=${platParam}&genre=${g.slug}">${esc(g.label)}${n?`<span>${n}</span>`:''}</a></li>`;
+    }).join('');
     return `<div class="browse-col ${accent}">
       <h3>${esc(label)}</h3>
-      <ul>${rows.map(({g,n})=>`<li><a href="#/busca?plat=${platParam}&genre=${g.slug}">${esc(g.label)}<span>${n}</span></a></li>`).join('')}</ul>
+      <ul>${rows}<li><a class="browse-more" href="#/busca?plat=${platParam}">Ver todos os gêneros<span>→</span></a></li></ul>
       <a class="browse-all" href="#/busca?plat=${platParam}">Ver tudo de ${esc(label)} →</a>
     </div>`;
   };
+  const cols=[column('PlayStation','PlayStation','ps'),column('Nintendo','Nintendo','nin'),column('Xbox','Xbox','xbx')].filter(Boolean);
   panel.innerHTML=`<div class="browse-card">
-    <div class="browse-cols">${column('PlayStation','PlayStation','ps')}${column('Nintendo','Nintendo','nin')}</div>
-    <div class="browse-foot"><a href="#/games">Todos os ecossistemas</a><a href="#/busca?retro=1">Retrô</a></div>
+    <div class="browse-cols" style="--cols:${cols.length}">${cols.join('')}</div>
+    <div class="browse-foot"><a href="#/games">Todos os ecossistemas</a><span aria-hidden="true">·</span><a href="#/busca?retro=1">Retrô</a><span aria-hidden="true">·</span><a href="#/busca">Multiplataforma</a></div>
   </div>`;
 }

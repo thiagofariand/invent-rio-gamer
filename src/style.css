@@ -389,9 +389,11 @@ body.universe-hero-route{
 .universe-hero-route .crumbs a{color:#fff}
 
 /* ---- material "vidro fumê": tokens globais, usados só em navegação
-   (cabeçalho, menu lateral/painel) — nunca em cards/conteúdo. --accent e
-   --page-bg são redefinidos por JS (app-main.js/applyUniverseChrome) com a
-   cor da franquia; sem universo ativo caem no vermelho da marca. */
+   (cabeçalho, menu lateral/painel) — nunca em cards/conteúdo. --accent é
+   sempre o vermelho da marca (usado no FAB e em CTAs do cabeçalho);
+   --page-bg é redefinido por JS (app-main.js/applyUniverseChrome) com a
+   cor de fundo da franquia na página de universo; sem universo ativo cai
+   no valor daqui. */
 :root{
   --accent:#E64236;
   --page-bg:#1f0b14;
@@ -402,37 +404,10 @@ body.universe-hero-route{
   --glass-blur:blur(18px) saturate(140%);
 }
 
-/* Cabeçalho sobre o bloco de cor do universo: cartão de vidro flutuante,
-   não mais faixa full-width — só no desktop (no mobile o cabeçalho já some
-   ao rolar e o Meu Inventário já está na barra de baixo). */
-@media(min-width:761px){
-  .universe-hero-route .site-header{
-    position:sticky;top:12px;
-    max-width:1240px;margin:16px auto 0;
-    border-radius:20px;
-    min-height:64px;
-    background:var(--glass-1);
-    border:1px solid var(--glass-border);
-    border-top-color:rgba(255,255,255,.16);
-    backdrop-filter:var(--glass-blur);
-    -webkit-backdrop-filter:var(--glass-blur);
-    box-shadow:0 14px 32px rgba(0,0,0,.28);
-  }
-  @supports not (backdrop-filter:blur(1px)){
-    .universe-hero-route .site-header{background:rgba(10,4,8,.86)}
-  }
-  .universe-hero-route .site-header .header-inner{min-height:64px}
-  .universe-hero-route .site-header .search input{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:#fff}
-  .universe-hero-route .site-header .search input::placeholder{color:rgba(255,255,255,.72)}
-  .universe-hero-route .site-header .search .s-ico{color:rgba(255,255,255,.85)}
-  .universe-hero-route .site-header .main-nav a{color:#fff}
-  .universe-hero-route .site-header .nav-caret{color:#fff;width:44px;height:44px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border)}
-  .universe-hero-route .site-header .nav-caret:hover{background:rgba(255,255,255,.12)}
-  /* FAB "Meu Inventário": vermelho fixo da marca fora de universo; dentro,
-     usa o tom de acento da franquia com o texto que passou no teste de
-     contraste (--u-fab-ink, calculado em universe-colors.js). */
-  .universe-hero-route .inv-link{background:var(--accent);color:var(--u-fab-ink,var(--red-ink));border-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.22)}
-}
+/* O cabeçalho de vidro fumê em si (site inteiro, não só universo) está
+   consolidado mais abaixo, na seção "PARTE A — HEADER E MENU GAMES". Aqui
+   fica só o que continua específico da rota de universo: fundo da página e
+   cor das migalhas de pão. */
 /* No mobile o botão de inventário do cabeçalho é redundante (já tem na
    barra de navegação de baixo). */
 @media(max-width:760px){
@@ -1028,15 +1003,12 @@ body{background:var(--store);color:var(--ink)}
 main{max-width:1240px;padding:34px 28px 80px}
 .site-header{background:rgba(250,248,243,.94);border-color:rgba(200,192,181,.72);backdrop-filter:blur(18px)}
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
-.brand{margin-left:calc(-1 * max(28px,(var(--viewport-w,100vw) - 1240px)/2 + 28px));width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
+.brand{width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
 .brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:auto}
-/* Espelha o recuo negativo da logo: o FAB "Meu Inventário" também encosta
-   na borda direita da tela, não só na borda do container de 1240px. Precisa
-   dos dois: margin-left:auto empurra ele pro fim do espaço livre dentro do
-   cabeçalho (a busca para de crescer em .search{max-width:590px} e sobrava
-   espaço morto antes do FAB sem isso); o margin-right negativo então
-   sangra esse espaço pra fora do padding do container, até a borda real. */
-.inv-link{margin-left:auto;margin-right:calc(-1 * max(28px,(var(--viewport-w,100vw) - 1240px)/2 + 28px))}
+/* Nada aqui sangra pra fora do cartão do cabeçalho — logo e FAB ficam
+   contidos pelo padding normal do .header-inner (ver "PARTE A" mais
+   abaixo, que redefine o cabeçalho inteiro como um único cartão de vidro). */
+.inv-link{margin-left:auto}
 .search{max-width:590px}
 .search input{height:48px;background:#F7F3EC;border-color:var(--line);border-radius:15px;clip-path:none;padding-left:44px}
 .search input:focus{background:#fff;border-color:#AE817B;box-shadow:0 0 0 4px rgba(181,45,38,.08)}
@@ -1572,31 +1544,47 @@ html{overflow-x:hidden}
 .retail-chip{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid #CFC6B8;background:#fff;color:#5A5348;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.6;vertical-align:middle;white-space:nowrap}
 .retail-chip.oficial{background:#1F4A3A;border-color:#1F4A3A;color:#fff}
 
-/* ---------- Browse: menu de jogos por plataforma e gênero ---------- */
+/* ---------- Browse: mega menu de jogos por plataforma e gênero ----------
+   Vidro fumê igual ao cabeçalho (--glass-1 + blur), colunas transparentes
+   com um filete de cor da plataforma no topo (nunca fundo chapado) e o
+   mesmo número de linhas em todas as colunas, pra alinhar por igual. */
 .header-inner{position:relative}
 .nav-browse{display:flex;align-items:center;gap:2px}
-.nav-caret{appearance:none;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:8px 4px;display:inline-grid;place-items:center;border-radius:6px}
-.nav-caret svg{transition:transform .18s ease}
+.nav-caret{appearance:none;border:0;background:none;color:inherit;cursor:pointer;padding:0;margin-left:2px;display:inline-grid;place-items:center}
+.nav-caret svg{width:16px;height:16px;transition:transform .18s ease}
 .nav-browse.open .nav-caret svg{transform:rotate(180deg)}
-.nav-caret:focus-visible{outline:2px solid var(--red);outline-offset:1px}
-.browse-panel{position:absolute;right:28px;top:100%;padding-top:2px;z-index:70;width:min(560px,calc(100vw - 32px))}
+.nav-caret:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:4px}
+.browse-panel{position:absolute;right:16px;top:100%;padding-top:10px;z-index:70;width:min(620px,calc(100vw - 32px))}
 .browse-panel[hidden]{display:none}
-.browse-card{background:#FAF8F3;border:1px solid #DDD5C8;border-radius:18px;box-shadow:0 22px 48px rgba(31,27,22,.20);overflow:hidden}
-.browse-cols{display:grid;grid-template-columns:1fr 1fr}
-.browse-col{padding:20px 22px 16px}
-.browse-col.ps{background:linear-gradient(160deg,#153A5C,#205E8C);color:#fff}
-.browse-col.nin{background:linear-gradient(160deg,#8E2620,#B93A30);color:#fff}
-.browse-col h3{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.85}
-.browse-col ul{list-style:none;margin:0;padding:0}
-.main-nav .browse-panel a{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border:0;font-size:14px;font-weight:500;color:#fff;text-decoration:none}
-.main-nav .browse-panel .browse-col li a{border-bottom:1px solid rgba(255,255,255,.14)}
+.browse-card{
+  background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
+  border-radius:20px;overflow:hidden;box-shadow:0 22px 48px rgba(0,0,0,.32);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+}
+@supports not (backdrop-filter:blur(1px)){
+  .browse-card{background:rgba(10,4,8,.92)}
+}
+.browse-cols{display:grid;grid-template-columns:repeat(var(--cols,2),1fr)}
+.browse-col{position:relative;min-width:0;padding:20px 20px 16px;display:flex;flex-direction:column;color:#fff}
+.browse-col+.browse-col{border-left:1px solid var(--glass-border)}
+.browse-col::before{content:"";position:absolute;top:0;left:20px;right:20px;height:3px;border-radius:0 0 3px 3px}
+.browse-col.ps::before{background:linear-gradient(90deg,#153A5C,#4FA8E0)}
+.browse-col.nin::before{background:linear-gradient(90deg,#8E2620,#E4483C)}
+.browse-col.xbx::before{background:linear-gradient(90deg,#0E5E27,#3CB46E)}
+.browse-col h3{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.68);font-weight:700}
+.browse-col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.main-nav .browse-panel a{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:34px;padding:0;border:0;font-size:14px;font-weight:500;color:#fff;text-decoration:none}
+.main-nav .browse-panel .browse-col li a{border-bottom:1px solid rgba(255,255,255,.12)}
+.main-nav .browse-panel .browse-col li:last-child a{border-bottom:0}
 .main-nav .browse-panel .browse-col li a:hover{padding-left:4px;transition:padding .12s ease}
-.main-nav .browse-panel .browse-col li a span{font-size:11.5px;opacity:.7;font-weight:600}
-.main-nav .browse-panel .browse-all{margin-top:8px;padding:9px 0 4px;font-weight:700;font-size:13.5px;border:0}
+.main-nav .browse-panel .browse-col li a span{font-size:11.5px;opacity:.68;font-weight:600;flex:none}
+.main-nav .browse-panel .browse-more{color:rgba(255,255,255,.85);font-weight:600}
+.main-nav .browse-panel .browse-all{margin-top:auto;padding-top:12px;font-weight:700;font-size:13.5px;border:0;border-top:1px solid var(--glass-border)}
 .main-nav .browse-panel .browse-all:hover{text-decoration:underline}
-.browse-foot{display:flex;gap:18px;padding:12px 22px;background:#F1ECE3;border-top:1px solid #DDD5C8}
-.main-nav .browse-panel .browse-foot a{padding:0;color:var(--ink);font-size:13px;font-weight:600;display:inline}
-.main-nav .browse-panel .browse-foot a:hover{text-decoration:underline}
+.browse-foot{display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid var(--glass-border);color:rgba(255,255,255,.6);font-size:13px}
+.browse-foot span{opacity:.5}
+.main-nav .browse-panel .browse-foot a{padding:0;color:rgba(255,255,255,.88);font-size:13px;font-weight:600;display:inline}
+.main-nav .browse-panel .browse-foot a:hover{color:#fff;text-decoration:underline}
 @media (max-width:760px){.nav-browse{display:none}}
 
 /* Comparador: blocos por formato (Novo / Usado / Digital) */
@@ -1605,3 +1593,68 @@ html{overflow-x:hidden}
 .compare-block .empty.compact{padding:14px 16px;border-radius:14px;text-align:left}
 .compare-block .empty.compact p{margin:0;color:#4B443B}
 .compare-block .shortcut-links{display:inline-flex;gap:8px;flex-wrap:wrap;vertical-align:middle;margin-left:4px}
+
+/* ============================================================
+   PARTE A — HEADER E MENU GAMES: VIDRO FUMÊ GLOBAL
+   O cabeçalho vira um cartão de vidro flutuante em toda página (não só
+   universo): logo, busca, nav e FAB inteiros dentro do cartão, contidos
+   pelo padding normal — nada posicionado em relação à janela, nada
+   sangra ou é cortado. Regras finais da cascata: mesma especificidade
+   das eras anteriores (.site-header, .inv-link etc.), vencem por virem
+   por último no arquivo.
+   ============================================================ */
+@media(min-width:761px){
+  .site-header{
+    position:sticky;top:12px;
+    max-width:1240px;margin:16px auto 0;
+    border-radius:20px;
+    background:var(--glass-1);
+    border:1px solid var(--glass-border);
+    border-top-color:rgba(255,255,255,.16);
+    backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    box-shadow:0 14px 32px rgba(0,0,0,.28);
+  }
+  @supports not (backdrop-filter:blur(1px)){
+    .site-header{background:rgba(10,4,8,.86)}
+  }
+  .header-inner{height:64px;min-height:64px;padding:0 16px;gap:20px}
+  .brand{margin:0}
+  .search{background:none}
+  .search input{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:#fff}
+  .search input:focus{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.36);box-shadow:none}
+  .search input::placeholder{color:rgba(255,255,255,.7)}
+  .search .s-ico{color:rgba(255,255,255,.85)}
+  .suggest{background:var(--glass-1);border-color:var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+  @supports not (backdrop-filter:blur(1px)){
+    .suggest{background:rgba(10,4,8,.92)}
+  }
+  .sg-title{color:#fff}
+  .sg-sub,.sg-price{color:rgba(255,255,255,.62)}
+  .sg-price b{color:#fff}
+  .sg-item[aria-selected="true"],.sg-item:hover{background:rgba(255,255,255,.08)}
+  .sg-head{color:rgba(255,255,255,.55)}
+  .main-nav{align-items:center}
+  .main-nav a{color:rgba(255,255,255,.85);border-bottom-color:transparent}
+  .main-nav a:hover{color:#fff}
+  .main-nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--accent);font-weight:600}
+  .nav-browse{align-items:center}
+  .nav-caret{color:rgba(255,255,255,.85)}
+  .nav-caret:hover{color:#fff}
+}
+/* FAB "Meu Inventário": sempre vermelho da marca + texto branco (nunca a
+   cor da franquia) — em qualquer largura de tela. */
+.inv-link{
+  background:var(--accent);color:#fff;
+  border-radius:12px;height:40px;padding:0 16px;
+  white-space:nowrap;flex-shrink:0;
+  box-shadow:none;
+}
+.inv-link:hover,.inv-link[aria-current="page"]{background:var(--red-cta-hover);color:#fff;border-color:transparent;box-shadow:none}
+.inv-link .count-badge{background:#fff;color:var(--red-ink)}
+
+/* Espaçamento cabeçalho → conteúdo: header→breadcrumb 12px; breadcrumb→
+   hero/conteúdo 16px; em página sem breadcrumb, header→conteúdo 20px. */
+main{padding-top:20px}
+main:has(>.crumbs){padding-top:12px}
+.crumbs{margin-bottom:16px}
