@@ -367,7 +367,12 @@ function closeBrowse(){clearTimeout(browseTimer);setBrowse(false)}
 if(browseWrap&&browsePanel&&browseBtn){
   buildBrowseMenu();
   const canHover=window.matchMedia('(hover:hover)').matches;
-  browseBtn.addEventListener('click',e=>{e.preventDefault();setBrowse(browsePanel.hidden)});
+  browseBtn.addEventListener('click',e=>{
+    e.preventDefault();
+    const open=browsePanel.hidden;
+    setBrowse(open);
+    if(open)browsePanel.querySelector('a')?.focus();
+  });
   if(canHover){
     browseWrap.addEventListener('mouseenter',()=>{clearTimeout(browseTimer);setBrowse(true)});
     browseWrap.addEventListener('mouseleave',()=>{browseTimer=setTimeout(()=>setBrowse(false),160)});
@@ -375,6 +380,17 @@ if(browseWrap&&browsePanel&&browseBtn){
   document.addEventListener('click',e=>{if(!browseWrap.contains(e.target))closeBrowse()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!browsePanel.hidden){closeBrowse();browseBtn.focus()}});
   browsePanel.addEventListener('click',e=>{if(e.target.closest('a'))closeBrowse()});
+  browsePanel.addEventListener('keydown',e=>{
+    if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
+    const focusable=$$('a',browsePanel);
+    if(!focusable.length)return;
+    e.preventDefault();
+    const i=focusable.indexOf(document.activeElement);
+    const next=e.key==='ArrowDown'?focusable[(i+1)%focusable.length]
+      :e.key==='ArrowUp'?focusable[(i-1+focusable.length)%focusable.length]
+      :e.key==='Home'?focusable[0]:focusable[focusable.length-1];
+    next.focus();
+  });
 }
 
 route();

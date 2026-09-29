@@ -136,7 +136,7 @@ function renderHome(){
   ${homeFeatureMarkup(slides)}
   ${top.length?`<div class="home-trending-cards" aria-label="Outros destaques">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><span class="eyebrow">${esc(sentence(t.tag))}</span><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>`:''}
 
-  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><span class="eyebrow">PREÇOS E OPORTUNIDADES</span><h2 id="home-offers-title">Ofertas em jogos</h2></div><a href="#/busca?cond=usado">Ver todas →</a></div>
+  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas em jogos</h2></div><a href="#/busca?cond=usado">Ver todas →</a></div>
     <div class="home-offer-grid">${featured.map(([p,label])=>homeOfferCard(p,label)).join('')}</div>
   </section>
 
@@ -515,7 +515,7 @@ async function renderOfferComparison(slug,params,token){
   const digitalAvailable=p.digital===true||hasDigital(p,platform);
   setTitle(`Ofertas de ${p.title}`);
   main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/jogo/${p.slug}?plat=${enc(platform)}">${esc(p.title)}</a> › <span>Ofertas</span></nav>
-  <div class="compare-heading"><div><span class="eyebrow">COMPARAÇÃO DE OFERTAS</span><h1>${esc(p.title)}</h1><p>Preços em BRL · confira condição, frete e detalhes antes de comprar.</p></div><a class="btn btn-ghost" href="#/jogo/${p.slug}?plat=${enc(platform)}">← Voltar ao jogo</a></div>
+  <div class="compare-heading"><div><h1>${esc(p.title)}</h1><p>Preços em BRL · confira condição, frete e detalhes antes de comprar.</p></div><a class="btn btn-ghost" href="#/jogo/${p.slug}?plat=${enc(platform)}">← Voltar ao jogo</a></div>
   <div class="compare-filterbar"><div><span>Plataforma</span>${platforms.map(x=>`<a href="${comparisonHref(p,x,cond)}" aria-current="${x===platform}">${esc(x)}</a>`).join('')}</div><div><span>Formato</span><a href="${comparisonHref(p,platform,'all')}" aria-current="${cond==='all'}">Todos</a><a href="${comparisonHref(p,platform,'new')}" aria-current="${cond==='new'}">Novo</a><a href="${comparisonHref(p,platform,'used')}" aria-current="${cond==='used'}">Usado</a>${digitalAvailable?`<a href="${comparisonHref(p,platform,'digital')}" aria-current="${cond==='digital'}">Digital</a>`:''}</div></div>
   <div class="compare-layout">
     <section class="compare-results" aria-labelledby="compare-results-title"><div class="compare-results-head"><div><h2 id="compare-results-title">${esc(condText)} · ${esc(platform)}</h2><p id="compareStatus">Verificando preços e disponibilidade…</p></div><span class="compare-spinner" aria-hidden="true"></span></div><div id="comparisonOffers" class="compare-offers"><div class="compare-loading"><span></span><span></span><span></span></div></div></section>
@@ -573,6 +573,26 @@ function marketShortcuts(name){
 function newestUniverseGames(titles,count=4){
   return [...titles].filter(Boolean).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title)).slice(0,count);
 }
+// Menor preço real do jogo, em qualquer condição (Novo/Usado/Digital) — lê
+// do mesmo cache de summaryOf() que os cards de oferta já preenchem (nunca
+// dispara fetch aqui). Diferente de universeOfferConditions(): aqui um
+// preço de demonstração pode aparecer, só que com o selo EXEMPLO — o botão
+// do hero não pode virar "Ver detalhes" só porque a API ainda não respondeu.
+function universeHeroBestOffer(p,platform){
+  let best=null;
+  for(const cond of ['new','used','digital']){
+    if((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false))continue;
+    const s=summaryOf(cond,p.title,platform);
+    if(!s||s.status!=='ok'||!s.count||s.min==null)continue;
+    if(!best||s.min<best.summary.min)best={cond,summary:s};
+  }
+  return best;
+}
+function universeHeroCtaMarkup(p,platform){
+  const best=universeHeroBestOffer(p,platform);
+  if(!best)return `<a class="btn btn-primary" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
+  return `<a class="btn btn-primary" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} a partir de ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''} →</a>`;
+}
 function universeHeroMarkup(u,titles,colors){
   const latest=newestUniverseGames(titles,4);
   const slides=latest.length?latest:[null];
@@ -588,7 +608,7 @@ function universeHeroMarkup(u,titles,colors){
             ${badge?`<span class="game-hero-kicker">${esc(badge)}</span>`:''}
             <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
             <p>${p?`${esc(platform)}${p.year?` · ${esc(p.year)}`:''}`:(titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.')}</p>
-            ${p?`<div class="game-hero-actions"><a class="btn btn-primary" href="#/jogo/${p.slug}">Ver ofertas</a></div>`:''}
+            ${p?`<div class="game-hero-actions">${universeHeroCtaMarkup(p,platform)}</div>`:''}
           </div>
         </article>`;
       }).join('')}</div>
@@ -719,8 +739,8 @@ function renderUniverse(slug,params,token){
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,5);
-    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><span class="eyebrow">JOGOS DO UNIVERSO</span><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div></div><div class="universe-offer-grid">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
-    +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><span class="eyebrow">DO MESMO UNIVERSO</span><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div></div><div class="universe-offer-grid">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
+    +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
   }
   const colors=tab==='tudo'?(universeColorsFor(u)||{bg:'#211E1B',panel:'#2A2521',accent:'var(--red)',fabText:'white',logo:'white'}):null;
   main.innerHTML=`
@@ -823,7 +843,7 @@ function renderGames(){
   const links=(eco,n)=>linkList(group(eco),n);
   const retroUniverses=universes.filter(u=>titlesOf(u.slug).some(p=>p.variants.some(v=>isRetro(v[1])))).sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name));
   main.innerHTML=`<div class="games-directory">
-    <section class="games-intro"><span class="eyebrow">CATÁLOGO DE JOGOS</span><h1>Escolha seu ecossistema.</h1><p>Explore franquias, complete sua coleção e encontre onde comprar.</p><a class="btn btn-dark" href="#/busca">Ver todos os jogos</a></section>
+    <section class="games-intro"><h1>Escolha seu ecossistema.</h1><p>Explore franquias, complete sua coleção e encontre onde comprar.</p><a class="btn btn-dark" href="#/busca">Ver todos os jogos</a></section>
     <section class="ecosystem-card eco-multi" aria-label="Multiplataforma"><div class="ecosystem-visual">${ico('gamepad',76)}</div><div class="ecosystem-links">${links('Multi',5)}</div><a class="ecosystem-cta" href="#/busca">Explorar multiplataforma →</a></section>
     <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual">${ico('retro',76)}</div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div><a class="ecosystem-cta" href="#/busca?retro=1">Explorar retrô →</a></section>
     <section class="ecosystem-card eco-nintendo" aria-label="Nintendo"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-nintendo" src="/assets/nintendo-logo.svg" alt="Nintendo"></div><div class="ecosystem-links">${links('Nintendo',7)}</div><a class="ecosystem-cta" href="#/busca?plat=${enc('Switch,Switch 2,3DS,DS,Wii U,Wii,GameCube,Nintendo 64,SNES,NES,Game Boy Advance,Game Boy Color,Game Boy')}">Explorar Nintendo →</a></section>
@@ -900,32 +920,29 @@ function ecoPlatforms(eco){
   catalog.forEach(p=>p.variants.forEach(v=>{if(v[0]===eco)set.add(v[1])}));
   return [...set];
 }
+// Destino centralizado de "ver tudo de uma plataforma": usa #/plataforma/:slug
+// quando essa rota existir no roteador; até lá, cai na busca filtrada por
+// plataforma (comportamento de hoje). Só precisa trocar PLATFORM_ROUTE_READY
+// quando a rota nascer — nenhum outro lugar do menu sabe qual é o destino.
+const PLATFORM_ROUTE_READY=false;
+function goPlatform(eco){
+  if(PLATFORM_ROUTE_READY)return `#/plataforma/${slugify(eco)}`;
+  return `#/busca?plat=${enc(ecoPlatforms(eco).join(','))}`;
+}
 function buildBrowseMenu(){
   const panel=document.getElementById('browsePanel');
   if(!panel)return;
-  // Mesmas 8 primeiras entradas de GENRES em toda coluna (fixas, não
-  // filtradas por contagem) — garante o mesmo número de linhas em
-  // PlayStation/Nintendo/Xbox, então as colunas ficam com a mesma altura
-  // e "Ver tudo de X" alinha no rodapé de todas ao mesmo tempo.
-  const TOP_GENRES=GENRES.slice(0,8);
-  const column=(eco,label,accent)=>{
-    const plats=ecoPlatforms(eco);
-    if(!plats.length)return '';
-    const games=catalog.filter(p=>p.variants.some(v=>v[0]===eco));
-    const platParam=enc(plats.join(','));
-    const rows=TOP_GENRES.map(g=>{
-      const n=games.filter(p=>(p.genres||[]).includes(g.slug)).length;
-      return `<li><a href="#/busca?plat=${platParam}&genre=${g.slug}">${esc(g.label)}${n?`<span>${n}</span>`:''}</a></li>`;
-    }).join('');
-    return `<div class="browse-col ${accent}">
-      <h3>${esc(label)}</h3>
-      <ul>${rows}<li><a class="browse-more" href="#/busca?plat=${platParam}">Ver todos os gêneros<span>→</span></a></li></ul>
-      <a class="browse-all" href="#/busca?plat=${platParam}">Ver tudo de ${esc(label)} →</a>
-    </div>`;
+  const item=(eco,label,accent)=>{
+    if(!ecoPlatforms(eco).length)return '';
+    return `<a class="browse-item ${accent}" href="${goPlatform(eco)}">
+      <span class="browse-dot" aria-hidden="true"></span>
+      <span class="browse-item-name">${esc(label)}</span>
+      <span class="browse-item-cta">Ver tudo →</span>
+    </a>`;
   };
-  const cols=[column('PlayStation','PlayStation','ps'),column('Nintendo','Nintendo','nin'),column('Xbox','Xbox','xbx')].filter(Boolean);
-  panel.innerHTML=`<div class="browse-card">
-    <div class="browse-cols" style="--cols:${cols.length}">${cols.join('')}</div>
-    <div class="browse-foot"><a href="#/games">Todos os ecossistemas</a><span aria-hidden="true">·</span><a href="#/busca?retro=1">Retrô</a><span aria-hidden="true">·</span><a href="#/busca">Multiplataforma</a></div>
+  const items=[item('PlayStation','PlayStation','ps'),item('Nintendo','Nintendo','nin'),item('Xbox','Xbox','xbx')].filter(Boolean);
+  panel.innerHTML=`<div class="browse-card" role="menu">
+    <div class="browse-items">${items.join('')}</div>
+    <div class="browse-foot"><a href="#/busca?retro=1">Retrô</a><span aria-hidden="true">·</span><a href="#/busca">Multiplataforma</a></div>
   </div>`;
 }
