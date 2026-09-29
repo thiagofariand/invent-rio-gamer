@@ -232,8 +232,8 @@ function renderSearch(params,token){
 
 /* ---------- imagens automáticas IGDB ---------- */
 const igdbVisualMemo=new Map();
-async function fetchIgdbVisual(title,platform='',year=''){
-  const key=[title,platform,year].join('|');
+async function fetchIgdbVisual(title,platform='',year='',heroRatio=''){
+  const key=[title,platform,year,heroRatio].join('|');
   if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
 
   const p=(async()=>{
@@ -241,6 +241,7 @@ async function fetchIgdbVisual(title,platform='',year=''){
       const qs=new URLSearchParams({q:title});
       if(platform)qs.set('platform',platform);
       if(year)qs.set('year',year);
+      if(heroRatio)qs.set('ratio',heroRatio);
       const r=await fetch('/api/igdb/game?'+qs.toString(),{headers:{Accept:'application/json'}});
       if(!r.ok)return null;
       const d=await r.json();
@@ -598,10 +599,14 @@ function universeHeroMarkup(u,titles,colors){
     </div>
   </section>`;
 }
+// Proporção real da coluna do hero de universo (largura da coluna 1.8fr contra
+// os 560px fixos de .universe-layout, no container de 1240px) — bem menos
+// larga que o hero full-bleed da Home/ficha de jogo, que mira 16:9 por padrão.
+const UNIVERSE_HERO_RATIO='1.436';
 function hydrateUniverseHero(root,token){
   const arts=$$('[data-igdb-hero-art]',root);
   mapLimit(arts,2,async el=>{
-    const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'');
+    const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO);
     if(token!==viewToken||!el.isConnected)return;
     const src=d?.hero?.preview||d?.hero?.url||d?.cover?.url;
     if(src)setHeroBackground(el,src);
