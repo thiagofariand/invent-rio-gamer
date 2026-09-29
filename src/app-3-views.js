@@ -602,9 +602,11 @@ function universeHeroMarkup(u,titles,colors){
       <div class="universe-hero-slides">${slides.map((p,i)=>{
         const platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
+          <div class="universe-hero-backdrop" data-uh-backdrop aria-hidden="true"></div>
           <div class="universe-hero-art" ${p?`data-igdb-hero-art data-igdb-eager="${i===0}" data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}>
             <span class="game-hero-placeholder"><b>${esc(initialsOf(p?p.title:u.name))}</b></span>
           </div>
+          <div class="universe-hero-legibility" aria-hidden="true"></div>
           <div class="game-hero-copy">
             ${badge?`<span class="game-hero-kicker">${esc(badge)}</span>`:''}
             <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
@@ -637,6 +639,11 @@ function hydrateUniverseHero(root,token){
     if(!src)return;
     el.classList.add('has-image');
     el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
+    // Mesma URL, sem segunda requisição (o navegador já tem no cache) — só
+    // reaproveitada numa camada borrada/escurecida atrás pra preencher o
+    // hero inteiro sem faixa sólida na emenda com o texto.
+    const backdrop=el.closest('.home-feature-slide')?.querySelector('[data-uh-backdrop]');
+    if(backdrop)backdrop.innerHTML=`<img class="uh-backdrop-img" src="${esc(src)}" alt="" aria-hidden="true" loading="${eager?'eager':'lazy'}">`;
   });
   initHomeCarousel(root);
 }
