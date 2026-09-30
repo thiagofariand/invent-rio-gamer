@@ -194,6 +194,9 @@ function renderSearch(params,token){
   const visible=filtered.slice(0,n);
   const unis=[...new Set(matches.map(m=>m.p.universe))];
   const uHint=unis.length===1&&(matches.length>=3||raw&&norm(uMap.get(unis[0]).name)===norm(raw))?uMap.get(unis[0]):null;
+  // Fase 6: busca de um universo só usa a cor dele (fallback: padrao,
+  // já definido no :root — sem chamada extra, mesma paleta da fase 1).
+  applyUniverseChrome(uHint?paletteForUniverse(uHint):null);
   setTitle(raw?`Resultados para ${raw}`:'Todos os jogos');
   const heading=raw?`Resultados para “${esc(raw)}”`:'Todos os jogos';
   let body='';
@@ -638,6 +641,7 @@ function hydrateUniverseHero(root,token){
     if(!src)return;
     el.classList.add('has-image');
     el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
+    if(eager)updateAmbientBg(src);
   });
   initHomeCarousel(root);
 }
@@ -965,34 +969,39 @@ function renderGames(params){
   initOfferCarousels(main);
 }
 
-/* ---------- diretório de universos (#/universos) ---------- */
+/* ---------- diretório de universos (#/universos, fase 4) ----------
+   Vidro fumê (item explícito da fase): fundo da página e cards no
+   material de --glass-2/--glass-border, sem blur (blur só em header/
+   sidebar/painéis grandes, nunca em card — regra geral das fases). */
 function universeDirectoryCard(u){
   const rep=representativeFranchiseGame(titlesOf(u.slug));
   const plat=rep?.variants?.[0]?.[1]||'';
-  return `<a class="card" href="#/universo/${u.slug}" style="text-decoration:none">
-    <div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,plat):u.name)}" data-igdb-platform="${esc(plat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
-    <div class="card-title">${esc(u.name)}</div>
-    <div class="card-ctx">${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</div>
+  return `<a class="udir-card" href="#/universo/${u.slug}">
+    <div class="udir-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,plat):u.name)}" data-igdb-platform="${esc(plat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
+    <div class="udir-body">
+      <div class="udir-name">${esc(u.name)}</div>
+      <div class="udir-count">${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</div>
+    </div>
   </a>`;
 }
 function renderUniverses(params){
   setTitle('Universos');
   const q=norm(params.get('q')||'');
-  const eco=params.get('eco')||'';
+  const casa=params.get('casa')||'';
   // Universo só existe com 3+ jogos (regra do catálogo) — franquias de
   // 1-2 jogos ficam de fora do diretório, igual já vale pro resto do site.
   const list=universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
-    .filter(u=>!eco||u.eco===eco)
+    .filter(u=>!casa||u.casa===casa)
     .filter(u=>!q||norm(u.name).includes(q))
     .sort((a,b)=>a.name.localeCompare(b.name));
-  const ecoTabs=[['','Todos'],['Nintendo','Nintendo'],['PlayStation','PlayStation'],['Xbox','Xbox'],['Multi','Multi']];
-  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('eco',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  const casaTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox'],['multi','Multi']];
+  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('casa',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
   main.innerHTML=`
   <h1 class="page-h">Universos</h1>
   <p class="lede">Explore franquias e encontre onde comprar cada jogo.</p>
   <div class="section-gap" style="margin-top:16px"><input id="uniSearchInput" type="search" class="select" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}" style="max-width:320px;width:100%"></div>
-  <div class="tabs" role="tablist" style="margin-top:14px">${ecoTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===eco}">${esc(l)}</a>`).join('')}</div>
-  <div class="cards4" style="margin-top:16px">${list.map(universeDirectoryCard).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
+  <div class="tabs" role="tablist" style="margin-top:14px">${casaTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casa}">${esc(l)}</a>`).join('')}</div>
+  <div class="udir-grid" style="margin-top:16px">${list.map(universeDirectoryCard).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
   hydrateIgdbCovers(main,list.length);
   const searchEl=$('#uniSearchInput');
   searchEl?.addEventListener('input',()=>{
@@ -1001,6 +1010,51 @@ function renderUniverses(params){
     history.replaceState(null,'','#/universos'+(p.toString()?'?'+p:''));
     renderUniverses(p);
   });
+}
+
+/* ---------- página da plataforma (#/plataforma/:slug, fase 5) ----------
+   Hero da franquia mais forte da casa (mesmo componente do Universo) +
+   painel com o logotipo; fileira de 4 ofertas; 3 CTAs; universos
+   principais; link pra busca filtrada com todos os jogos da plataforma. */
+function platformUniverses(casa){
+  return universes.filter(u=>u.casa===casa&&u.hasCatalog&&titlesOf(u.slug).length)
+    .sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name));
+}
+function renderPlatform(slug,params,token){
+  const label=PLATFORM_LABEL[slug];
+  if(!label)return renderNotFound();
+  setTitle(label);
+  const unis=platformUniverses(slug);
+  const top=unis[0];
+  const topTitles=top?titlesOf(top.slug):[];
+  const platformsList=ecoPlatforms(label);
+  const offerPool=[...catalog].filter(p=>uMap.get(p.universe)?.casa===slug)
+    .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title))
+    .slice(0,4);
+  main.innerHTML=`
+  <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <span>${esc(label)}</span></nav>
+  <div class="universe-layout">
+    ${top?universeHeroMarkup(top,topTitles):`<section class="universe-feature-row"><div class="game-hero universe-hero"><div class="game-hero-copy"><h1>${esc(label)}</h1><p>Catálogo em preenchimento.</p></div></div></section>`}
+    <aside class="universe-inventory-panel platform-brand-panel" aria-label="${esc(label)}">
+      ${PLATFORM_LOGO[slug]?`<img src="${PLATFORM_LOGO[slug]}" alt="${esc(label)}" class="platform-brand-logo">`:`<span class="platform-brand-fallback">${esc(label)}</span>`}
+    </aside>
+  </div>
+  <section class="universe-game-shelf" aria-labelledby="plat-offers-title">
+    <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
+    <div class="universe-offer-grid" data-offer-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
+  </section>
+  <div class="platform-cta-row3">
+    ${visualMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
+    ${visualMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
+    ${visualMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
+  </div>
+  ${unis.length?`<section class="lux-section" aria-labelledby="plat-universes-title"><div class="lux-section-head"><div><h2 id="plat-universes-title">Universos ${esc(label)}</h2></div></div>
+    <div class="platform-uni-list">${unis.slice(0,10).map(u=>`<a class="platform-uni-chip" href="#/universo/${u.slug}"><span class="platform-uni-dot">${esc(initialsOf(u.name).slice(0,2))}</span><span>${esc(u.name)}</span></a>`).join('')}</div>
+  </section>`:''}
+  <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-ghost" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
+  hydrateIgdbCovers(main,offerPool.length+4);
+  if(top)hydrateUniverseHero($('[data-home-carousel]',main),token);
+  initOfferCarousels(main);
 }
 
 /* ---------- merch, colecionáveis e fan-made ---------- */
@@ -1072,13 +1126,12 @@ function ecoPlatforms(eco){
   catalog.forEach(p=>p.variants.forEach(v=>{if(v[0]===eco)set.add(v[1])}));
   return [...set];
 }
-// Destino único de navegação por slug (header, sidebar, hub etc.). Enquanto
-// a rota nova (plataforma, universos) não existir, cai na busca filtrada
-// equivalente — trocar aqui, não espalhado pelo site.
-const PLATFORM_ROUTE_READY=false;
+// Destino único de navegação por slug (header, sidebar, hub etc.). Fase 5:
+// nintendo/playstation/xbox agora vão pra própria página de plataforma
+// (antes caíam na busca filtrada). Retrô/Multiplataforma ainda não têm
+// rota própria — continuam na busca filtrada equivalente.
 function goNav(slug){
-  const eco={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'}[slug];
-  if(eco)return PLATFORM_ROUTE_READY?`#/plataforma/${slug}`:`#/busca?plat=${enc(ecoPlatforms(eco).join(','))}`;
+  if(PLATFORM_LABEL[slug])return `#/plataforma/${slug}`;
   const routes={
     universos:'#/universos',
     retro:'#/busca?retro=1',
@@ -1132,7 +1185,7 @@ function sidebarContent(){
         ${sidebarItem('merch','Colecionáveis','bag')}
       </div>
     </nav>
-    ${featured.length?`<div class="sidebar-featured"><ul class="sidebar-uni-list">${featured.map(sidebarUniverseItem).join('')}</ul></div>`:''}
+    ${featured.length?`<div class="sidebar-featured"><ul class="sidebar-uni-list">${featured.map(sidebarUniverseItem).join('')}</ul><a class="sidebar-see-all" href="#/universos">Ver todos →</a></div>`:''}
     <a class="sidebar-footer" href="#/inventario"${invActive?' aria-current="page"':''}>
       ${ico('chest',22)}
       <span class="sidebar-footer-info"><b>Meu Inventário</b><small>${owned} de ${catalog.length} jogos</small></span>

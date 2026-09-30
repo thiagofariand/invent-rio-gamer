@@ -1855,3 +1855,81 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 @media(min-width:900px) and (max-width:1279px){
   main{padding-left:0;padding-right:0}
 }
+
+/* ============================================================
+   FASE 4 — DIRETÓRIO DE UNIVERSOS (vidro fumê)
+   ============================================================ */
+.udir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.udir-card{display:block;text-decoration:none;border-radius:16px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border);transition:border-color .15s}
+.udir-card:hover{border-color:rgba(255,255,255,.28)}
+.udir-cover{aspect-ratio:4/3;position:relative;overflow:hidden}
+.udir-body{padding:12px 14px 14px}
+.udir-name{color:var(--text-1);font:600 15px/1.25 var(--font-ui)}
+.udir-count{color:var(--text-2);font-size:12.5px;margin-top:2px}
+.sidebar-see-all{display:block;margin-top:6px;padding:6px 10px;color:rgba(255,255,255,.65);font-size:12.5px;font-weight:600;text-decoration:none}
+.sidebar-see-all:hover{color:#fff}
+
+/* ============================================================
+   FASE 5 — PÁGINA DA PLATAFORMA
+   ============================================================ */
+.platform-brand-panel{display:flex;align-items:center;justify-content:center;padding:24px}
+.platform-brand-logo{max-width:70%;max-height:120px;object-fit:contain;filter:brightness(0) invert(1)}
+.platform-brand-fallback{color:var(--text-1);font:700 28px/1 var(--font-ui)}
+.platform-cta-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:40px}
+.platform-cta-row3 .visual-menu-card{grid-template-columns:1fr}
+.platform-uni-list{display:flex;flex-wrap:wrap;gap:10px}
+.platform-uni-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;background:var(--glass-2);border:1px solid var(--glass-border);color:var(--text-1);text-decoration:none;font-size:14px}
+.platform-uni-chip:hover{border-color:rgba(255,255,255,.3)}
+.platform-uni-dot{width:26px;height:26px;border-radius:50%;background:var(--glass-3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-1);flex:none}
+@media(max-width:900px){.platform-cta-row3{grid-template-columns:1fr}}
+
+/* ============================================================
+   FASE 6 — VIDRO FUMÊ NO RESTO DO SITE (home, busca, universos,
+   plataforma) + fundo ambiente opcional.
+   Reaproveita os tokens já existentes: redefinindo --ink/--muted/--white/
+   --gray/--line/--line-strong/--text-1/--text-2 num só lugar, o resto do
+   site (painéis, cards, linhas de resultado, filtros, chips, botões) já
+   escrito em cima desses tokens migra junto — mesma ideia de
+   `.universe-hero-route{--text-1:#fff...}` que já existia. Só os poucos
+   componentes com cor chapada fora de token (.row, .lux-product-card,
+   .home-trend-card, .round-arrow, .filters) ganham override explícito
+   logo abaixo.
+   ============================================================ */
+body.dark-surface-route{
+  --ink:#fff;
+  --muted:rgba(255,255,255,.68);
+  --white:var(--glass-2);
+  --store:var(--page-bg);
+  --gray:var(--glass-3);
+  --line:var(--glass-border);
+  --line-strong:rgba(255,255,255,.24);
+  --text-1:#fff;
+  --text-2:rgba(255,255,255,.68);
+  background:var(--store);
+}
+body.dark-surface-route .row{background:var(--glass-2);border-color:var(--glass-border)}
+body.dark-surface-route .lux-product-card{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
+body.dark-surface-route .home-trend-card{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
+body.dark-surface-route .round-arrow{background:var(--glass-3);border-color:var(--glass-border);color:#fff}
+body.dark-surface-route .filters{background:var(--glass-2)}
+body.dark-surface-route .visual-menu-card{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
+body.dark-surface-route .save-btn{background:var(--glass-3);border-color:var(--glass-border);color:#fff}
+body.dark-surface-route .save-btn.on{background:rgba(230,66,54,.18);border-color:rgba(230,66,54,.5);color:#fff}
+body.dark-surface-route .site-footer{background:var(--page-bg);border-color:var(--glass-border);color:var(--text-2)}
+body.dark-surface-route .site-footer .footer-inner button{color:var(--text-1)}
+
+/* Fundo ambiente opcional (AMBIENT_BG em app-1-core.js) — mesma arte do
+   hero, uma única vez, sem novo pedido de rede. Estático: sem parallax,
+   sem scroll. Mobile/prefers-reduced-motion: sem blur ao vivo, cai em
+   --page-bg (a camada nem aparece). */
+#ambientBg{
+  position:fixed;inset:0;z-index:-2;
+  background-size:cover;background-position:center;
+  filter:blur(60px) saturate(1.2);transform:scale(1.15);
+  pointer-events:none;
+}
+#ambientBg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,4,8,.72),rgba(10,4,8,.88))}
+#ambientBg[hidden]{display:none}
+@media(max-width:760px),(prefers-reduced-motion:reduce){
+  #ambientBg{display:none!important}
+}

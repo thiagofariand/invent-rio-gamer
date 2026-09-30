@@ -39,6 +39,17 @@ brandLogo.src=MONO_LOGO_WHITE;
 function syncHeaderScroll(){
   siteHeader.classList.toggle('is-scrolled',window.scrollY>40);
 }
+// Fase 6, fundo ambiente (atrás da flag AMBIENT_BG): reaproveita a MESMA
+// imagem do hero já carregada (sem pedido novo). Estático — nada de scroll
+// ou animação — e desligado no mobile/prefers-reduced-motion (CSS cuida
+// disso; aqui só liga/desliga a camada e troca a url quando muda o hero).
+const ambientBgEl=document.getElementById('ambientBg');
+function updateAmbientBg(url){
+  if(!AMBIENT_BG||!ambientBgEl)return;
+  if(!url){ambientBgEl.hidden=true;ambientBgEl.style.backgroundImage='';return}
+  ambientBgEl.style.backgroundImage=`url("${url}")`;
+  ambientBgEl.hidden=false;
+}
 const rootStyle=document.documentElement.style;
 // Ajustes fase 1, item E: paleta por universo (src/data/paleta-universos.json,
 // via paletteForUniverse() em app-1-core.js). --page-bg/--panel-base/--action/
@@ -69,15 +80,22 @@ function route(){
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
   const token=++viewToken;
   document.body.classList.toggle('inventory-route',path==='/inventario');
+  // Fase 6: vidro fumê também em home/busca/universos/plataforma — mesmo
+  // fundo/superfície das outras páginas já migradas.
+  const platformSlug=path.startsWith('/plataforma/')?path.slice(12):null;
+  const isDarkSurface=path===''||path==='/'||path==='/busca'||path==='/universos'||!!platformSlug;
+  document.body.classList.toggle('dark-surface-route',isDarkSurface);
   const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
-  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):null);
+  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?PLATFORM_CHROME[platformSlug]:null);
+  updateAmbientBg(null);
   navActive(path);
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
   else if(path.startsWith('/jogo/'))renderProduct(path.slice(6),params,token);
   else if(path.startsWith('/ofertas/'))renderOfferComparison(path.slice(9),params,token);
   else if(path.startsWith('/universo/'))renderUniverse(path.slice(10),params,token);
+  else if(path.startsWith('/plataforma/'))renderPlatform(path.slice(12),params,token);
   else if(path.startsWith('/tema/'))renderTheme(path.slice(6));
   else if(path==='/em-alta')renderTrendingPage();
   else if(path==='/games')renderGames(params);

@@ -14,6 +14,12 @@
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
+<!-- Fase 6: fundo ambiente opcional (flag AMBIENT_BG em app-1-core.js).
+     Camada fixa atrás de tudo, reaproveita a arte do hero já carregada
+     (sem pedido novo) — updateAmbientBg() em app-main.js liga o
+     background-image só quando a flag está ligada. -->
+<div id="ambientBg" aria-hidden="true" hidden></div>
+
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="#/" aria-label="Inventário Gamer — início">

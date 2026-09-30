@@ -62,6 +62,9 @@ const GENRES=D.genreList||[];
 // Fase 1: com a barra lateral cuidando da navegação, a migalha de pão some
 // das páginas — flag única pra religar se precisar no futuro.
 const SHOW_BREADCRUMB=false;
+// Fase 6: fundo ambiente (camada fixa atrás de tudo, reaproveitando a arte
+// do hero já carregada, sem pedido novo) — opcional, desligado por padrão.
+const AMBIENT_BG=false;
 const genreLabel=k=>(GENRES.find(g=>g.slug===k)||{}).label||k;
 const mockChip=()=>'<span class="mock-chip">EXEMPLO</span>';
 // Selo de tipo de loja. "Oficial" só existe com prova real (loja da própria
@@ -140,6 +143,17 @@ const CASA_TABLE={
 const casaIdx=new Map();
 Object.entries(CASA_TABLE).forEach(([casa,names])=>names.forEach(n=>casaIdx.set(norm(n),casa)));
 function casaFor(name){return casaIdx.get(norm(name))||'multi'}
+
+// Fase 5: fundo/ação por plataforma (mesmo formato de paleta-universos.json
+// — fundo/painel/acao/acaoTexto — pra reaproveitar applyUniverseChrome()).
+// Nintendo vermelho, PlayStation azul, Xbox verde, como pedido.
+const PLATFORM_CHROME={
+  nintendo:{fundo:'#5c1712',painel:'#6b1c16',acao:'#e0392f',acaoTexto:'#ffffff'},
+  playstation:{fundo:'#0e2740',painel:'#123252',acao:'#3a86c8',acaoTexto:'#ffffff'},
+  xbox:{fundo:'#0b4016',painel:'#0e4e1b',acao:'#3ac150',acaoTexto:'#000000'}
+};
+const PLATFORM_LABEL={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'};
+const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg',xbox:'/assets/xbox-mark.svg'};
 
 const universes=[],uMap=new Map();
 function addUniverse(name,eco){
