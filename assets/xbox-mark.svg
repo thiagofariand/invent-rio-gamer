@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Desenho próprio (wordmark simples) — não é o arquivo oficial da
+     Microsoft; a rede deste ambiente bloqueia baixar SVG de terceiros.
+     Mesmo tratamento dos outros logos de ecossistema: forma sólida que
+     vira branca via filter:brightness(0) invert(1) em cima do card. -->
+<svg width="420" height="140" viewBox="0 0 420 140" xmlns="http://www.w3.org/2000/svg">
+  <text x="210" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="118" letter-spacing="-2">xbox</text>
+</svg>

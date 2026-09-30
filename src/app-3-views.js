@@ -909,7 +909,7 @@ function renderTrendingPage(){
 const GAMES_HUB_CASAS=[
   {casa:'nintendo',label:'Nintendo',cls:'eco-nintendo',logo:'/assets/nintendo-logo.svg'},
   {casa:'playstation',label:'PlayStation',cls:'eco-playstation',logo:'/assets/playstation-logo.svg'},
-  {casa:'xbox',label:'Xbox',cls:'eco-xbox',logo:null}
+  {casa:'xbox',label:'Xbox',cls:'eco-xbox',logo:'/assets/xbox-mark.svg'}
 ];
 function gamesHubLinks(casa){
   return universes.filter(u=>u.casa===casa&&u.hasCatalog&&titlesOf(u.slug).length)
