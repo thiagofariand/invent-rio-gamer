@@ -902,20 +902,67 @@ function renderTrendingPage(){
   hydrateIgdbCovers(main,8);
 }
 
-/* ---------- games (diretório de universos) ---------- */
-function renderGames(){
-  setTitle('Games');
-  const group=eco=>universes.filter(u=>u.eco===eco);
-  const linkList=(list,n)=>list.slice(0,n).map(u=>`<a href="#/universo/${u.slug}">${esc(u.name)}${u.hasCatalog?` <small>${titlesOf(u.slug).length}</small>`:''}</a>`).join('');
-  const links=(eco,n)=>linkList(group(eco),n);
-  const retroUniverses=universes.filter(u=>titlesOf(u.slug).some(p=>p.variants.some(v=>isRetro(v[1])))).sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name));
-  main.innerHTML=`<div class="games-directory">
-    <section class="games-intro"><h1>Escolha seu ecossistema.</h1><p>Explore franquias, complete sua coleção e encontre onde comprar.</p><a class="btn btn-dark" href="#/busca">Ver todos os jogos</a></section>
-    <section class="ecosystem-card eco-multi" aria-label="Multiplataforma"><div class="ecosystem-visual">${ico('gamepad',76)}</div><div class="ecosystem-links">${links('Multi',5)}</div><a class="ecosystem-cta" href="#/busca">Explorar multiplataforma →</a></section>
-    <section class="ecosystem-card eco-retro" aria-label="Retrogaming"><div class="ecosystem-visual">${ico('retro',76)}</div><div class="ecosystem-links">${linkList(retroUniverses,5)}</div><a class="ecosystem-cta" href="#/busca?retro=1">Explorar retrô →</a></section>
-    <section class="ecosystem-card eco-nintendo" aria-label="Nintendo"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-nintendo" src="/assets/nintendo-logo.svg" alt="Nintendo"></div><div class="ecosystem-links">${links('Nintendo',7)}</div><a class="ecosystem-cta" href="#/busca?plat=${enc('Switch,Switch 2,3DS,DS,Wii U,Wii,GameCube,Nintendo 64,SNES,NES,Game Boy Advance,Game Boy Color,Game Boy')}">Explorar Nintendo →</a></section>
-    <section class="ecosystem-card eco-playstation" aria-label="PlayStation"><div class="ecosystem-visual"><img class="ecosystem-logo ecosystem-logo-playstation" src="/assets/playstation-logo.svg" alt="PlayStation"></div><div class="ecosystem-links">${links('PlayStation',7)}</div><a class="ecosystem-cta" href="#/busca?plat=${enc('PS5,PS4,PS3,PS2,PS1,PSP,PS Vita')}">Explorar PlayStation →</a></section>
-  </div>`;
+/* ---------- games (hub de plataformas, fase 3) ---------- */
+// Só 3 CTAs (Nintendo/PlayStation/Xbox — casa first-party); Retrô e
+// Multiplataforma continuam existindo como destino (goNav via sidebar),
+// sem card aqui.
+const GAMES_HUB_CASAS=[
+  {casa:'nintendo',label:'Nintendo',cls:'eco-nintendo',logo:'/assets/nintendo-logo.svg'},
+  {casa:'playstation',label:'PlayStation',cls:'eco-playstation',logo:'/assets/playstation-logo.svg'},
+  {casa:'xbox',label:'Xbox',cls:'eco-xbox',logo:null}
+];
+function gamesHubLinks(casa){
+  return universes.filter(u=>u.casa===casa&&u.hasCatalog&&titlesOf(u.slug).length)
+    .sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name))
+    .slice(0,7)
+    .map(u=>`<a href="#/universo/${u.slug}">${esc(u.name)} <small>${titlesOf(u.slug).length}</small></a>`).join('');
+}
+function gamesHubTrendLabel(p){
+  const u=uMap.get(p.universe);
+  if(u&&u.casa!=='multi')return {nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'}[u.casa];
+  return p.variants.some(v=>isRetro(v[1]))?'Retrô':'Multiplataforma';
+}
+// "Em alta no catálogo" (item 3 da fase): a spec original pedia /api/trending
+// pulando os itens já mostrados na home. O endpoint real só devolve até 3
+// itens (vídeos do YouTube casados com universo, sem plataforma/preço) —
+// não dá pra montar uma fileira de 8 filtrável por casa com esse dado.
+// Fallback local: mesmo catálogo, ordenado por lançamento mais recente
+// (seleção diária estável, igual ao resto do site), filtrado pela aba ativa.
+function gamesHubTrendPool(casaFilter){
+  const matches=p=>{
+    if(!casaFilter)return true;
+    if(casaFilter==='retro')return p.variants.some(v=>isRetro(v[1]));
+    const u=uMap.get(p.universe);
+    return u&&u.casa===casaFilter;
+  };
+  const day=new Date().toISOString().slice(0,10);
+  return [...catalog].filter(matches)
+    .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||hashStr(`${day}|${a.slug}`)-hashStr(`${day}|${b.slug}`))
+    .slice(0,8);
+}
+function renderGames(params){
+  setTitle('Escolha sua plataforma');
+  const casaFilter=(params&&params.get('casa'))||'';
+  const filterTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox'],['retro','Retrô'],['multi','Multi']];
+  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('casa',k);const s=p.toString();return '#/games'+(s?'?'+s:'')};
+  const pool=gamesHubTrendPool(casaFilter);
+  main.innerHTML=`
+  <h1 class="page-h">Escolha sua plataforma</h1>
+  <p class="lede">Veja as franquias mais fortes de cada ecossistema e encontre onde comprar.</p>
+  <div class="platform-cta-row" style="margin-top:20px">
+    ${GAMES_HUB_CASAS.map(g=>`<section class="ecosystem-card ${g.cls}" aria-label="${esc(g.label)}">
+      <div class="ecosystem-visual">${g.logo?`<img class="ecosystem-logo" src="${g.logo}" alt="${esc(g.label)}">`:ico('gamepad',76)}</div>
+      <div class="ecosystem-links">${gamesHubLinks(g.casa)||'<span class="fine" style="color:rgba(255,255,255,.7)">Catálogo em preenchimento.</span>'}</div>
+      <a class="ecosystem-cta" href="${goNav(g.casa)}">Explorar ${esc(g.label)} →</a>
+    </section>`).join('')}
+  </div>
+  <section class="lux-section" aria-labelledby="games-trend-title" style="margin-top:48px">
+    <div class="lux-section-head"><div><h2 id="games-trend-title">Em alta no catálogo</h2></div>${offerRowArrowsMarkup('games-trend')}</div>
+    <div class="tabs" role="tablist" style="margin:-6px 0 18px">${filterTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casaFilter}">${esc(l)}</a>`).join('')}</div>
+    <div class="home-offer-grid" data-offer-row="games-trend">${pool.map(p=>homeOfferCard(p,gamesHubTrendLabel(p))).join('')||'<p class="lede">Nenhum jogo encontrado neste filtro.</p>'}</div>
+  </section>`;
+  hydrateIgdbCovers(main,pool.length+GAMES_HUB_CASAS.length*7);
+  initOfferCarousels(main);
 }
 
 /* ---------- diretório de universos (#/universos) ---------- */

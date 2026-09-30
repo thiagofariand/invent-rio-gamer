@@ -80,7 +80,7 @@ function route(){
   else if(path.startsWith('/universo/'))renderUniverse(path.slice(10),params,token);
   else if(path.startsWith('/tema/'))renderTheme(path.slice(6));
   else if(path==='/em-alta')renderTrendingPage();
-  else if(path==='/games')renderGames();
+  else if(path==='/games')renderGames(params);
   else if(path==='/universos')renderUniverses(params);
   else if(path==='/merch')renderMerch(params);
   else if(path==='/inventario')renderInventory(params);

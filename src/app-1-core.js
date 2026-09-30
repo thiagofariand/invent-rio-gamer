@@ -126,11 +126,26 @@ function releaseBadge(p){
   return null;
 }
 
+// Fase 3: "casa" = dona/first-party da franquia (nintendo|playstation|xbox|
+// multi) — não confundir com --eco (onde o jogo É VENDIDO, usado no chip de
+// plataforma). Tabela aplicada literalmente como pedido; franquia fora dela
+// cai em "multi" mesmo sendo claramente first-party de alguém — ver RESUMO
+// FINAL da rodada pelos casos sinalizados como duvidosos.
+const CASA_TABLE={
+  nintendo:['Mario','Zelda','The Legend of Zelda','Pokémon','Metroid','Kirby','Donkey Kong','Smash','Super Smash Bros.'],
+  playstation:['God of War','Uncharted','The Last of Us','Gran Turismo','Horizon','Ratchet & Clank','LittleBigPlanet',"Marvel's Spider-Man",'Marvel Spider-Man'],
+  xbox:['Halo','Gears','Forza'],
+  multi:['Resident Evil','Sonic','Mortal Kombat','Call of Duty','GTA','Grand Theft Auto',"Assassin's Creed",'Dark Souls','Elden Ring','Alan Wake','Diablo','EA Sports FC','Silent Hill']
+};
+const casaIdx=new Map();
+Object.entries(CASA_TABLE).forEach(([casa,names])=>names.forEach(n=>casaIdx.set(norm(n),casa)));
+function casaFor(name){return casaIdx.get(norm(name))||'multi'}
+
 const universes=[],uMap=new Map();
 function addUniverse(name,eco){
   const slug=slugify(name);
   if(uMap.has(slug))return uMap.get(slug);
-  const u={slug,name,eco:eco||'Multi',hasCatalog:false};
+  const u={slug,name,eco:eco||'Multi',hasCatalog:false,casa:casaFor(name)};
   uMap.set(slug,u);universes.push(u);return u;
 }
 Object.entries(D.franchiseDirectory).forEach(([eco,arr])=>arr.forEach(n=>addUniverse(n,eco)));
