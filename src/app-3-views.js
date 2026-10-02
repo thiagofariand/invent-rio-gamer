@@ -291,9 +291,13 @@ function universeSearchBanner(u){
   const styleVars=`--usb-fundo:${pal.fundo};--usb-acao:${pal.acao};--usb-acao-texto:${pal.acaoTexto}`
     +(pal.bannerFocus?`;--usb-focus:${esc(pal.bannerFocus)}`:'')
     +(img?`;--usb-img:url('${esc(img).replace(/'/g,"%27")}')`:'');
+  // Item 5.4: nome de EXIBIÇÃO (campo `nome` da paleta, ex. "Super Mario")
+  // — o nome interno da franquia no catálogo (u.name) é mais técnico
+  // ("Mario"), só cai como fallback sem entrada na paleta.
+  const displayName=pal.nome||u.name;
   return `<a class="universe-search-banner${img?' has-image':''}" href="#/universo/${u.slug}" style="${styleVars}">
     ${img?'':`<span class="usb-fallback" aria-hidden="true">${esc(u.sigla)}</span>`}
-    <div class="usb-copy"><h2>Conheça o universo ${esc(u.name)}</h2><p>${n} ${n===1?'jogo catalogado':'jogos catalogados'}</p></div>
+    <div class="usb-copy"><h2>Conheça o universo ${esc(displayName)}</h2><p>${n} ${n===1?'jogo catalogado':'jogos catalogados'}</p></div>
     <span class="btn usb-cta">Conhecer o universo →</span>
   </a>`;
 }
