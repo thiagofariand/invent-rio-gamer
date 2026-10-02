@@ -234,6 +234,45 @@ function activeChips(F){
   if(F.max!=null)chips.push(['max','',`até ${brl(F.max)}`]);
   return chips;
 }
+// Item 8 (rodada 5): banner de universo na busca. Bate por nome, sigla ou
+// alias, OU quando 60%+ dos resultados são do mesmo universo — tudo lido
+// do catálogo/paleta, nada fixo por franquia aqui.
+function universeAliasMatch(u,q){
+  if(norm(u.name)===q)return true;
+  if(u.sigla&&norm(u.sigla)===q)return true;
+  const sideEntry=SIDEBAR_FEATURED_UNIVERSES.find(e=>e.slug===u.slug);
+  if(sideEntry?.aliases?.some(a=>norm(a)===q))return true;
+  const pal=paletteForUniverse(u);
+  if(pal?.aliases?.some(a=>norm(a)===q))return true;
+  return false;
+}
+function universeSearchHint(raw,matches){
+  const q=norm(raw);
+  if(q){
+    const direct=universes.find(u=>u.hasCatalog&&titlesOf(u.slug).length&&universeAliasMatch(u,q));
+    if(direct)return direct;
+  }
+  if(!matches.length)return null;
+  const counts=new Map();
+  matches.forEach(m=>{if(m.p.universe)counts.set(m.p.universe,(counts.get(m.p.universe)||0)+1)});
+  const [topSlug,topCount]=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0]||[];
+  if(topSlug&&topCount/matches.length>=0.6)return uMap.get(topSlug)||null;
+  return null;
+}
+function cachedHeroForUniverse(u){
+  for(const p of titlesOf(u.slug)){if(heroImageCache.has(p.slug))return heroImageCache.get(p.slug)}
+  return null;
+}
+function universeSearchBanner(u){
+  if(!u)return '';
+  const n=titlesOf(u.slug).length;
+  const img=cachedHeroForUniverse(u);
+  return `<a class="universe-search-banner${img?' has-image':''}" href="#/universo/${u.slug}"${img?` style="--usb-img:url('${esc(img).replace(/'/g,"%27")}')"`:''}>
+    ${img?'':`<span class="usb-fallback" aria-hidden="true">${esc(u.sigla)}</span>`}
+    <div class="usb-copy"><h2>Conheça o universo ${esc(u.name)}</h2><p>${n} ${n===1?'jogo catalogado':'jogos catalogados'}</p></div>
+    <span class="btn btn-primary usb-cta">Conhecer o universo →</span>
+  </a>`;
+}
 function renderSearch(params,token){
   const raw=(params.get('q')||'').trim();
   const F=readFilters(params);
@@ -247,8 +286,7 @@ function renderSearch(params,token){
   const chips=activeChips(F);
   const n=Math.max(12,parseInt(params.get('n')||'12',10)||12);
   const visible=filtered.slice(0,n);
-  const unis=[...new Set(matches.map(m=>m.p.universe))];
-  const uHint=unis.length===1&&(matches.length>=3||raw&&norm(uMap.get(unis[0]).name)===norm(raw))?uMap.get(unis[0]):null;
+  const uHint=universeSearchHint(raw,matches);
   // Fase 6: busca de um universo só usa a cor dele (fallback: padrao,
   // já definido no :root — sem chamada extra, mesma paleta da fase 1).
   applyUniverseChrome(uHint?paletteForUniverse(uHint):null);
@@ -268,7 +306,7 @@ function renderSearch(params,token){
   }else if(!filtered.length){
     body=`<div class="empty"><h2>Nenhum resultado com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="clear-filters">Limpar filtros</button></p></div>`;
   }else{
-    body=`${uHint?`<a class="uni-banner-link" href="#/universo/${uHint.slug}"><span><b>Universo ${esc(uHint.name)}</b><br><span class="fine">${titlesOf(uHint.slug).length} jogos, além de merch e fan-made</span></span><span class="link-cta">Ver universo →</span></a>`:''}
+    body=`${universeSearchBanner(uHint)}
       <div id="rowList">${visible.map(r=>rowMarkup(r,F)).join('')}</div>
       ${filtered.length>visible.length?`<div class="results-more"><button class="btn btn-ghost" data-act="more-rows" data-n="${n+12}">Mostrar mais resultados (${filtered.length-visible.length})</button></div>`:''}`;
   }
@@ -289,6 +327,10 @@ function renderSearch(params,token){
 
 /* ---------- imagens automáticas IGDB ---------- */
 const igdbVisualMemo=new Map();
+// Item 8 (rodada 5): cache simples slug->url da última arte de hero
+// resolvida pra cada jogo — o banner de universo na busca só mostra
+// imagem se já tiver passado por aqui (nunca dispara pedido novo).
+const heroImageCache=new Map();
 async function fetchIgdbVisual(title,platform='',year='',heroRatio=''){
   const key=[title,platform,year,heroRatio].join('|');
   if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
@@ -702,6 +744,7 @@ function hydrateUniverseHero(root,token){
     const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO))?.hero?.url;
     if(token!==viewToken||!el.isConnected)return;
     if(!src)return;
+    if(el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
     el.classList.add('has-image');
     el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
     if(eager)updateAmbientBg(src);

@@ -2019,3 +2019,26 @@ body.dark-surface-route .o-price small{color:var(--text-2)}
 .results-full{margin-top:4px}
 .chip-x-clear{background:transparent;border:1px solid var(--glass-border,var(--line-strong));color:var(--text-1,inherit);font-weight:700;padding:6px 12px}
 @media(max-width:900px){.filterbar{display:none}}
+
+/* ============================================================
+   RODADA 5, ITEM 8 — BANNER DE UNIVERSO NA BUSCA
+   ~104px, arte à direita com fade pra esquerda (mesma imagem do hero já
+   em cache — sem pedido novo); sem imagem, degradê + sigla.
+   ============================================================ */
+.universe-search-banner{
+  position:relative;display:flex;align-items:center;gap:16px;height:104px;margin-bottom:16px;padding:0 20px;
+  border-radius:16px;overflow:hidden;text-decoration:none;isolation:isolate;
+  background:color-mix(in oklab,var(--action,var(--accent)) 30%,var(--page-bg,#1f0b14));
+  border:1px solid var(--glass-border);
+}
+.universe-search-banner.has-image{background-image:var(--usb-img);background-size:cover;background-position:center}
+.universe-search-banner::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(90deg,color-mix(in oklab,var(--action,var(--accent)) 35%,var(--page-bg,#1f0b14)) 0%,color-mix(in oklab,var(--action,var(--accent)) 20%,var(--page-bg,#1f0b14)) 45%,transparent 100%);
+}
+.usb-fallback{position:relative;z-index:1;flex:none;font:800 30px/1 var(--font-ui);color:rgba(255,255,255,.3);margin-right:4px}
+.usb-copy{position:relative;z-index:1;min-width:0}
+.usb-copy h2{font:600 18px/1.2 var(--font-ui);color:#fff;margin:0}
+.usb-copy p{font-size:13px;color:rgba(255,255,255,.75);margin-top:3px}
+.usb-cta{position:relative;z-index:1;margin-left:auto;flex:none;white-space:nowrap}
+@media(max-width:620px){.universe-search-banner{height:auto;flex-wrap:wrap;padding:14px 16px}.usb-cta{margin-left:0}}
