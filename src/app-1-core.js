@@ -65,6 +65,14 @@ const SHOW_BREADCRUMB=false;
 // Fase 6: fundo ambiente (camada fixa atrás de tudo, reaproveitando a arte
 // do hero já carregada, sem pedido novo) — opcional, desligado por padrão.
 const AMBIENT_BG=false;
+// Item 6 (rodada 5): override manual de hero por jogo (src/data/hero-overrides.json).
+let HERO_OVERRIDES={};
+try{
+  const xhrHero=new XMLHttpRequest();
+  xhrHero.open('GET','/src/data/hero-overrides.json?v=Teste-Layout-Beta2',false);
+  xhrHero.send(null);
+  if(xhrHero.status===200)HERO_OVERRIDES=JSON.parse(xhrHero.responseText);
+}catch(e){/* mantém {} */}
 const genreLabel=k=>(GENRES.find(g=>g.slug===k)||{}).label||k;
 const mockChip=()=>'<span class="mock-chip">EXEMPLO</span>';
 // Selo de tipo de loja. "Oficial" só existe com prova real (loja da própria
@@ -144,6 +152,19 @@ const casaIdx=new Map();
 Object.entries(CASA_TABLE).forEach(([casa,names])=>names.forEach(n=>casaIdx.set(norm(n),casa)));
 function casaFor(name){return casaIdx.get(norm(name))||'multi'}
 
+// Item 6 (rodada 5): sigla curada por franquia (nunca monograma automático
+// — initialsOf() colidia, ex. Mario e Metroid viravam os dois "M"). Cobre
+// hoje as franquias das casas Nintendo/PlayStation/Xbox (mostradas na
+// página de plataforma); fora dessas cai no fallback initialsOf().
+const SIGLA_TABLE={
+  mario:'SM','the-legend-of-zelda':'Z',pokemon:'PK',metroid:'MT',kirby:'KB','donkey-kong':'DK','super-smash-bros':'SS',
+  'god-of-war':'GoW',uncharted:'UC','the-last-of-us':'TLOU','gran-turismo':'GT',horizon:'HZ','ratchet-and-clank':'RC','ratchet-clank':'RC',littlebigplanet:'LBP','marvel-spider-man':'SPM',
+  halo:'HL',gears:'GR',forza:'FZ'
+};
+const sigIdx=new Map();
+Object.entries(SIGLA_TABLE).forEach(([slug,sig])=>sigIdx.set(slug,sig));
+function siglaFor(slug,name){return sigIdx.get(slug)||initialsOf(name).slice(0,2)}
+
 // Fase 5: fundo/ação por plataforma (mesmo formato de paleta-universos.json
 // — fundo/painel/acao/acaoTexto — pra reaproveitar applyUniverseChrome()).
 // Nintendo vermelho, PlayStation azul, Xbox verde, como pedido.
@@ -159,7 +180,7 @@ const universes=[],uMap=new Map();
 function addUniverse(name,eco){
   const slug=slugify(name);
   if(uMap.has(slug))return uMap.get(slug);
-  const u={slug,name,eco:eco||'Multi',hasCatalog:false,casa:casaFor(name)};
+  const u={slug,name,eco:eco||'Multi',hasCatalog:false,casa:casaFor(name),sigla:siglaFor(slug,name)};
   uMap.set(slug,u);universes.push(u);return u;
 }
 Object.entries(D.franchiseDirectory).forEach(([eco,arr])=>arr.forEach(n=>addUniverse(n,eco)));

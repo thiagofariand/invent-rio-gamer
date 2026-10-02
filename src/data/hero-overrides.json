@@ -1,0 +1,3 @@
+{
+  "_leia-me": "Override manual do hero por jogo (item 6, rodada 5) — usar quando a arte que a IGDB escolhe é só wordmark/logo, sem cena (ex.: Halo Infinite). Chave = slug do jogo no catálogo, valor {\"url\": \"https://...\"} troca a arte direto. {\"artworkIndex\": N} ainda não é suportado pelo front — a API hoje só devolve a arte já escolhida pelo pickHero(), não a lista inteira de artworks do jogo."
+}

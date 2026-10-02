@@ -1867,18 +1867,34 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .sidebar-see-all:hover{color:#fff}
 
 /* ============================================================
-   FASE 5 — PÁGINA DA PLATAFORMA
+   FASE 5 / RODADA 5 ITEM 6 — PÁGINA DA PLATAFORMA (2 colunas)
+   Principal (hero + 4 ofertas + 3 CTAs) + coluna direita 320px (cartão
+   do logotipo, altura = hero, e lista de até 6 universos da casa).
    ============================================================ */
-.platform-brand-panel{display:flex;align-items:center;justify-content:center;padding:24px}
-.platform-brand-logo{max-width:70%;max-height:120px;object-fit:contain;filter:brightness(0) invert(1)}
-.platform-brand-fallback{color:var(--text-1);font:700 28px/1 var(--font-ui)}
+.platform-layout{--hero-h:clamp(300px,44.4vh,360px);display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.platform-main{min-width:0;display:flex;flex-direction:column;gap:0}
+.platform-side-col{display:flex;flex-direction:column;gap:14px}
+.platform-brand-panel{
+  height:var(--hero-h);flex:none;display:flex;align-items:center;justify-content:center;padding:24px;border-radius:20px;overflow:hidden;
+  background:color-mix(in oklab,var(--action,var(--accent)) 22%,var(--glass-1));border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+}
+@supports not (backdrop-filter:blur(1px)){.platform-brand-panel{background:color-mix(in oklab,var(--action,var(--accent)) 30%,#1a0c12)}}
+.platform-brand-logo{width:60%;height:auto;max-width:220px;object-fit:contain;filter:brightness(0) invert(1)}
+.platform-brand-fallback{color:#fff;font:700 28px/1 var(--font-ui)}
+.platform-uni-panel{flex:none;padding:14px;border-radius:16px;background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16)}
+.platform-uni-panel h2{font:600 15px/1.2 var(--font-ui);color:var(--text-1);margin-bottom:10px}
+.platform-uni-list{display:flex;flex-direction:column;gap:2px}
+.platform-uni-row{display:flex;align-items:center;gap:10px;height:40px;padding:0 6px;border-radius:10px;text-decoration:none;color:#fff}
+.platform-uni-row:hover{background:rgba(255,255,255,.06)}
+.platform-uni-dot{flex:none;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.platform-uni-info{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.platform-uni-info b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.platform-uni-info small{font-size:11.5px;color:var(--text-2)}
 .platform-cta-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:40px}
 .platform-cta-row3 .visual-menu-card{grid-template-columns:1fr}
-.platform-uni-list{display:flex;flex-wrap:wrap;gap:10px}
-.platform-uni-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;background:var(--glass-2);border:1px solid var(--glass-border);color:var(--text-1);text-decoration:none;font-size:14px}
-.platform-uni-chip:hover{border-color:rgba(255,255,255,.3)}
-.platform-uni-dot{width:26px;height:26px;border-radius:50%;background:var(--glass-3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-1);flex:none}
-@media(max-width:900px){.platform-cta-row3{grid-template-columns:1fr}}
+@media(max-width:1040px){.platform-layout{grid-template-columns:1fr}.platform-side-col{height:auto;flex-direction:row}.platform-brand-panel{min-height:140px}.platform-uni-panel{flex:1}}
+@media(max-width:760px){.platform-cta-row3{grid-template-columns:1fr}.platform-side-col{flex-direction:column}}
 
 /* ============================================================
    FASE 6 — VIDRO FUMÊ NO RESTO DO SITE (home, busca, universos,

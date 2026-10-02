@@ -599,15 +599,20 @@ function universeHeroCtaMarkup(p,platform){
   if(!best)return `<a class="btn btn-primary" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
   return `<a class="btn btn-primary" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} a partir de ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''} →</a>`;
 }
-function universeHeroMarkup(u,titles){
+// preferredPlatforms (item 6, rodada 5): na página de plataforma, cada
+// slide deve mostrar a variante do jogo QUE PERTENCE à plataforma atual —
+// sem isso, pegava sempre variants[0], que podia ser outra plataforma (ex.:
+// "Halo Infinite" com variants começando em "PS5" aparecia com PS5 na
+// página do Xbox, mesmo sendo franquia Xbox).
+function universeHeroMarkup(u,titles,preferredPlatforms){
   const latest=newestUniverseGames(titles,4);
   const slides=latest.length?latest:[null];
   return `<section class="universe-feature-row">
     <div class="game-hero universe-hero" data-home-carousel>
       <div class="universe-hero-slides">${slides.map((p,i)=>{
-        const platform=p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
+        const platform=(preferredPlatforms&&p?.variants?.find(v=>preferredPlatforms.includes(v[1]))?.[1])||p?.variants?.[0]?.[1]||'',badge=p&&releaseBadge(p);
         return `<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
-          <div class="universe-hero-art" ${p?`data-igdb-hero-art data-igdb-eager="${i===0}" data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}>
+          <div class="universe-hero-art" ${p?`data-igdb-hero-art data-igdb-eager="${i===0}" data-igdb-slug="${esc(p.slug)}" data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}"`:''}>
             <span class="game-hero-placeholder"><b>${esc(initialsOf(p?p.title:u.name))}</b></span>
           </div>
           <div class="universe-hero-legibility" aria-hidden="true"></div>
@@ -637,9 +642,14 @@ function hydrateUniverseHero(root,token){
   const arts=$$('[data-igdb-hero-art]',root);
   mapLimit(arts,2,async el=>{
     const eager=el.dataset.igdbEager==='true';
-    const d=await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO);
+    // Item 6 (rodada 5): override manual por jogo quando a arte da IGDB é só
+    // wordmark/logo (sem cena) — src/data/hero-overrides.json, chave = slug
+    // do jogo. Só cobre {url}; {artworkIndex} pediria a lista completa de
+    // artworks do jogo, que a API hoje não devolve (só a escolhida pelo
+    // back-end) — listado como pendência.
+    const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
+    const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO))?.hero?.url;
     if(token!==viewToken||!el.isConnected)return;
-    const src=d?.hero?.url;
     if(!src)return;
     el.classList.add('has-image');
     el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
@@ -1033,26 +1043,35 @@ function renderPlatform(slug,params,token){
   const offerPool=[...catalog].filter(p=>uMap.get(p.universe)?.casa===slug)
     .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title))
     .slice(0,4);
+  // Item 6 (rodada 5): layout de 2 colunas — principal (hero + ofertas +
+  // 3 CTAs) + coluna direita 320px (cartão do logotipo, altura do hero, e
+  // lista de até 6 universos da casa com sigla+nome+nº de jogos).
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <span>${esc(label)}</span></nav>
-  <div class="universe-layout">
-    ${top?universeHeroMarkup(top,topTitles):`<section class="universe-feature-row"><div class="game-hero universe-hero"><div class="game-hero-copy"><h1>${esc(label)}</h1><p>Catálogo em preenchimento.</p></div></div></section>`}
-    <aside class="universe-inventory-panel platform-brand-panel" aria-label="${esc(label)}">
-      ${PLATFORM_LOGO[slug]?`<img src="${PLATFORM_LOGO[slug]}" alt="${esc(label)}" class="platform-brand-logo">`:`<span class="platform-brand-fallback">${esc(label)}</span>`}
+  <div class="platform-layout">
+    <div class="platform-main">
+      ${top?universeHeroMarkup(top,topTitles,platformsList):`<section class="universe-feature-row"><div class="game-hero universe-hero"><div class="game-hero-copy"><h1>${esc(label)}</h1><p>Catálogo em preenchimento.</p></div></div></section>`}
+      <section class="universe-game-shelf" aria-labelledby="plat-offers-title">
+        <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
+        <div class="universe-offer-grid" data-offer-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
+      </section>
+      <div class="platform-cta-row3">
+        ${visualMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
+        ${visualMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
+        ${visualMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
+      </div>
+    </div>
+    <aside class="platform-side-col">
+      <div class="platform-brand-panel" aria-label="${esc(label)}">
+        ${PLATFORM_LOGO[slug]?`<img src="${PLATFORM_LOGO[slug]}" alt="${esc(label)}" class="platform-brand-logo">`:`<span class="platform-brand-fallback">${esc(label)}</span>`}
+      </div>
+      ${unis.length?`<div class="platform-uni-panel">
+        <h2>Universos ${esc(label)}</h2>
+        <ul class="platform-uni-list">${unis.slice(0,6).map(u=>`<li><a class="platform-uni-row" href="#/universo/${u.slug}"><span class="platform-uni-dot">${esc(u.sigla)}</span><span class="platform-uni-info"><b>${esc(u.name)}</b><small>${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</small></span></a></li>`).join('')}</ul>
+        <a class="sidebar-see-all" href="#/universos?casa=${slug}">Ver todos →</a>
+      </div>`:''}
     </aside>
   </div>
-  <section class="universe-game-shelf" aria-labelledby="plat-offers-title">
-    <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
-    <div class="universe-offer-grid" data-offer-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
-  </section>
-  <div class="platform-cta-row3">
-    ${visualMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
-    ${visualMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
-    ${visualMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
-  </div>
-  ${unis.length?`<section class="lux-section" aria-labelledby="plat-universes-title"><div class="lux-section-head"><div><h2 id="plat-universes-title">Universos ${esc(label)}</h2></div></div>
-    <div class="platform-uni-list">${unis.slice(0,10).map(u=>`<a class="platform-uni-chip" href="#/universo/${u.slug}"><span class="platform-uni-dot">${esc(initialsOf(u.name).slice(0,2))}</span><span>${esc(u.name)}</span></a>`).join('')}</div>
-  </section>`:''}
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
   if(top)hydrateUniverseHero($('[data-home-carousel]',main),token);
