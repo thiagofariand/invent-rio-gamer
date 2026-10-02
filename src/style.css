@@ -7,8 +7,8 @@
   --header-h:72px;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-padding-top:calc(var(--header-h) + 12px)}
-body{margin:0;background:var(--white);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:calc(var(--header-h) + 12px);min-height:100vh;background:var(--page-bg)}
+body{margin:0;min-height:100vh;background:var(--white);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 button{font:inherit;color:inherit;cursor:pointer}
 h1,h2,h3,p,ul{margin:0}
@@ -1088,10 +1088,10 @@ h1,h2,h3{color:var(--text-1)}
 .btn-dark:hover{background:#3B342F}
 .btn-glass{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.34);color:#fff;backdrop-filter:blur(10px)}
 .btn-warm{background:#D88A4B;color:#fff;border-color:#D88A4B}
-.card,.panel,.empty,.filters,.shortcut-group,.uni-banner-link,.inv-card{border-radius:var(--radius);background:#FAF8F3;border-color:var(--line);clip-path:none}
+.card,.panel,.empty,.filters,.shortcut-group,.uni-banner-link,.inv-card{border-radius:var(--radius);background:var(--white);border-color:var(--line);clip-path:none}
 .card{box-shadow:0 1px 0 rgba(43,36,28,.02);overflow:hidden}
-.card:hover{border-color:#BEB4A8;box-shadow:var(--shadow-soft)}
-.panel-head{background:#F7F3EC;border-radius:16px 16px 0 0;border-color:var(--line)}
+.card:hover{border-color:var(--line-strong);box-shadow:var(--shadow-soft)}
+.panel-head{background:var(--gray);border-radius:16px 16px 0 0;border-color:var(--line)}
 .chip,.row-chips .chip,.mock-chip{border-radius:999px}
 .plat-btn,.save-btn,.tab{border-radius:10px;clip-path:none}
 .plat-btn{background:#FCFAF6;border-color:var(--line)}
@@ -2073,6 +2073,10 @@ body.dark-surface-route .compare-block>h3{color:var(--text-2)}
   pointer-events:none;
 }
 #ambientBg[hidden]{display:none}
+/* Pacote 2, item 1.3: fonte da capa (vertical) precisa de mais zoom que a
+   artwork horizontal pra cobrir o fundo widescreen sem ficar com tarja. */
+#ambientBg.ambient-cover{transform:scale(1.5)}
+@media(max-width:760px),(prefers-reduced-motion:reduce){#ambientBg.ambient-cover{transform:scale(1.9)}}
 /* Degradê de legibilidade: elemento à parte (não ::after de #ambientBg) —
    se fosse filho de um elemento com opacity:.4, o degradê herdaria essa
    opacidade de grupo e ficaria fraco demais. */
@@ -2325,4 +2329,39 @@ html[data-theme="neutral"] body.dark-surface-route{
       linear-gradient(90deg,transparent 0%,#000 60%),
       linear-gradient(180deg,transparent 0%,#000 10%,#000 90%,transparent 100%);
   }
+}
+
+/* ============================================================
+   PACOTE 2, SEÇÃO 1 — TEMAS E FUNDOS (consolidação final)
+   ============================================================ */
+/* 1.1: --hero-base também no .game-hero (produto/tema), igual já existia
+   só em .universe-hero — cor sólida de fundo enquanto não há imagem,
+   nunca cinza genérico. */
+.game-hero{--hero-base:color-mix(in oklab,var(--page-bg,var(--accent)) 35%,#000)}
+.game-hero-art{background:var(--hero-base)}
+
+/* 1.4: fallback sem artwork — sigla pequena e apagada (era grande e em
+   destaque, com um rótulo "KEY ART..." embaixo que a seção 1.4 pediu pra
+   tirar — já removido do HTML por heroVisual(); aqui só falta encolher a
+   sigla que sobrou). */
+.game-hero-placeholder{inset:auto 28px 24px auto;align-items:flex-end}
+.game-hero-placeholder b{font-size:clamp(28px,3vw,40px);opacity:.10;color:var(--text-1,#fff);text-shadow:none}
+.game-hero-placeholder span{display:none}
+
+/* 1.4: degradê de legibilidade sobre o fundo (artwork, capa ou só cor) —
+   substitui o degradê genérico cinza (#17191E) por um tingido com a cor
+   do próprio universo (--hero-base), igual ao hero de universo já fazia. */
+.game-hero-art::before,.game-hero-art.has-image::before,.game-hero-art.cover-fallback::before{
+  background:linear-gradient(90deg,color-mix(in oklab,var(--hero-base) 90%,transparent) 0%,transparent 65%);
+}
+
+/* 1.3/1.4: fallback com a CAPA ampliada e desfocada (sem artwork
+   horizontal válida) — mesma receita do fundo ambiente, só que dentro do
+   próprio hero. A capa é vertical, cobre via object-fit:cover numa área
+   bem maior que o próprio card (scale), senão sobra tarja na lateral. */
+.game-hero-art.cover-fallback{background-image:var(--hero-img);background-size:cover;background-position:center;filter:blur(32px) saturate(1.1);transform:scale(1.25)}
+.universe-hero-art.cover-fallback .uh-art-img{filter:blur(32px) saturate(1.1);transform:scale(1.4);object-position:center}
+@media(prefers-reduced-motion:reduce){
+  .game-hero-art.cover-fallback{filter:none;transform:scale(1)}
+  .universe-hero-art.cover-fallback .uh-art-img{filter:none;transform:scale(1)}
 }

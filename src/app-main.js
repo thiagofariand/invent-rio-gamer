@@ -49,7 +49,10 @@ const ambientShadeEl=document.getElementById('ambientShade');
 // ser sempre ligada na ficha do jogo/comparadora (force=true, chamado do
 // route() abaixo) — AMBIENT_BG continua só pra qualquer outro uso opcional
 // que venha a existir fora do tema game.
-function updateAmbientBg(url,force){
+// Pacote 2, item 1.3: mode='art' (artwork horizontal, scale 1.15) ou
+// mode='cover' (capa ampliada, scale 1.5 — precisa de mais zoom pra
+// cobrir o fundo já que a capa é vertical/quadrada, não widescreen).
+function updateAmbientBg(url,force,mode){
   if(!(force||AMBIENT_BG)||!ambientBgEl){
     if(ambientBgEl)ambientBgEl.hidden=true;
     if(ambientShadeEl)ambientShadeEl.hidden=true;
@@ -61,6 +64,7 @@ function updateAmbientBg(url,force){
     return;
   }
   ambientBgEl.style.backgroundImage=`url("${url}")`;
+  ambientBgEl.classList.toggle('ambient-cover',mode==='cover');
   ambientBgEl.hidden=false;
   if(ambientShadeEl)ambientShadeEl.hidden=false;
 }
@@ -107,16 +111,25 @@ function route(){
   const platformSlug=path.startsWith('/plataforma/')?path.slice(12):null;
   const gameSlug=path.startsWith('/jogo/')?path.slice(6):path.startsWith('/ofertas/')?path.slice(9):null;
   const gameUniverse=gameSlug?uMap.get(catalogBySlug.get(gameSlug)?.universe):null;
-  const isDarkSurface=path===''||path==='/'||path==='/busca'||path==='/universos'||!!platformSlug||!!gameSlug;
-  document.body.classList.toggle('dark-surface-route',isDarkSurface);
-  const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
+  const isUniverseRoute=path.startsWith('/universo/');
+  // Pacote 2, item 1.1: nenhuma rota pode cair no tema claro antigo —
+  // dark-surface-route vira incondicional (era só home/busca/universos/
+  // plataforma/jogo; universo em qualquer aba != "tudo", /merch,
+  // /inventario, /tema/:slug e /em-alta ficavam de fora e caíam no bege).
+  document.body.classList.add('dark-surface-route');
+  // universe-hero-route continua só pra aba "tudo" (é o hero grande +
+  // Meu Inventário ao lado; as outras abas usam o cabeçalho compacto
+  // gameHeroMarkup) — mas o TEMA universe agora vale pra franquia inteira,
+  // em qualquer aba.
+  const isUniverseHero=isUniverseRoute&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
   // Pacote único, seção 1: data-theme no <html> — neutral (home/busca/
-  // diretório/games/em-alta/ofertas), platform, universe ou game. Trocado
-  // aqui a cada rota; os componentes só leem variável (ver style.css).
-  const pageTheme=gameSlug?'game':platformSlug?'platform':isUniverseHero?'universe':'neutral';
+  // diretório/games/em-alta/ofertas/merch/inventário/tema e qualquer rota
+  // fora da lista), platform, universe ou game. Trocado aqui a cada rota;
+  // os componentes só leem variável (ver style.css).
+  const pageTheme=gameSlug?'game':platformSlug?'platform':isUniverseRoute?'universe':'neutral';
   document.documentElement.setAttribute('data-theme',pageTheme);
-  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?paletteForPlatform(platformSlug):gameSlug?paletteForUniverse(gameUniverse):null);
+  applyUniverseChrome(isUniverseRoute?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?paletteForPlatform(platformSlug):gameSlug?paletteForUniverse(gameUniverse):null);
   updateAmbientBg(null,pageTheme==='game');
   syncThemeColorMeta();
   navActive(path);

@@ -380,12 +380,17 @@ async function fetchIgdbVisual(title,platform='',year='',heroRatio='',heroW=0){
   igdbVisualMemo.set(key,p);
   return p;
 }
-function setHeroBackground(el,url){
+// Pacote 2, item 1.3/1.4: coverMode=true quando a fonte é a CAPA (não a
+// artwork) — aplica o mesmo tratamento "ampliada e desfocada" do fundo
+// ambiente, mas DENTRO do próprio hero (classe .cover-fallback em vez de
+// .has-image), já que não há artwork horizontal de verdade pra cobrir o
+// hero com nitidez.
+function setHeroBackground(el,url,coverMode){
   if(!el||!url)return;
-  el.classList.add('has-image');
+  el.classList.add(coverMode?'cover-fallback':'has-image');
   el.style.setProperty('--hero-img',`url("${url.replace(/"/g,'%22')}")`);
   const ph=el.querySelector('.game-hero-placeholder');
-  if(ph)ph.remove();
+  if(ph&&!coverMode)ph.remove();
 }
 function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
@@ -402,9 +407,20 @@ async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game
   const heroW=hero?hero.getBoundingClientRect().width:0;
   const d=await fetchIgdbVisual(title,platform,year,'',heroW);
   if(!d)return;
-  if(hero&&!override?.fallback){
-    const heroUrl=override?.url||d.hero?.url;
-    if(heroUrl){setHeroBackground(hero,heroUrl);updateAmbientBg(heroUrl,document.documentElement.dataset.theme==='game')}
+  const isGameTheme=document.documentElement.dataset.theme==='game';
+  if(hero){
+    // Pacote 2, item 1.3/1.4: ordem de fontes pro hero/fundo ambiente —
+    // (a) artwork horizontal válida; (b) sem ela, a CAPA ampliada e
+    // desfocada; (c) sem capa também, só a cor base (placeholder já
+    // presente no HTML cuida disso sozinho).
+    const heroUrl=!override?.fallback&&(override?.url||d.hero?.url);
+    if(heroUrl){
+      setHeroBackground(hero,heroUrl);
+      updateAmbientBg(heroUrl,isGameTheme,'art');
+    }else if(d.cover?.url){
+      setHeroBackground(hero,d.cover.url,true);
+      updateAmbientBg(d.cover.url,isGameTheme,'cover');
+    }
   }
   if(coverSelector&&d.cover?.url){
     const cover=document.querySelector(coverSelector);
@@ -476,17 +492,20 @@ function demoPrice(title,kind){
   const value=min+(seed%(max-min+1));
   return brl(Math.floor(value)+0.90);
 }
-function heroVisual(title,{image='',label='KEY ART / WALLPAPER'}={}){
+// Pacote 2, item 1.4: fallback sem artwork válida nunca mais mostra um
+// rótulo de placeholder ("KEY ART DO JOGO" etc.) — só a sigla, pequena e
+// apagada (opacity .10 via CSS, .game-hero-placeholder b).
+function heroVisual(title,{image=''}={}){
   const src=localOrRemoteImage(image);
   const h=hashStr(title)%360;
   const style=src
     ?`--hero-img:url("${esc(src)}");--hero-h:${h}`
     :`--hero-img:none;--hero-h:${h}`;
   return `<div class="game-hero-art ${src?'has-image':''}" style='${style}'>
-    ${src?'':`<div class="game-hero-placeholder"><b>${esc(initialsOf(title))}</b><span>${esc(label)}</span></div>`}
+    ${src?'':`<div class="game-hero-placeholder"><b>${esc(initialsOf(title))}</b></div>`}
   </div>`;
 }
-function gameHeroMarkup({title,kicker='',copy='',image='',artLabel='KEY ART / WALLPAPER',actions=''}) {
+function gameHeroMarkup({title,kicker='',copy='',image='',actions=''}) {
   return `<section class="game-hero">
     <div class="game-hero-copy">
       ${kicker?`<span class="game-hero-kicker">${esc(kicker)}</span>`:''}
@@ -494,7 +513,7 @@ function gameHeroMarkup({title,kicker='',copy='',image='',artLabel='KEY ART / WA
       ${copy?`<p>${esc(copy)}</p>`:''}
       ${actions?`<div class="game-hero-actions">${actions}</div>`:''}
     </div>
-    ${heroVisual(title,{image,label:artLabel})}
+    ${heroVisual(title,{image})}
   </section>`;
 }
 function storePills(names){
@@ -584,7 +603,7 @@ function renderProduct(slug,params,token){
   const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
-  ${gameHeroMarkup({title:p.title,kicker:platform,copy:heroCopy,image:heroImage,artLabel:'KEY ART DO JOGO',actions:heroActions})}
+  ${gameHeroMarkup({title:p.title,kicker:platform,copy:heroCopy,image:heroImage,actions:heroActions})}
   <div class="game-commerce-grid">
     ${purchaseModuleMarkup(p,platform)}
     ${visualMenuCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',image:merchImage,href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
@@ -789,13 +808,17 @@ function hydrateUniverseHero(root,token){
     const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
     if(override?.fallback)return;
     const heroW=el.getBoundingClientRect().width;
-    const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW))?.hero?.url;
+    const d=override?.url?null:await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW);
     if(token!==viewToken||!el.isConnected)return;
-    if(!src)return;
-    if(el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
-    el.classList.add('has-image');
-    el.innerHTML=`<img class="uh-art-img" src="${esc(src)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
-    if(eager)updateAmbientBg(src);
+    // Pacote 2, item 1.3/1.4: (a) artwork horizontal; (b) sem ela, a capa
+    // ampliada e desfocada; (c) sem nenhuma, fica no fallback já no HTML.
+    const src=override?.url||d?.hero?.url;
+    const coverSrc=!src&&d?.cover?.url;
+    if(!src&&!coverSrc)return;
+    if(src&&el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
+    el.classList.add(src?'has-image':'cover-fallback');
+    el.innerHTML=`<img class="uh-art-img" src="${esc(src||coverSrc)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
+    if(eager)updateAmbientBg(src||coverSrc,false,src?'art':'cover');
   });
   initHomeCarousel(root);
 }
@@ -986,8 +1009,7 @@ function renderUniverse(slug,params,token){
     title:`Universo ${u.name}`,
     kicker:ECO_LABEL[u.eco]||'',
     copy:`${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}`,
-    image:visualAsset('universes',u.slug,'hero'),
-    artLabel:'ARTE DA FRANQUIA'
+    image:visualAsset('universes',u.slug,'hero')
   })}
   ${tab==='tudo'?'':`<div class="tabs universe-tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="#/universo/${slug}?tab=${k}" aria-current="${k===tab}">${l}</a>`).join('')}</div>`}
   ${body}`;
@@ -1045,7 +1067,7 @@ function renderTheme(slug){
   const fakeProduct={title:t.title,slug:t.slug,variants:[['Demo',cfg.platform||'Plataforma']],physical:cfg.physical,digital:cfg.digital};
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/em-alta">Em alta</a> › <span>${esc(t.short)}</span></nav>
-  ${gameHeroMarkup({title:t.title,kicker:sentence(t.tag),copy:t.copy,image:heroImage,artLabel:'KEY ART / WALLPAPER OFICIAL',actions:heroActions})}
+  ${gameHeroMarkup({title:t.title,kicker:sentence(t.tag),copy:t.copy,image:heroImage,actions:heroActions})}
   <p class="fine visual-demo-warning">Referência visual · imagens, disponibilidade e preços demonstrativos continuam identificados até a conexão das fontes oficiais.</p>
   <div class="game-commerce-grid">
     <article class="purchase-module" id="comprar-jogo">
