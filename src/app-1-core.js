@@ -69,13 +69,30 @@ const AMBIENT_BG=false;
 // plataforma da aba ativa) atrás de flag — desligado por padrão até
 // aprovação visual.
 const SHOW_EXCLUSIVE_BADGE=false;
-// Item 6 (rodada 5): override manual de hero por jogo (src/data/hero-overrides.json).
+// Item 6 (rodada 5) / pacote único, item 6.3: override manual de hero por
+// jogo (src/data/hero-overrides.json). {url} só aceita o CDN oficial da
+// IGDB (images.igdb.com) — qualquer outra origem é rejeitada (e avisada no
+// console) pra não virar brecha de hot-linking de imagem de fonte
+// desconhecida. {fallback:true} força o degradê da franquia + sigla
+// mesmo que a IGDB tenha uma arte disponível — usado quando a arte real é
+// ruim (logo/wordmark) e ainda não temos uma artwork de troca verificada.
 let HERO_OVERRIDES={};
 try{
   const xhrHero=new XMLHttpRequest();
-  xhrHero.open('GET','/src/data/hero-overrides.json?v=Teste-Layout-Beta2',false);
+  xhrHero.open('GET','/src/data/hero-overrides.json?v=Pacote6',false);
   xhrHero.send(null);
-  if(xhrHero.status===200)HERO_OVERRIDES=JSON.parse(xhrHero.responseText);
+  if(xhrHero.status===200){
+    const raw=JSON.parse(xhrHero.responseText);
+    HERO_OVERRIDES={};
+    Object.entries(raw).forEach(([slug,v])=>{
+      if(slug.startsWith('_'))return;
+      if(v&&v.fallback){HERO_OVERRIDES[slug]=v;return}
+      if(v&&v.url){
+        if(/^https:\/\/images\.igdb\.com\//.test(v.url))HERO_OVERRIDES[slug]=v;
+        else console.warn('[hero-overrides] URL fora do CDN da IGDB, ignorada:',slug,v.url);
+      }
+    });
+  }
 }catch(e){/* mantém {} */}
 const genreLabel=k=>(GENRES.find(g=>g.slug===k)||{}).label||k;
 const mockChip=()=>'<span class="mock-chip">EXEMPLO</span>';
@@ -187,7 +204,16 @@ const PLATFORM_CHROME={
 };
 function paletteForPlatform(slug){return PALETA_PLATAFORMAS[slug]||PLATFORM_CHROME[slug]||null}
 const PLATFORM_LABEL={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'};
-const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg',xbox:'/assets/xbox-mark.svg'};
+// Pacote único, item 6.2: o "xbox-mark.svg" era um wordmark DESENHADO por
+// nós imitando a tipografia da marca (criado numa rodada anterior só
+// porque a rede bloqueava buscar o SVG oficial) — proibido por regra geral
+// deste pacote ("nunca recriar nem imitar logotipos"). Removido da tabela:
+// sem entrada aqui, o card da plataforma cai no fallback de texto simples
+// (.platform-brand-fallback, DM Sans 700, já era o comportamento pra
+// qualquer plataforma sem logo). Se src/assets/platforms/xbox.svg (SVG
+// OFICIAL, fornecido pelo dono) existir no futuro, basta apontar pra ele
+// aqui — nunca desenhar outro substituto.
+const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg'};
 
 const universes=[],uMap=new Map();
 function addUniverse(name,eco){

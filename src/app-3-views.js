@@ -391,14 +391,21 @@ function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
   el.innerHTML=coverTile(title,{platform,image:url});
 }
-async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector=''}) {
+async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector='',slug=''}) {
   const hero=document.querySelector(heroSelector);
+  // Pacote único, item 6.3: {fallback:true} em hero-overrides.json pula a
+  // IGDB de vez pro hero (mas não pra capa — a capa pequena não sofre o
+  // mesmo problema de logo esticado).
+  const override=HERO_OVERRIDES[slug||''];
   // Item 2.2: largura renderizada de verdade do hero, pro back-end exigir
   // >= 1.2x dela na arte (evita logo pixelado esticado — ver pickHero()).
   const heroW=hero?hero.getBoundingClientRect().width:0;
   const d=await fetchIgdbVisual(title,platform,year,'',heroW);
   if(!d)return;
-  if(hero&&d.hero?.url){setHeroBackground(hero,d.hero.url);updateAmbientBg(d.hero.url,document.documentElement.dataset.theme==='game')}
+  if(hero&&!override?.fallback){
+    const heroUrl=override?.url||d.hero?.url;
+    if(heroUrl){setHeroBackground(hero,heroUrl);updateAmbientBg(heroUrl,document.documentElement.dataset.theme==='game')}
+  }
   if(coverSelector&&d.cover?.url){
     const cover=document.querySelector(coverSelector);
     setCoverImage(cover,title,platform,d.cover.url);
@@ -588,7 +595,8 @@ function renderProduct(slug,params,token){
     platform,
     year:p.year||'',
     heroSelector:'.game-hero-art',
-    coverSelector:'#productCoverSlot'
+    coverSelector:'#productCoverSlot',
+    slug:p.slug
   });
   ['used','new'].forEach(async cond=>{
     await fetchCond(p.title,platform,cond);
@@ -771,12 +779,15 @@ function hydrateUniverseHero(root,token){
   const arts=$$('[data-igdb-hero-art]',root);
   mapLimit(arts,2,async el=>{
     const eager=el.dataset.igdbEager==='true';
-    // Item 6 (rodada 5): override manual por jogo quando a arte da IGDB é só
-    // wordmark/logo (sem cena) — src/data/hero-overrides.json, chave = slug
-    // do jogo. Só cobre {url}; {artworkIndex} pediria a lista completa de
-    // artworks do jogo, que a API hoje não devolve (só a escolhida pelo
-    // back-end) — listado como pendência.
+    // Item 6 (rodada 5) / pacote único item 6.3: override manual por jogo
+    // quando a arte da IGDB é só wordmark/logo (sem cena) —
+    // src/data/hero-overrides.json, chave = slug do jogo. {url} (só CDN da
+    // IGDB, já filtrado no load) troca a arte; {fallback:true} força o
+    // degradê + sigla sem nem consultar a IGDB. {artworkIndex} pediria a
+    // lista completa de artworks do jogo, que a API hoje não devolve (só a
+    // escolhida pelo back-end) — listado como pendência.
     const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
+    if(override?.fallback)return;
     const heroW=el.getBoundingClientRect().width;
     const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW))?.hero?.url;
     if(token!==viewToken||!el.isConnected)return;
