@@ -6,6 +6,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" id="themeColorMeta" content="#2a2622">
 <title>Inventário Gamer — Beta 1 + Claudinho · Quiet Luxury</title>
 <meta name="description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
 <link rel="icon" type="image/png" href="/inventario-logo-header.png?v=Teste-Layout-Beta2">
@@ -14,11 +15,14 @@
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
-<!-- Fase 6: fundo ambiente opcional (flag AMBIENT_BG em app-1-core.js).
-     Camada fixa atrás de tudo, reaproveita a arte do hero já carregada
-     (sem pedido novo) — updateAmbientBg() em app-main.js liga o
-     background-image só quando a flag está ligada. -->
+<!-- Tema "game" (pacote único, seção 1): camada fixa de keyart desfocada
+     atrás de tudo na ficha do jogo e na comparadora, reaproveitando a arte
+     do hero já carregada (sem pedido novo) — updateAmbientBg() em
+     app-main.js liga o background-image. #ambientShade é o degradê de
+     legibilidade por cima, um elemento à parte pra não herdar a opacidade
+     de #ambientBg (senão o degradê também ficaria translúcido). -->
 <div id="ambientBg" aria-hidden="true" hidden></div>
+<div id="ambientShade" aria-hidden="true" hidden></div>
 
 <header class="site-header">
   <div class="header-inner">

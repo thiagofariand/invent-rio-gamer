@@ -44,11 +44,32 @@ function syncHeaderScroll(){
 // ou animação — e desligado no mobile/prefers-reduced-motion (CSS cuida
 // disso; aqui só liga/desliga a camada e troca a url quando muda o hero).
 const ambientBgEl=document.getElementById('ambientBg');
-function updateAmbientBg(url){
-  if(!AMBIENT_BG||!ambientBgEl)return;
-  if(!url){ambientBgEl.hidden=true;ambientBgEl.style.backgroundImage='';return}
+const ambientShadeEl=document.getElementById('ambientShade');
+// Pacote único, seção 1 (tema [game]): a camada de keyart desfocada passa a
+// ser sempre ligada na ficha do jogo/comparadora (force=true, chamado do
+// route() abaixo) — AMBIENT_BG continua só pra qualquer outro uso opcional
+// que venha a existir fora do tema game.
+function updateAmbientBg(url,force){
+  if(!(force||AMBIENT_BG)||!ambientBgEl){
+    if(ambientBgEl)ambientBgEl.hidden=true;
+    if(ambientShadeEl)ambientShadeEl.hidden=true;
+    return;
+  }
+  if(!url){
+    ambientBgEl.hidden=true;ambientBgEl.style.backgroundImage='';
+    if(ambientShadeEl)ambientShadeEl.hidden=true;
+    return;
+  }
   ambientBgEl.style.backgroundImage=`url("${url}")`;
   ambientBgEl.hidden=false;
+  if(ambientShadeEl)ambientShadeEl.hidden=false;
+}
+// <meta name="theme-color"> acompanha --page-bg (pacote único, seção 1).
+const themeColorMeta=document.getElementById('themeColorMeta');
+function syncThemeColorMeta(){
+  if(!themeColorMeta)return;
+  const bg=getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim();
+  if(bg)themeColorMeta.setAttribute('content',bg);
 }
 const rootStyle=document.documentElement.style;
 // Ajustes fase 1, item E: paleta por universo (src/data/paleta-universos.json,
@@ -90,8 +111,14 @@ function route(){
   document.body.classList.toggle('dark-surface-route',isDarkSurface);
   const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
-  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?PLATFORM_CHROME[platformSlug]:gameSlug?paletteForUniverse(gameUniverse):null);
-  updateAmbientBg(null);
+  // Pacote único, seção 1: data-theme no <html> — neutral (home/busca/
+  // diretório/games/em-alta/ofertas), platform, universe ou game. Trocado
+  // aqui a cada rota; os componentes só leem variável (ver style.css).
+  const pageTheme=gameSlug?'game':platformSlug?'platform':isUniverseHero?'universe':'neutral';
+  document.documentElement.setAttribute('data-theme',pageTheme);
+  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?paletteForPlatform(platformSlug):gameSlug?paletteForUniverse(gameUniverse):null);
+  updateAmbientBg(null,pageTheme==='game');
+  syncThemeColorMeta();
   navActive(path);
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);

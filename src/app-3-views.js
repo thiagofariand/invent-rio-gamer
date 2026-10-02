@@ -234,25 +234,39 @@ function activeChips(F){
   if(F.max!=null)chips.push(['max','',`até ${brl(F.max)}`]);
   return chips;
 }
-// Item 8 (rodada 5): banner de universo na busca. Bate por nome, sigla ou
-// alias, OU quando 60%+ dos resultados são do mesmo universo — tudo lido
-// do catálogo/paleta, nada fixo por franquia aqui.
+// Pacote único, seção 5: banner de universo na busca. Regra de disparo —
+// sigla só conta com busca >= 2 caracteres e igual à sigla, E com pelo
+// menos 1 resultado daquele universo (nunca dispara por sigla "no vácuo",
+// ex. "z" sozinho não abre o banner de Zelda); nome/alias exige >= 3
+// caracteres como prefixo ou igualdade, e esses sempre valem mesmo com 0%
+// dos resultados daquele universo. OU 60%+ dos resultados do mesmo
+// universo (fallback antigo, mantido). Tudo lido do catálogo/paleta.
 function universeAliasMatch(u,q){
-  if(norm(u.name)===q)return true;
-  if(u.sigla&&norm(u.sigla)===q)return true;
-  const sideEntry=SIDEBAR_FEATURED_UNIVERSES.find(e=>e.slug===u.slug);
-  if(sideEntry?.aliases?.some(a=>norm(a)===q))return true;
-  const pal=paletteForUniverse(u);
-  if(pal?.aliases?.some(a=>norm(a)===q))return true;
-  return false;
+  if(q.length>=3){
+    const n=norm(u.name);
+    if(n===q||n.startsWith(q))return 'name';
+    const sideEntry=SIDEBAR_FEATURED_UNIVERSES.find(e=>e.slug===u.slug);
+    if(sideEntry?.aliases?.some(a=>{const na=norm(a);return na===q||na.startsWith(q)}))return 'alias';
+    const pal=paletteForUniverse(u);
+    if(pal?.aliases?.some(a=>{const na=norm(a);return na===q||na.startsWith(q)}))return 'alias';
+  }
+  if(q.length>=2&&u.sigla&&norm(u.sigla)===q)return 'sigla';
+  return null;
 }
 function universeSearchHint(raw,matches){
   const q=norm(raw);
   if(q){
-    const direct=universes.find(u=>u.hasCatalog&&titlesOf(u.slug).length&&universeAliasMatch(u,q));
-    if(direct)return direct;
+    for(const u of universes){
+      if(!u.hasCatalog||!titlesOf(u.slug).length)continue;
+      const kind=universeAliasMatch(u,q);
+      if(!kind)continue;
+      if(kind==='sigla'&&!matches.some(m=>m.p.universe===u.slug))continue;
+      return u;
+    }
   }
-  if(!matches.length)return null;
+  // Fallback de 60%: mesma régua mínima de 3 caracteres do nome/alias — uma
+  // busca de 1-2 letras ("z") gera ruído demais pra virar sinal de universo.
+  if(q.length<3||!matches.length)return null;
   const counts=new Map();
   matches.forEach(m=>{if(m.p.universe)counts.set(m.p.universe,(counts.get(m.p.universe)||0)+1)});
   const [topSlug,topCount]=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0]||[];
@@ -267,10 +281,20 @@ function universeSearchBanner(u){
   if(!u)return '';
   const n=titlesOf(u.slug).length;
   const img=cachedHeroForUniverse(u);
-  return `<a class="universe-search-banner${img?' has-image':''}" href="#/universo/${u.slug}"${img?` style="--usb-img:url('${esc(img).replace(/'/g,"%27")}')"`:''}>
+  // Pacote único, seção 1: a busca fica no tema neutral inteira — a cor do
+  // universo aparece só aqui dentro, nunca mais via applyUniverseChrome()
+  // (que mudava a página inteira). --usb-fundo/--usb-acao são variáveis
+  // locais deste cartão, declaradas no style= abaixo; o CSS do banner lê
+  // elas (com fallback pro --action padrão) em vez de --page-bg/--action
+  // globais.
+  const pal=paletteForUniverse(u)||PALETA_UNIVERSOS.padrao;
+  const styleVars=`--usb-fundo:${pal.fundo};--usb-acao:${pal.acao};--usb-acao-texto:${pal.acaoTexto}`
+    +(pal.bannerFocus?`;--usb-focus:${esc(pal.bannerFocus)}`:'')
+    +(img?`;--usb-img:url('${esc(img).replace(/'/g,"%27")}')`:'');
+  return `<a class="universe-search-banner${img?' has-image':''}" href="#/universo/${u.slug}" style="${styleVars}">
     ${img?'':`<span class="usb-fallback" aria-hidden="true">${esc(u.sigla)}</span>`}
     <div class="usb-copy"><h2>Conheça o universo ${esc(u.name)}</h2><p>${n} ${n===1?'jogo catalogado':'jogos catalogados'}</p></div>
-    <span class="btn btn-primary usb-cta">Conhecer o universo →</span>
+    <span class="btn usb-cta">Conhecer o universo →</span>
   </a>`;
 }
 function renderSearch(params,token){
@@ -287,9 +311,9 @@ function renderSearch(params,token){
   const n=Math.max(12,parseInt(params.get('n')||'12',10)||12);
   const visible=filtered.slice(0,n);
   const uHint=universeSearchHint(raw,matches);
-  // Fase 6: busca de um universo só usa a cor dele (fallback: padrao,
-  // já definido no :root — sem chamada extra, mesma paleta da fase 1).
-  applyUniverseChrome(uHint?paletteForUniverse(uHint):null);
+  // Pacote único, seção 1: a busca é sempre tema neutral — a cor do
+  // universo não sai mais da página inteira, fica só dentro do banner
+  // (ver universeSearchBanner acima). Nada de applyUniverseChrome() aqui.
   setTitle(raw?`Resultados para ${raw}`:'Todos os jogos');
   const heading=raw?`Resultados para “${esc(raw)}”`:'Todos os jogos';
   let body='';
@@ -366,7 +390,7 @@ async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game
   const d=await fetchIgdbVisual(title,platform,year);
   if(!d)return;
   const hero=document.querySelector(heroSelector);
-  if(hero&&d.hero?.url){setHeroBackground(hero,d.hero.url);updateAmbientBg(d.hero.url)}
+  if(hero&&d.hero?.url){setHeroBackground(hero,d.hero.url);updateAmbientBg(d.hero.url,document.documentElement.dataset.theme==='game')}
   if(coverSelector&&d.cover?.url){
     const cover=document.querySelector(coverSelector);
     setCoverImage(cover,title,platform,d.cover.url);

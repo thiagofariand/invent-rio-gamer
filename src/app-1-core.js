@@ -165,14 +165,23 @@ const sigIdx=new Map();
 Object.entries(SIGLA_TABLE).forEach(([slug,sig])=>sigIdx.set(slug,sig));
 function siglaFor(slug,name){return sigIdx.get(slug)||initialsOf(name).slice(0,2)}
 
-// Fase 5: fundo/ação por plataforma (mesmo formato de paleta-universos.json
-// — fundo/painel/acao/acaoTexto — pra reaproveitar applyUniverseChrome()).
-// Nintendo vermelho, PlayStation azul, Xbox verde, como pedido.
+// Pacote único, seção 1: fundo liso por plataforma (tema [platform]), de
+// src/data/paleta-plataformas.json — mesmo formato de paleta-universos.json,
+// reaproveita applyUniverseChrome(). PLATFORM_CHROME fica só como fallback
+// caso o arquivo não carregue (rede fora do ar etc.).
+let PALETA_PLATAFORMAS={};
+try{
+  const xhrPlat=new XMLHttpRequest();
+  xhrPlat.open('GET','/src/data/paleta-plataformas.json?v=Pacote1',false);
+  xhrPlat.send(null);
+  if(xhrPlat.status===200)PALETA_PLATAFORMAS=JSON.parse(xhrPlat.responseText);
+}catch(e){/* mantém {} — cai no fallback PLATFORM_CHROME abaixo */}
 const PLATFORM_CHROME={
   nintendo:{fundo:'#5c1712',painel:'#6b1c16',acao:'#e0392f',acaoTexto:'#ffffff'},
   playstation:{fundo:'#0e2740',painel:'#123252',acao:'#3a86c8',acaoTexto:'#ffffff'},
   xbox:{fundo:'#0b4016',painel:'#0e4e1b',acao:'#3ac150',acaoTexto:'#000000'}
 };
+function paletteForPlatform(slug){return PALETA_PLATAFORMAS[slug]||PLATFORM_CHROME[slug]||null}
 const PLATFORM_LABEL={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'};
 const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg',xbox:'/assets/xbox-mark.svg'};
 
