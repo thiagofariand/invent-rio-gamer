@@ -1616,8 +1616,12 @@ html{overflow-x:hidden}
    Acabamento rodada 3, item 1: vidro fumê (não preto translúcido genérico)
    pra continuar visível em qualquer arte, inclusive claras (Mario Kart
    World) — antes a seta clara sobre fundo claro quase sumia. */
+/* Item 9 (rodada 5): na home, as setas ficavam centralizadas em cima do
+   texto do hero — descem pra base, ao lado dos indicadores (que ficam em
+   left:28px;bottom:84px). .universe-hero sobrescreve de novo mais abaixo
+   (top:20px, continua como estava — só a home mudou). */
 .home-feature-nav{
-  position:absolute;top:50%;transform:translateY(-50%);z-index:6;
+  position:absolute;top:auto;bottom:66px;transform:none;z-index:6;
   width:40px;height:40px;border-radius:999px;
   background:rgba(10,4,8,.55);border:1px solid var(--glass-border);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -1625,12 +1629,12 @@ html{overflow-x:hidden}
 }
 @supports not (backdrop-filter:blur(1px)){.home-feature-nav{background:rgba(10,4,8,.82)}}
 .home-feature-nav:hover{background:rgba(10,4,8,.72)}
-.home-feature-nav.prev{left:18px}
-.home-feature-nav.next{right:18px}
+.home-feature-nav.prev{left:140px;right:auto}
+.home-feature-nav.next{left:190px;right:auto}
 @media (max-width:760px){
-  .home-feature-nav{width:34px;height:34px;font-size:18px}
-  .home-feature-nav.prev{left:10px}
-  .home-feature-nav.next{right:10px}
+  .home-feature-nav{width:34px;height:34px;font-size:18px;bottom:60px}
+  .home-feature-nav.prev{left:110px}
+  .home-feature-nav.next{left:152px}
 }
 
 /* Selos de tipo de loja: Oficial só com prova; o resto é varejo/revenda */
