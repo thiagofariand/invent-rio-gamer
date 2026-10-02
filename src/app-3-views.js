@@ -1051,7 +1051,7 @@ function renderPlatform(slug,params,token){
   ${unis.length?`<section class="lux-section" aria-labelledby="plat-universes-title"><div class="lux-section-head"><div><h2 id="plat-universes-title">Universos ${esc(label)}</h2></div></div>
     <div class="platform-uni-list">${unis.slice(0,10).map(u=>`<a class="platform-uni-chip" href="#/universo/${u.slug}"><span class="platform-uni-dot">${esc(initialsOf(u.name).slice(0,2))}</span><span>${esc(u.name)}</span></a>`).join('')}</div>
   </section>`:''}
-  <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-ghost" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
+  <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
   if(top)hydrateUniverseHero($('[data-home-carousel]',main),token);
   initOfferCarousels(main);

@@ -1033,7 +1033,7 @@ main{max-width:1240px;padding:34px 28px 80px}
 .search input::placeholder{color:rgba(255,255,255,.7)}
 .search input:focus{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.36);box-shadow:none}
 .search .s-ico{color:rgba(255,255,255,.85)}
-.suggest{background:var(--glass-1);border-color:var(--glass-border);border-radius:16px;box-shadow:var(--shadow-float);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.suggest{background:var(--glass-overlay);border-color:var(--glass-border);border-radius:16px;box-shadow:var(--shadow-float);backdrop-filter:var(--glass-overlay-blur);-webkit-backdrop-filter:var(--glass-overlay-blur)}
 @supports not (backdrop-filter:blur(1px)){
   .suggest{background:rgba(10,4,8,.92)}
 }
@@ -1678,7 +1678,7 @@ html{overflow-x:hidden}
   .search input:focus{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.36);box-shadow:none}
   .search input::placeholder{color:rgba(255,255,255,.7)}
   .search .s-ico{color:rgba(255,255,255,.85)}
-  .suggest{background:var(--glass-1);border-color:var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+  .suggest{background:var(--glass-overlay);border-color:var(--glass-border);backdrop-filter:var(--glass-overlay-blur);-webkit-backdrop-filter:var(--glass-overlay-blur)}
   @supports not (backdrop-filter:blur(1px)){
     .suggest{background:rgba(10,4,8,.92)}
   }
@@ -1917,6 +1917,20 @@ body.dark-surface-route .save-btn{background:var(--glass-3);border-color:var(--g
 body.dark-surface-route .save-btn.on{background:rgba(230,66,54,.18);border-color:rgba(230,66,54,.5);color:#fff}
 body.dark-surface-route .site-footer{background:var(--page-bg);border-color:var(--glass-border);color:var(--text-2)}
 body.dark-surface-route .site-footer .footer-inner button{color:var(--text-1)}
+
+/* ============================================================
+   RODADA 5, ITEM 1 — botões e selos ilegíveis em cima do vidro fumê
+   (regressão da fase 6: o remap de --ink/--white pra branco deixou
+   alguns componentes com cor fixa, fora do token, em branco-sobre-branco
+   ou cinza-sobre-escuro).
+   ============================================================ */
+body.dark-surface-route .mock-chip{background:rgba(255,255,255,.12);color:var(--text-2);border:1px solid var(--glass-border);font-size:10px;letter-spacing:.06em;font-weight:700}
+body.dark-surface-route .btn-ghost{background:var(--glass-3);border-color:var(--glass-border);color:var(--text-1)}
+body.dark-surface-route .btn-ghost:hover{background:rgba(255,255,255,.14)}
+body.dark-surface-route .btn-primary{background:var(--action);color:var(--on-action);border-color:transparent}
+body.dark-surface-route .btn-primary:hover{filter:brightness(1.08)}
+body.dark-surface-route .purchase-condition{color:var(--text-2)}
+body.dark-surface-route .purchase-row-arrow{color:var(--text-2)}
 
 /* Fundo ambiente opcional (AMBIENT_BG em app-1-core.js) — mesma arte do
    hero, uma única vez, sem novo pedido de rede. Estático: sem parallax,
