@@ -30,6 +30,11 @@ ul{padding:0;list-style:none}
 .search input::placeholder{color:var(--muted)}
 .search input:focus{background:var(--white);border-color:var(--red);outline:none;box-shadow:0 0 0 3px var(--red-tint)}
 .search .s-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+/* Pacote único, item 7.2: botão de fechar da busca em tela cheia — só
+   existe visualmente <900px com body.mobile-search-open (ver seção 7 no
+   fim do arquivo); esta é a regra padrão (sempre escondido) que faltava
+   fora dali, senão o <button> aparecia solto em qualquer largura de tela. */
+.mobile-search-close{display:none}
 .suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-pop);padding:8px;z-index:70;max-height:70vh;overflow:auto}
 .suggest[hidden]{display:none}
 .sg-head{font-size:12px;color:var(--muted);padding:2px 8px 6px}
@@ -1028,6 +1033,12 @@ main{max-width:1240px;padding:34px 28px 80px}
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
 .brand{width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
 .brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:auto}
+/* Pacote único, item 7.1: duas imagens dentro de .brand (completa +
+   compacta sem subtítulo) — só uma aparece por vez. Desktop/tablet mostra
+   a completa; a regra que troca pra compacta vive só dentro de
+   @media(max-width:899px) (ver seção 7 no fim do arquivo), que também
+   esconde esta. */
+.brand-logo-mobile{display:none}
 /* Nada aqui sangra pra fora do cartão do cabeçalho — logo e FAB ficam
    contidos pelo padding normal do .header-inner (ver "PARTE A" mais
    abaixo, que redefine o cabeçalho inteiro como um único cartão de vidro). */
