@@ -1193,10 +1193,35 @@ function sidebarContent(){
       <span class="sidebar-footer-info"><b>Meu Inventário</b><small>${owned} de ${catalog.length} jogos</small></span>
     </a>`;
 }
+// Item 4 (rodada 5): "Universos em destaque" mostra quantos itens couberem
+// (mín. 3, máx. 5) sem rolar — medido de verdade (ResizeObserver chama
+// isso de novo sempre que a barra muda de altura), não mais um chute por
+// media query de altura de tela.
+function fitSidebarFeatured(root){
+  const list=root.querySelector('.sidebar-uni-list');
+  if(!list)return;
+  const items=[...list.children];
+  if(!items.length)return;
+  items.forEach(li=>{li.hidden=false});
+  const seeAll=root.querySelector('.sidebar-see-all');
+  const footer=root.querySelector('.sidebar-footer');
+  const nav=root.querySelector('.sidebar-nav');
+  const total=root.clientHeight;
+  const used=(nav?.offsetHeight||0)+(seeAll?.offsetHeight||0)+(footer?.offsetHeight||0)+40;
+  const perItem=items[0].offsetHeight||38;
+  const fit=Math.max(3,Math.min(5,Math.floor((total-used)/perItem)));
+  items.forEach((li,i)=>{li.hidden=i>=fit});
+}
+function fitAllSidebars(){
+  [document.getElementById('appSidebar'),document.getElementById('sidebarDrawer')].forEach(el=>{
+    if(el)fitSidebarFeatured(el);
+  });
+}
 function renderSidebar(){
   const html=sidebarContent();
   const desktop=document.getElementById('appSidebar');
   const drawer=document.getElementById('sidebarDrawer');
   if(desktop)desktop.innerHTML=html;
   if(drawer)drawer.innerHTML=html;
+  fitAllSidebars();
 }

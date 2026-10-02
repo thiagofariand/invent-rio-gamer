@@ -1729,7 +1729,7 @@ body.hide-breadcrumb .crumbs{display:none}
   width:var(--sidebar-w);height:calc(100vh - var(--content-top) - var(--page-margin));
   background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
   border-radius:16px;padding:14px;overflow-y:auto;overflow-x:hidden;
-  display:flex;flex-direction:column;gap:20px;z-index:40;
+  display:flex;flex-direction:column;gap:14px;z-index:40;
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
   transition:width .18s ease;
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent;
@@ -1762,28 +1762,25 @@ body.sidebar-hidden main,body.sidebar-hidden .site-footer{margin-left:var(--page
 .sidebar-drawer-btn{display:none;appearance:none;border:0;background:var(--glass-3);color:#fff;width:40px;height:40px;border-radius:12px;align-items:center;justify-content:center;flex:none}
 body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 
-.sidebar-nav{display:flex;flex-direction:column;gap:14px}
-.sidebar-group{display:flex;flex-direction:column;gap:2px;padding-bottom:14px;border-bottom:1px solid var(--glass-border)}
+.sidebar-nav{display:flex;flex-direction:column;gap:10px;flex:none}
+.sidebar-group{display:flex;flex-direction:column;gap:1px;padding-bottom:10px;border-bottom:1px solid var(--glass-border)}
 .sidebar-group:last-child{border-bottom:0;padding-bottom:0}
-.sidebar-item{display:flex;align-items:center;gap:12px;height:38px;padding:0 10px;border-radius:11px;color:#fff;text-decoration:none;flex:none}
+.sidebar-item{display:flex;align-items:center;gap:12px;height:36px;padding:0 10px;border-radius:10px;color:#fff;text-decoration:none;flex:none}
 .sidebar-item .ico{flex:none;width:20px;height:20px}
 .sidebar-item span{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-item:hover{background:rgba(255,255,255,.06)}
 .sidebar-item[aria-current="page"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:transparent}
 .sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
-/* "Universos em destaque": mostra de 3 a 5 conforme a altura da tela
-   (item C) — a lista some item a item antes de precisar rolar. */
-.sidebar-featured{display:flex;flex-direction:column}
-.sidebar-uni-list{display:flex;flex-direction:column;gap:2px}
-.sidebar-uni-item{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:11px;text-decoration:none;color:#fff}
+/* "Universos em destaque" (item 4, rodada 5): mostra de 3 a 5 itens,
+   medido de verdade por fitSidebarFeatured()/ResizeObserver (app-main.js)
+   — o item que não cabe ganha o atributo hidden, nunca rolagem. */
+.sidebar-featured{display:flex;flex-direction:column;flex:none}
+.sidebar-uni-list{display:flex;flex-direction:column;gap:1px}
+.sidebar-uni-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;text-decoration:none;color:#fff}
 .sidebar-uni-item:hover{background:rgba(255,255,255,.06)}
 .sidebar-uni-item[aria-current="page"]{background:transparent;outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px}
-.sidebar-uni-dot{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
+.sidebar-uni-dot{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.02em}
 .sidebar-uni-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sidebar-uni-list>li:nth-child(4){display:none}
-.sidebar-uni-list>li:nth-child(5){display:none}
-@media(min-height:760px){.sidebar-uni-list>li:nth-child(4){display:block}}
-@media(min-height:860px){.sidebar-uni-list>li:nth-child(5){display:block}}
 .sidebar-footer{margin-top:auto;display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:12px;background:var(--glass-3);text-decoration:none;color:#fff;flex:none}
 .sidebar-footer .ico{flex:none}
 .sidebar-footer-info{display:flex;flex-direction:column;min-width:0}

@@ -374,18 +374,28 @@ invSet=function(ref,patch){_origInvSet(ref,patch);refreshSaveButtons()};
 const sidebarDrawerBtn=document.getElementById('sidebarDrawerBtn');
 const sidebarDrawer=document.getElementById('sidebarDrawer');
 const sidebarDrawerOverlay=document.getElementById('sidebarDrawerOverlay');
+const appSidebar=document.getElementById('appSidebar');
 // Aberta (252px) na home/universo/plataforma; recolhida (72px, só ícones,
 // expande por cima do conteúdo no hover — via CSS, não JS) na busca, na
 // ficha do jogo e em qualquer tela <1280px; <900px some e vira gaveta.
+// Item 4 (rodada 5): a largura decide sozinha — sem recolher por página
+// (busca/jogo não forçam mais o modo ícone). ≥1100px aberta, 900–1100px
+// recolhida (expande por cima no hover), <900px vira gaveta.
 function syncSidebarMode(){
-  const {path}=parseHash();
   const width=document.documentElement.clientWidth;
   const hidden=width<900;
-  const forceCollapse=width<1280||path.startsWith('/busca')||path.startsWith('/jogo/');
+  const forceCollapse=width<1100;
   document.body.classList.toggle('sidebar-hidden',hidden);
   document.body.classList.toggle('sidebar-collapsed',!hidden&&forceCollapse);
 }
 window.addEventListener('resize',syncSidebarMode);
+// Item 4 (rodada 5): reajusta quantos universos em destaque cabem sempre
+// que a barra muda de altura de verdade (resize da janela) — não só no
+// primeiro render.
+if('ResizeObserver' in window){
+  const sidebarResizeObserver=new ResizeObserver(()=>fitAllSidebars());
+  [appSidebar,sidebarDrawer].forEach(el=>{if(el)sidebarResizeObserver.observe(el)});
+}
 function openSidebarDrawer(){
   if(!sidebarDrawer||!sidebarDrawerOverlay)return;
   sidebarDrawer.hidden=false;sidebarDrawerOverlay.hidden=false;
