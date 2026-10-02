@@ -355,8 +355,8 @@ const igdbVisualMemo=new Map();
 // resolvida pra cada jogo — o banner de universo na busca só mostra
 // imagem se já tiver passado por aqui (nunca dispara pedido novo).
 const heroImageCache=new Map();
-async function fetchIgdbVisual(title,platform='',year='',heroRatio=''){
-  const key=[title,platform,year,heroRatio].join('|');
+async function fetchIgdbVisual(title,platform='',year='',heroRatio='',heroW=0){
+  const key=[title,platform,year,heroRatio,heroW].join('|');
   if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
 
   const p=(async()=>{
@@ -365,6 +365,7 @@ async function fetchIgdbVisual(title,platform='',year='',heroRatio=''){
       if(platform)qs.set('platform',platform);
       if(year)qs.set('year',year);
       if(heroRatio)qs.set('ratio',heroRatio);
+      if(heroW)qs.set('heroW',String(Math.round(heroW)));
       const r=await fetch('/api/igdb/game?'+qs.toString(),{headers:{Accept:'application/json'}});
       if(!r.ok)return null;
       const d=await r.json();
@@ -387,9 +388,12 @@ function setCoverImage(el,title,platform,url){
   el.innerHTML=coverTile(title,{platform,image:url});
 }
 async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector=''}) {
-  const d=await fetchIgdbVisual(title,platform,year);
-  if(!d)return;
   const hero=document.querySelector(heroSelector);
+  // Item 2.2: largura renderizada de verdade do hero, pro back-end exigir
+  // >= 1.2x dela na arte (evita logo pixelado esticado — ver pickHero()).
+  const heroW=hero?hero.getBoundingClientRect().width:0;
+  const d=await fetchIgdbVisual(title,platform,year,'',heroW);
+  if(!d)return;
   if(hero&&d.hero?.url){setHeroBackground(hero,d.hero.url);updateAmbientBg(d.hero.url,document.documentElement.dataset.theme==='game')}
   if(coverSelector&&d.cover?.url){
     const cover=document.querySelector(coverSelector);
@@ -592,7 +596,7 @@ function renderProduct(slug,params,token){
 
 /* ---------- comparação de ofertas em página completa ---------- */
 function digitalOfferCards(p,platform,stores){
-  return stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-dark" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join('');
+  return stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join('');
 }
 function comparisonSpinnerOff(){const el=document.querySelector('.compare-spinner');if(el)el.style.display='none'}
 function comparisonHref(p,platform,cond){
@@ -604,7 +608,7 @@ function comparisonOfferCard(o){
     <div class="compare-source"><b>${esc(o.source||'Loja')}</b>${o.mock?mockChip():retailChip(o.retailKind||(o.source==='Mercado Livre'?'varejo':''))}<span>${esc(o.condition||'')}${o.location?` · ${esc(o.location)}`:o.sellerName?` · ${esc(o.sellerName)}`:''}</span></div>
     <div class="compare-listing">${img!=='#'?`<img src="${esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span class="compare-thumb-empty">${ico('bag',20)}</span>`}<div><strong>${esc(o.title||'Oferta compatível')}</strong><small>${o.shippingIncluded?'Frete grátis informado pela fonte':'Frete e taxas podem variar'}</small></div></div>
     <div class="compare-price"><span>Preço anunciado</span><b>${esc(o.displayPrice||'Consultar')}</b>${o.originalDisplayPrice&&o.originalDisplayPrice!==o.displayPrice?`<del>${esc(o.originalDisplayPrice)}</del>`:''}</div>
-    <a class="btn btn-dark" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a>
+    <a class="btn btn-primary" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a>
   </article>`;
 }
 async function hydrateComparisonDetails(p,platform){
@@ -638,11 +642,15 @@ async function renderOfferComparison(slug,params,token){
   const digitalAvailable=p.digital===true||hasDigital(p,platform);
   setTitle(`Ofertas de ${p.title}`);
   main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/jogo/${p.slug}?plat=${enc(platform)}">${esc(p.title)}</a> › <span>Ofertas</span></nav>
-  <div class="compare-heading"><div><h1>${esc(p.title)}</h1><p>Preços em BRL · confira condição, frete e detalhes antes de comprar.</p></div><a class="btn btn-ghost" href="#/jogo/${p.slug}?plat=${enc(platform)}">← Voltar ao jogo</a></div>
+  <div class="compare-heading">
+    <a class="compare-back" href="#/jogo/${p.slug}?plat=${enc(platform)}">← Voltar ao jogo</a>
+    <h1>${esc(p.title)}</h1>
+    <p>Preços em BRL · confira condição, frete e detalhes antes de comprar.</p>
+  </div>
   <div class="compare-filterbar"><div><span>Plataforma</span>${platforms.map(x=>`<a href="${comparisonHref(p,x,cond)}" aria-current="${x===platform}">${esc(x)}</a>`).join('')}</div><div><span>Formato</span><a href="${comparisonHref(p,platform,'all')}" aria-current="${cond==='all'}">Todos</a><a href="${comparisonHref(p,platform,'new')}" aria-current="${cond==='new'}">Novo</a><a href="${comparisonHref(p,platform,'used')}" aria-current="${cond==='used'}">Usado</a>${digitalAvailable?`<a href="${comparisonHref(p,platform,'digital')}" aria-current="${cond==='digital'}">Digital</a>`:''}</div></div>
   <div class="compare-layout">
     <section class="compare-results" aria-labelledby="compare-results-title"><div class="compare-results-head"><div><h2 id="compare-results-title">${esc(condText)} · ${esc(platform)}</h2><p id="compareStatus">Verificando preços e disponibilidade…</p></div><span class="compare-spinner" aria-hidden="true"></span></div><div id="comparisonOffers" class="compare-offers"><div class="compare-loading"><span></span><span></span><span></span></div></div></section>
-    <aside class="compare-game-card"><span class="eyebrow">DETALHES DO JOGO</span><div id="comparisonCover" class="compare-cover">${coverTile(p.title,{platform})}</div><h2>${esc(p.title)}</h2><dl><div><dt>Lançamento</dt><dd id="comparisonYear">${esc(p.year||'—')}</dd></div><div><dt>Plataforma</dt><dd>${esc(platform)}</dd></div><div><dt>Condição buscada</dt><dd>${esc(condText)}</dd></div><div class="compare-detail-row" hidden><dt>Estúdio / publicadora</dt><dd id="comparisonStudio"></dd></div></dl><p id="comparisonSummary" class="compare-summary">A sinopse será carregada com os dados do catálogo IGDB.</p>${p.universe?`<a href="#/universo/${p.universe}">Ver universo ${esc(p.franchise)} →</a>`:''}</aside>
+    <aside class="compare-game-card"><div id="comparisonCover" class="compare-cover">${coverTile(p.title,{platform})}</div><h2>${esc(p.title)}</h2><dl><div><dt>Lançamento</dt><dd id="comparisonYear">${esc(p.year||'—')}</dd></div><div><dt>Plataforma</dt><dd>${esc(platform)}</dd></div><div><dt>Condição buscada</dt><dd>${esc(condText)}</dd></div><div class="compare-detail-row" hidden><dt>Estúdio / publicadora</dt><dd id="comparisonStudio"></dd></div></dl><p id="comparisonSummary" class="compare-summary">A sinopse será carregada com os dados do catálogo IGDB.</p>${p.universe?`<a href="#/universo/${p.universe}">Ver universo ${esc(p.franchise)} →</a>`:''}</aside>
   </div>`;
   hydrateComparisonDetails(p,platform);
   const offers=$('#comparisonOffers'),status=$('#compareStatus');
@@ -673,7 +681,7 @@ async function renderOfferComparison(slug,params,token){
     if(token!==viewToken)return;
     status.textContent=stores.length?`${stores.length} ${stores.length===1?'loja':'lojas'} · preço e disponibilidade na própria loja`:'Consulte as lojas';
     comparisonSpinnerOff();
-    offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-dark" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
     return;
   }
   const res=await fetchCond(p.title,platform,cond);
@@ -765,7 +773,8 @@ function hydrateUniverseHero(root,token){
     // artworks do jogo, que a API hoje não devolve (só a escolhida pelo
     // back-end) — listado como pendência.
     const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
-    const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO))?.hero?.url;
+    const heroW=el.getBoundingClientRect().width;
+    const src=override?.url||(await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW))?.hero?.url;
     if(token!==viewToken||!el.isConnected)return;
     if(!src)return;
     if(el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
@@ -1005,7 +1014,7 @@ function renderTheme(slug){
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/em-alta">Em alta</a> › <span>${esc(t.short)}</span></nav>
   ${gameHeroMarkup({title:t.title,kicker:sentence(t.tag),copy:t.copy,image:heroImage,artLabel:'KEY ART / WALLPAPER OFICIAL',actions:heroActions})}
-  <p class="fine visual-demo-warning">REFERÊNCIA VISUAL · Imagens, disponibilidade e preços demonstrativos continuam identificados até a conexão das fontes oficiais.</p>
+  <p class="fine visual-demo-warning">Referência visual · imagens, disponibilidade e preços demonstrativos continuam identificados até a conexão das fontes oficiais.</p>
   <div class="game-commerce-grid">
     <article class="purchase-module" id="comprar-jogo">
       <div class="purchase-cover">${coverTile(t.title,{platform:cfg.platform,image:coverImage})}</div>
