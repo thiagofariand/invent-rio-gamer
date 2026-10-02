@@ -65,6 +65,10 @@ const SHOW_BREADCRUMB=false;
 // Fase 6: fundo ambiente (camada fixa atrás de tudo, reaproveitando a arte
 // do hero já carregada, sem pedido novo) — opcional, desligado por padrão.
 const AMBIENT_BG=false;
+// Pacote único, item 4.3: selo "Exclusivo" (franquia com casa === a
+// plataforma da aba ativa) atrás de flag — desligado por padrão até
+// aprovação visual.
+const SHOW_EXCLUSIVE_BADGE=false;
 // Item 6 (rodada 5): override manual de hero por jogo (src/data/hero-overrides.json).
 let HERO_OVERRIDES={};
 try{
@@ -196,6 +200,27 @@ Object.entries(D.franchiseDirectory).forEach(([eco,arr])=>arr.forEach(n=>addUniv
 catalog.forEach(p=>{addUniverse(p.franchise,'Multi').hasCatalog=true});
 const ECO_LABEL={Nintendo:'Nintendo',PlayStation:'PlayStation',Multi:'Multiplataforma e retrô'};
 const titlesOf=slug=>catalog.filter(p=>p.universe===slug);
+
+// Pacote único, item 4.2: "casa" (franquia dona) só serve pra ordenar e pro
+// selo "Exclusivo" — a plataforma de verdade de uma franquia é derivada dos
+// jogos catalogados (nunca digitada à mão): u.plataformas é o conjunto de
+// ecossistemas de 1ª parte (nintendo/playstation/xbox) em que a franquia TEM
+// jogo no catálogo, lido de variants[][0] de cada título. SEGA (Sonic) e
+// qualquer outro eco fora dos três não conta pra esse conjunto — franquia
+// só com jogos fora dos três (ex. só SEGA) fica com plataformas:[] (listada
+// no resumo da rodada como "casa: multi sem jogo em console").
+const PLATFORM_ECO_KEY={Nintendo:'nintendo',PlayStation:'playstation',Xbox:'xbox'};
+(function derivePlataformas(){
+  const sets=new Map();
+  catalog.forEach(p=>{
+    const u=uMap.get(p.universe);
+    if(!u)return;
+    if(!sets.has(u.slug))sets.set(u.slug,new Set());
+    const set=sets.get(u.slug);
+    p.variants.forEach(v=>{const k=PLATFORM_ECO_KEY[v[0]];if(k)set.add(k)});
+  });
+  universes.forEach(u=>{u.plataformas=[...(sets.get(u.slug)||[])].sort()});
+})();
 
 const platIdx=D.platformAliases.map(p=>({platform:p.platform,aliases:p.aliases.map(norm).sort((a,b)=>b.length-a.length)}));
 function detectPlatform(q){const n=' '+norm(q)+' ';for(const p of platIdx)for(const a of p.aliases)if(n.includes(' '+a+' '))return p.platform;return null}

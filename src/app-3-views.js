@@ -131,7 +131,7 @@ function renderHome(){
   const featured=[
     [catalogBySlug.get('twilight-princess'),'Nintendo · usado'],
     [catalogBySlug.get('ragnarok'),'PlayStation · usado'],
-    [catalogBySlug.get('sonic-mania-plus'),'Multiplataforma'],
+    [catalogBySlug.get('sonic-mania-plus'),''],
     [catalogBySlug.get('resident-evil-4-remake')||catalogBySlug.get('resident-evil-4'),'PlayStation · novo']
   ].filter(([p])=>p);
   main.innerHTML=`
@@ -917,11 +917,27 @@ function universeInventoryPanel(u,titles){
     <ul class="uinv-list">${rows}</ul>
   </aside>`;
 }
+// Pacote único, item 4.4: contexto de plataforma vindo do diretório/página
+// de plataforma (#/universo/:slug?plat=nintendo|playstation|xbox) — filtra
+// a lista de jogos da franquia por essa plataforma; chips no topo com
+// "Todas" sempre disponível. Franquia continua única por slug (não cria
+// rota nova), só filtra o que já mostra.
+function platFilterGames(titles,plat){
+  if(!plat)return titles;
+  return titles.filter(p=>p.variants.some(v=>PLATFORM_ECO_KEY[v[0]]===plat));
+}
+function platFilterChipsMarkup(slug,tab,plat,plataformas){
+  if(!plataformas||!plataformas.length)return '';
+  const base=k=>{const p=new URLSearchParams();if(tab&&tab!=='tudo')p.set('tab',tab);if(k)p.set('plat',k);const s=p.toString();return `#/universo/${slug}`+(s?'?'+s:'')};
+  const opts=[['','Todas'],...plataformas.map(k=>[k,PLATFORM_LABEL[k]])];
+  return `<div class="plat-filter-chips" role="group" aria-label="Filtrar por plataforma">${opts.map(([k,l])=>`<a class="plat-filter-chip" href="${base(k)}" aria-current="${k===plat}">${esc(l)}</a>`).join('')}</div>`;
+}
 function renderUniverse(slug,params,token){
   const u=uMap.get(slug);
   if(!u)return renderNotFound();
   const tab=params.get('tab')||'tudo';
-  const titles=titlesOf(slug);
+  const platFilter=['nintendo','playstation','xbox'].includes(params.get('plat'))&&u.plataformas.includes(params.get('plat'))?params.get('plat'):'';
+  const titles=platFilterGames(titlesOf(slug),platFilter);
   const tabs=[['tudo','Tudo'],['games','Games'],['digital','Digital'],['colecionaveis','Colecionáveis'],['merch','Merch'],['fanmade','Fan-made']];
   const items=cat=>mockMerch()?M.items.filter(i=>i.universe===slug&&(!cat||i.cat===cat||(cat==='merch'&&(i.cat==='merch'||i.cat==='acessorios')))):[];
   setTitle(`Universo ${u.name}`);
@@ -929,8 +945,9 @@ function renderUniverse(slug,params,token){
   const owned=mine.filter(i=>i.status==='owned').length,want=mine.filter(i=>i.status==='wanted'||i.status==='saved').length;
   const emptyCatalog=`<div class="empty"><h2>O catálogo de ${esc(u.name)} ainda está sendo preenchido</h2><p>Enquanto isso, os atalhos abaixo levam à busca nas lojas.</p></div>`;
   let body='',featuredGames=[];
+  const platChips=(tab==='tudo'||tab==='games')?platFilterChipsMarkup(slug,tab,platFilter,u.plataformas):'';
   if(tab==='games'){
-    body=titles.length?`<div class="cards4">${titles.map(p=>gameCard(p)).join('')}</div>`:emptyCatalog+marketShortcuts(u.name);
+    body=platChips+(titles.length?`<div class="cards4">${titles.map(p=>gameCard(p)).join('')}</div>`:emptyCatalog+marketShortcuts(u.name));
   }else if(tab==='digital'){
     const dt=titles.filter(p=>p.variants.some(v=>hasDigital(p,v[1])));
     body=(dt.length?`<div class="cards4">${dt.map(p=>gameCard(p,{ctx:p.variants.filter(v=>hasDigital(p,v[1])).map(v=>v[1]).join(' · ')+' · digital'})).join('')}</div>`:'<div class="empty"><p>Nenhum título digital catalogado neste universo ainda.</p></div>')
@@ -942,7 +959,7 @@ function renderUniverse(slug,params,token){
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,12);
-    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div>${offerRowArrowsMarkup('uni-offers')}</div><div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:emptyCatalog)
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div>${offerRowArrowsMarkup('uni-offers')}</div>${platChips}<div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:platChips+emptyCatalog)
     +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
   }
   // Cores do universo (fundo/painel/ação) vêm dos tokens globais que
@@ -1086,7 +1103,7 @@ function gamesHubTrendPool(casaFilter){
 function renderGames(params){
   setTitle('Escolha sua plataforma');
   const casaFilter=(params&&params.get('casa'))||'';
-  const filterTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox'],['retro','Retrô'],['multi','Multi']];
+  const filterTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox'],['retro','Retrô']];
   const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('casa',k);const s=p.toString();return '#/games'+(s?'?'+s:'')};
   const pool=gamesHubTrendPool(casaFilter);
   main.innerHTML=`
@@ -1112,35 +1129,54 @@ function renderGames(params){
    Vidro fumê (item explícito da fase): fundo da página e cards no
    material de --glass-2/--glass-border, sem blur (blur só em header/
    sidebar/painéis grandes, nunca em card — regra geral das fases). */
-function universeDirectoryCard(u){
+// Pacote único, item 4.3: jogos catalogados de uma franquia DISPONÍVEIS
+// numa plataforma (console de 1ª parte) — conta pro selo de contagem da
+// aba e pro critério de ordenação; nunca inclui PC/SEGA/etc.
+function gamesOnPlatform(u,plat){
+  if(!plat)return titlesOf(u.slug).length;
+  return titlesOf(u.slug).filter(p=>p.variants.some(v=>PLATFORM_ECO_KEY[v[0]]===plat)).length;
+}
+function universeDirectoryCard(u,plat){
   const rep=representativeFranchiseGame(titlesOf(u.slug));
-  const plat=rep?.variants?.[0]?.[1]||'';
-  return `<a class="udir-card" href="#/universo/${u.slug}">
-    <div class="udir-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,plat):u.name)}" data-igdb-platform="${esc(plat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
+  const repPlat=rep?.variants?.[0]?.[1]||'';
+  const count=gamesOnPlatform(u,plat);
+  const exclusive=SHOW_EXCLUSIVE_BADGE&&plat&&u.casa===plat;
+  return `<a class="udir-card" href="#/universo/${u.slug}${plat?`?plat=${plat}`:''}">
+    <div class="udir-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,repPlat):u.name)}" data-igdb-platform="${esc(repPlat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
     <div class="udir-body">
-      <div class="udir-name">${esc(u.name)}</div>
-      <div class="udir-count">${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</div>
+      <div class="udir-name">${esc(u.name)}${exclusive?'<span class="udir-exclusive">Exclusivo</span>':''}</div>
+      <div class="udir-count">${count} ${count===1?'jogo':'jogos'}${plat?` no ${esc(PLATFORM_LABEL[plat])}`:''}</div>
     </div>
   </a>`;
 }
 function renderUniverses(params){
   setTitle('Universos');
   const q=norm(params.get('q')||'');
-  const casa=params.get('casa')||'';
-  // Universo só existe com 3+ jogos (regra do catálogo) — franquias de
-  // 1-2 jogos ficam de fora do diretório, igual já vale pro resto do site.
+  // Pacote único, item 4.1/4.3: "Multi" sai da UI como categoria navegável
+  // — casa continua existindo só pra ordenar e pro selo opcional
+  // "Exclusivo"; as abas agora filtram por DISPONIBILIDADE real
+  // (u.plataformas, derivado dos jogos catalogados), não por "casa".
+  const casa=['nintendo','playstation','xbox'].includes(params.get('casa'))?params.get('casa'):'';
   const list=universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
-    .filter(u=>!casa||u.casa===casa)
+    .filter(u=>!casa||u.plataformas.includes(casa))
     .filter(u=>!q||norm(u.name).includes(q))
-    .sort((a,b)=>a.name.localeCompare(b.name));
-  const casaTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox'],['multi','Multi']];
+    .sort((a,b)=>{
+      if(casa){
+        const aHome=a.casa===casa?0:1,bHome=b.casa===casa?0:1;
+        if(aHome!==bHome)return aHome-bHome;
+        const diff=gamesOnPlatform(b,casa)-gamesOnPlatform(a,casa);
+        if(diff)return diff;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  const casaTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox']];
   const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('casa',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
   main.innerHTML=`
   <h1 class="page-h">Universos</h1>
   <p class="lede">Explore franquias e encontre onde comprar cada jogo.</p>
   <div class="section-gap" style="margin-top:16px"><input id="uniSearchInput" type="search" class="select" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}" style="max-width:320px;width:100%"></div>
   <div class="tabs" role="tablist" style="margin-top:14px">${casaTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casa}">${esc(l)}</a>`).join('')}</div>
-  <div class="udir-grid" style="margin-top:16px">${list.map(universeDirectoryCard).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
+  <div class="udir-grid" style="margin-top:16px">${list.map(u=>universeDirectoryCard(u,casa)).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
   hydrateIgdbCovers(main,list.length);
   const searchEl=$('#uniSearchInput');
   searchEl?.addEventListener('input',()=>{
@@ -1155,9 +1191,19 @@ function renderUniverses(params){
    Hero da franquia mais forte da casa (mesmo componente do Universo) +
    painel com o logotipo; fileira de 4 ofertas; 3 CTAs; universos
    principais; link pra busca filtrada com todos os jogos da plataforma. */
+// Pacote único, item 4.3: a lista "Universos [plataforma]" filtra por
+// DISPONIBILIDADE (u.plataformas, derivado dos jogos catalogados), não por
+// "casa" — uma franquia multi com jogo nessa plataforma também aparece.
+// Ordem: casa === plataforma primeiro, depois por nº de jogos NESSA
+// plataforma (não o total da franquia).
 function platformUniverses(casa){
-  return universes.filter(u=>u.casa===casa&&u.hasCatalog&&titlesOf(u.slug).length)
-    .sort((a,b)=>titlesOf(b.slug).length-titlesOf(a.slug).length||a.name.localeCompare(b.name));
+  return universes.filter(u=>u.hasCatalog&&u.plataformas.includes(casa))
+    .sort((a,b)=>{
+      const aHome=a.casa===casa?0:1,bHome=b.casa===casa?0:1;
+      if(aHome!==bHome)return aHome-bHome;
+      const diff=gamesOnPlatform(b,casa)-gamesOnPlatform(a,casa);
+      return diff||a.name.localeCompare(b.name);
+    });
 }
 function renderPlatform(slug,params,token){
   const label=PLATFORM_LABEL[slug];
@@ -1194,7 +1240,7 @@ function renderPlatform(slug,params,token){
       </div>
       ${unis.length?`<div class="platform-uni-panel">
         <h2>Universos ${esc(label)}</h2>
-        <ul class="platform-uni-list">${unis.slice(0,6).map(u=>`<li><a class="platform-uni-row" href="#/universo/${u.slug}"><span class="platform-uni-dot">${esc(u.sigla)}</span><span class="platform-uni-info"><b>${esc(u.name)}</b><small>${titlesOf(u.slug).length} ${titlesOf(u.slug).length===1?'jogo':'jogos'}</small></span></a></li>`).join('')}</ul>
+        <ul class="platform-uni-list">${unis.slice(0,6).map(u=>{const n=gamesOnPlatform(u,slug);return `<li><a class="platform-uni-row" href="#/universo/${u.slug}?plat=${slug}"><span class="platform-uni-dot">${esc(u.sigla)}</span><span class="platform-uni-info"><b>${esc(u.name)}</b><small>${n} ${n===1?'jogo':'jogos'} no ${esc(label)}</small></span></a></li>`}).join('')}</ul>
         <a class="sidebar-see-all" href="#/universos?casa=${slug}">Ver todos →</a>
       </div>`:''}
     </aside>
@@ -1276,14 +1322,16 @@ function ecoPlatforms(eco){
 }
 // Destino único de navegação por slug (header, sidebar, hub etc.). Fase 5:
 // nintendo/playstation/xbox agora vão pra própria página de plataforma
-// (antes caíam na busca filtrada). Retrô/Multiplataforma ainda não têm
-// rota própria — continuam na busca filtrada equivalente.
+// (antes caíam na busca filtrada). Retrô ainda não tem rota própria —
+// continua na busca filtrada equivalente. Pacote único, item 4.1: "Multi"
+// sai da UI como categoria — #/multiplataforma (link antigo, se alguém
+// tiver salvo) redireciona pro diretório de universos.
 function goNav(slug){
   if(PLATFORM_LABEL[slug])return `#/plataforma/${slug}`;
   const routes={
     universos:'#/universos',
     retro:'#/busca?retro=1',
-    multiplataforma:'#/busca',
+    multiplataforma:'#/universos',
     'em-alta':'#/em-alta',
     ofertas:'#/busca?cond=usado',
     merch:'#/merch'
@@ -1329,7 +1377,6 @@ function sidebarContent(){
       </div>
       <div class="sidebar-group">
         ${sidebarItem('retro','Retrô','retro')}
-        ${sidebarItem('multiplataforma','Multiplataforma','cube')}
         ${sidebarItem('merch','Colecionáveis','bag')}
       </div>
     </nav>

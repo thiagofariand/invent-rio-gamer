@@ -120,6 +120,9 @@ function route(){
   updateAmbientBg(null,pageTheme==='game');
   syncThemeColorMeta();
   navActive(path);
+  // Pacote único, item 4.1: #/multiplataforma (rota antiga, link salvo por
+  // alguém) redireciona pro diretório — "Multi" não é mais categoria própria.
+  if(path==='/multiplataforma'){location.replace('#/universos');return}
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
   else if(path.startsWith('/jogo/'))renderProduct(path.slice(6),params,token);

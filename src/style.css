@@ -1876,6 +1876,13 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .sidebar-see-all{display:block;margin-top:6px;padding:6px 10px;color:rgba(255,255,255,.65);font-size:12.5px;font-weight:600;text-decoration:none}
 .sidebar-see-all:hover{color:#fff}
 
+/* Pacote único, item 4.3/4.4 */
+.udir-exclusive{margin-left:8px;font-size:11px;font-weight:600;color:var(--text-2);text-transform:none;letter-spacing:0}
+.plat-filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.plat-filter-chip{padding:6px 14px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-2);font-size:13px;font-weight:600;text-decoration:none}
+.plat-filter-chip:hover{background:rgba(255,255,255,.14);color:var(--text-1)}
+.plat-filter-chip[aria-current="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
+
 /* ============================================================
    FASE 5 / RODADA 5 ITEM 6 — PÁGINA DA PLATAFORMA (2 colunas)
    Principal (hero + 4 ofertas + 3 CTAs) + coluna direita 320px (cartão
