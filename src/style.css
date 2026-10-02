@@ -210,7 +210,12 @@ main:focus-visible{outline:none}
 .trend-row h2{font-size:18px;line-height:1.2}
 .trend-row p{color:var(--muted);font-size:14px;margin-top:4px;max-width:62ch}
 .trend-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-select.select{border:1px solid var(--line-strong);background:var(--white);border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;max-width:100%}
+/* Pacote único, item 3.2: ".select" também é usada em <input> (campo
+   "Buscar universo..." do diretório) — o seletor "select.select" só batia
+   no <select> de verdade (Meu Inventário/Colecionáveis), deixando o input
+   sem nenhum estilo, no branco padrão do navegador. */
+.select{border:1px solid var(--line-strong);background:var(--white);border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;max-width:100%;color:var(--ink)}
+.select::placeholder{color:var(--muted)}
 
 /* ---------- Meu Inventário ---------- */
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 6px}
@@ -1935,6 +1940,36 @@ body.dark-surface-route .save-btn{background:var(--glass-3);border-color:var(--g
 body.dark-surface-route .save-btn.on{background:rgba(230,66,54,.18);border-color:rgba(230,66,54,.5);color:#fff}
 body.dark-surface-route .site-footer{background:var(--page-bg);border-color:var(--glass-border);color:var(--text-2)}
 body.dark-surface-route .site-footer .footer-inner button{color:var(--text-1)}
+/* Pacote único, item 3.2: qualquer input/select do site em vidro --glass-3,
+   nunca fundo branco/padrão do navegador. */
+body.dark-surface-route .select{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:var(--text-1)}
+body.dark-surface-route .select::placeholder{color:var(--text-2)}
+body.dark-surface-route .price-inputs input{background:var(--glass-3);border:1px solid var(--glass-border);border-radius:14px;color:var(--text-1)}
+body.dark-surface-route .price-inputs input::placeholder{color:var(--text-2)}
+input[type="search"].select{
+  padding-left:38px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b8afa3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center;
+}
+body.dark-surface-route input[type="search"].select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-opacity='.55' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
+}
+
+/* Pacote único, item 3.1: abas (diretório, universo, inventário) sem
+   contorno nem pílula — inativa var(--text-2), ativa var(--text-1) + um
+   sublinhado reto de 2px em var(--action). O sublinhado antigo dependia de
+   dois border-bottom competindo (o do .tabs e o do .tab ativo), que em
+   telas com densidade de pixel fracionária deixava um pedacinho da linha
+   cinza aparecendo do lado do vermelho ("contorno cortado"); a linha do
+   container também existia dentro de um overflow-x:auto, que por spec do
+   CSS vira overflow-y:auto implícito e pode recortar 1px de borda. Trocado
+   por ::after absoluto, dentro do próprio quadro do item (nunca escapa do
+   .tab, nunca disputa pixel com a linha do container). */
+.tabs{border-bottom:0;box-shadow:0 1px 0 var(--glass-border,var(--line))}
+.tab{position:relative;color:var(--text-2,var(--muted));border-bottom:0}
+.tab:hover{color:var(--text-1,var(--ink))}
+.tab[aria-current="true"]{color:var(--text-1,var(--ink));border-bottom:0}
+.tab[aria-current="true"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--action,var(--red))}
 
 /* ============================================================
    RODADA 5, ITEM 1 — botões e selos ilegíveis em cima do vidro fumê
@@ -1943,6 +1978,17 @@ body.dark-surface-route .site-footer .footer-inner button{color:var(--text-1)}
    ou cinza-sobre-escuro).
    ============================================================ */
 body.dark-surface-route .mock-chip{background:rgba(255,255,255,.12);color:var(--text-2);border:1px solid var(--glass-border);font-size:10px;letter-spacing:.06em;font-weight:700}
+/* Pacote único, item 3.4: rótulos Usado/Novo/Digital (.chip, nas linhas de
+   resultado da busca) tinham fundo/borda/texto fixos (#F1F2F3/#DDE0E4/
+   #555D68, "marketplace familiar") que ignoravam o tema — mesmo
+   tratamento do selo EXEMPLO. */
+body.dark-surface-route .chip{background:rgba(255,255,255,.12);color:var(--text-2);border:1px solid var(--glass-border);font-size:10px;letter-spacing:.06em}
+body.dark-surface-route .chip.soft{background:var(--glass-3);color:var(--text-1);border-color:var(--glass-border)}
+/* Item 3.3: capas (cards, linhas de resultado, ficha do jogo) sem a borda
+   branca de 1px — rgba(255,255,255,.12) fixo, nunca var(--line) sozinho
+   (que no tema neutral já é bem próximo disso, mas noutros temas herdava
+   --glass-border no valor padrão .10, mais apagado que o pedido). */
+body.dark-surface-route .cover,body.dark-surface-route .cover.has-image{border-color:rgba(255,255,255,.12)}
 body.dark-surface-route .btn-ghost{background:var(--glass-3);border-color:var(--glass-border);color:var(--text-1)}
 body.dark-surface-route .btn-ghost:hover{background:rgba(255,255,255,.14)}
 body.dark-surface-route .btn-primary{background:var(--action);color:var(--on-action);border-color:transparent}
