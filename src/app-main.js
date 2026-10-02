@@ -265,6 +265,28 @@ function collectFilterParams(scope){
 }
 function applyParams(params){params.delete('n');location.hash='#/busca?'+params.toString()}
 
+/* ---------- item 7 (rodada 5): dropdowns da barra de filtros (desktop) ---------- */
+function closeAllFdrops(){
+  $$('.fdrop.is-open').forEach(d=>{d.classList.remove('is-open');d.querySelector('.fdrop-btn')?.setAttribute('aria-expanded','false')});
+}
+document.addEventListener('click',e=>{
+  const dropBtn=e.target.closest('.fdrop-btn');
+  if(dropBtn){
+    const drop=dropBtn.closest('.fdrop');
+    const wasOpen=drop.classList.contains('is-open');
+    closeAllFdrops();
+    if(!wasOpen){drop.classList.add('is-open');dropBtn.setAttribute('aria-expanded','true')}
+    return;
+  }
+  if(!e.target.closest('.fdrop-panel'))closeAllFdrops();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllFdrops()});
+document.addEventListener('input',e=>{
+  if(!e.target.matches('[data-dropdown-search]'))return;
+  const panel=e.target.closest('.fdrop-panel'),q=norm(e.target.value);
+  $$('.fdrop-options label',panel).forEach(l=>{l.hidden=!!q&&!norm(l.textContent).includes(q)});
+});
+
 /* ---------- ações delegadas (clique) ---------- */
 document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-act]');
@@ -311,6 +333,7 @@ document.addEventListener('click',e=>{
     location.hash='#/busca?'+p.toString();return;
   }
   if(act==='open-filters'){openFiltersDrawer();return}
+  if(act==='apply-pricebar'){applyParams(collectFilterParams('.filterbar'));return}
   if(act==='clear-inventory'){
     if(!invList().length)return;
     if(confirm('Limpar todo o seu Inventário deste aparelho? Essa ação não pode ser desfeita.')){inv.items={};saveInv();route();toast('Inventário limpo.')}
@@ -355,7 +378,7 @@ document.addEventListener('click',e=>{
   if(act==='close-overlay'&&closeId){closeOverlay(closeId);return}
 });
 document.addEventListener('change',e=>{
-  if(e.target.matches('[data-filter]'))applyParams(collectFilterParams('.filters'));
+  if(e.target.matches('[data-filter]'))applyParams(collectFilterParams('.filterbar'));
   if(e.target.matches('[data-act="pick-uni"]')){
     const p=new URLSearchParams(location.hash.split('?')[1]||'');
     if(e.target.value)p.set('uni',e.target.value);else p.delete('uni');

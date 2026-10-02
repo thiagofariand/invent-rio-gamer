@@ -63,7 +63,8 @@ function readFilters(params){
     conds:new Set(list('cond').map(c=>URL_COND[c]).filter(Boolean)),
     plats:new Set(list('plat')),
     min:num('min'),max:num('max'),
-    retro:params.get('retro')==='1'
+    retro:params.get('retro')==='1',
+    sort:params.get('sort')||'relevancia'
   };
 }
 const rowCat=r=>r.kind==='game'?'games':r.item.cat;

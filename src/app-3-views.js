@@ -158,6 +158,42 @@ function renderHome(){
 }
 
 /* ---------- busca e resultados ---------- */
+/* ---------- item 7 (rodada 5): barra de filtros horizontal (desktop) ----------
+   Reaproveita a mesma convenção data-filter/data-price de sempre — o
+   listener de "change" já escuta em .filters, então só muda o que tem
+   dentro, não como o estado é lido/aplicado. */
+function fdropCheckList(name,items,isOn,needsSearch){
+  const search=needsSearch?`<input type="search" class="fdrop-search" data-dropdown-search placeholder="Buscar...">`:'';
+  return `${search}<div class="fdrop-options">${items.map(([val,label])=>`<label><input type="checkbox" data-filter="${name}" data-value="${esc(val)}" ${isOn(val)?'checked':''}> <span>${esc(label)}</span></label>`).join('')}</div>`;
+}
+function fdrop(id,label,count,panelHtml){
+  return `<div class="fdrop" data-dropdown="${id}">
+    <button type="button" class="fdrop-btn" aria-expanded="false" aria-haspopup="true">${esc(label)}${count?` <span class="fdrop-count">${count}</span>`:''}<span class="fdrop-caret" aria-hidden="true">⌄</span></button>
+    <div class="fdrop-panel" role="group" aria-label="${esc(label)}">${panelHtml}</div>
+  </div>`;
+}
+function sortBarMarkup(sortKey){
+  const opts=[['relevancia','Relevância'],['preco-asc','Menor preço'],['preco-desc','Maior preço'],['az','A-Z']];
+  const hrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/busca?'+p.toString()};
+  const current=opts.find(([k])=>k===sortKey)||opts[0];
+  return fdrop('sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${opts.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===sortKey}">${esc(l)}</a>`).join('')}</div>`);
+}
+function filterBarMarkup(F,platforms){
+  const genreItems=GENRES.map(g=>[g.slug,g.label]);
+  const platItems=platforms.map(p=>[p,p]);
+  return `<div class="filterbar-row">
+    ${fdrop('plat','Plataforma',F.plats.size,platItems.length?fdropCheckList('plat',platItems,v=>F.plats.has(v),platItems.length>8)+`<label class="fdrop-extra"><input type="checkbox" data-filter="retro" data-value="1" ${F.retro?'checked':''}> <span>Só retrô</span></label>`:'<p class="fine">Sem plataformas nesta busca.</p>')}
+    ${fdrop('cat','Categoria',F.cats.size,fdropCheckList('cat',CATS,v=>F.cats.has(v),CATS.length>8))}
+    ${fdrop('genre','Gênero',F.genres.size,fdropCheckList('genre',genreItems,v=>F.genres.has(v),genreItems.length>8))}
+    ${fdrop('cond','Condição',F.conds.size,fdropCheckList('cond',[['usado','Usado'],['novo','Novo'],['digital','Digital']],v=>F.conds.has(URL_COND[v]),false))}
+    ${fdrop('price','Preço',(F.min!=null||F.max!=null)?1:0,`<div class="price-inputs">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-price="min" value="${F.min??''}">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-price="max" value="${F.max??''}"></div>
+      <button type="button" class="btn btn-primary btn-sm btn-block" data-act="apply-pricebar" style="margin-top:10px">Aplicar</button>`)}
+    <div class="filterbar-spacer"></div>
+    ${sortBarMarkup(F.sort)}
+  </div>`;
+}
 function filtersMarkup(F,platforms,prefix){
   const chk=(name,val,label,on)=>`<label><input type="checkbox" data-filter="${name}" data-value="${esc(val)}" ${on?'checked':''}> <span>${esc(label)}</span></label>`;
   return `
@@ -170,6 +206,22 @@ function filtersMarkup(F,platforms,prefix){
     <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-price="min" value="${F.min??''}">
     <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-price="max" value="${F.max??''}"></div>
     <p class="fine" style="margin-top:6px">Considera só os preços já consultados.</p></div>`;
+}
+// Item 7 (rodada 5): "Ordenar por" — só usa preço já em cache (mesma regra
+// de sempre, "considera só os preços já consultados"); sem dado, fica no
+// fim do critério de preço (nunca derruba o resultado, só não prioriza).
+function rowSortPrice(r){
+  if(r.kind==='merch')return Number.isFinite(r.item.price)?r.item.price:Infinity;
+  let min=Infinity;
+  ['used','new'].forEach(c=>{const s=summaryOf(c,r.p.title,r.platform);if(s&&s.min!=null)min=Math.min(min,s.min)});
+  return min;
+}
+function rowTitle(r){return r.kind==='merch'?r.item.title:r.p.title}
+function sortRows(rows,sort){
+  if(sort==='preco-asc')rows.sort((a,b)=>rowSortPrice(a)-rowSortPrice(b));
+  else if(sort==='preco-desc')rows.sort((a,b)=>rowSortPrice(b)-rowSortPrice(a));
+  else if(sort==='az')rows.sort((a,b)=>rowTitle(a).localeCompare(rowTitle(b)));
+  return rows;
 }
 function activeChips(F){
   const chips=[];
@@ -191,6 +243,7 @@ function renderSearch(params,token){
   const rows=[...gameRows,...merchRows(raw)].sort((a,b)=>b.score-a.score);
   const platforms=[...new Set(gameRows.map(r=>r.platform))].sort();
   const filtered=applyFilters(rows,F);
+  sortRows(filtered,F.sort);
   const chips=activeChips(F);
   const n=Math.max(12,parseInt(params.get('n')||'12',10)||12);
   const visible=filtered.slice(0,n);
@@ -222,11 +275,9 @@ function renderSearch(params,token){
   main.innerHTML=`
   <div class="results-head"><div><h1 class="page-h">${heading}</h1><p class="fine" style="margin-top:4px">${filtered.length} ${filtered.length===1?'resultado':'resultados'} · preços sem frete; frete e taxas podem variar</p></div>
     <button class="btn btn-ghost filter-btn" data-act="open-filters">${ico('filter',16)} Filtrar${chips.length?` (${chips.length})`:''}</button></div>
-  ${chips.length?`<div class="chips-active">${chips.map(c=>`<button class="chip-x" data-act="rm-filter" data-k="${c[0]}" data-v="${esc(c[1])}" aria-label="Remover filtro ${esc(c[2])}">${esc(c[2])} ${ico('close',14)}</button>`).join('')}</div>`:''}
-  <div class="results">
-    <aside class="filters" aria-label="Filtros"><h2>Filtros</h2>${filtersMarkup(F,platforms,'s')}</aside>
-    <div>${body}</div>
-  </div>`;
+  <aside class="filterbar" aria-label="Filtros">${filterBarMarkup(F,platforms)}</aside>
+  ${chips.length?`<div class="chips-active">${chips.map(c=>`<button class="chip-x" data-act="rm-filter" data-k="${c[0]}" data-v="${esc(c[1])}" aria-label="Remover filtro ${esc(c[2])}">${esc(c[2])} ${ico('close',14)}</button>`).join('')}<button class="chip-x chip-x-clear" data-act="clear-filters">Limpar tudo</button></div>`:''}
+  <div class="results-full">${body}</div>`;
   const list=$('#rowList');
   if(list)autoloadPrices(visible,token,F);
   main._filtersHtml=filtersMarkup(F,platforms,'m');
