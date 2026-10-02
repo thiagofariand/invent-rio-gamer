@@ -80,14 +80,17 @@ function route(){
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
   const token=++viewToken;
   document.body.classList.toggle('inventory-route',path==='/inventario');
-  // Fase 6: vidro fumê também em home/busca/universos/plataforma — mesmo
-  // fundo/superfície das outras páginas já migradas.
+  // Item 5 (rodada 5): ficha do jogo e comparadora migram 100% pro vidro
+  // fumê também — cor base vem da paleta do universo do próprio jogo
+  // (sem universo, cai no bloco "padrao", igual ao resto do site).
   const platformSlug=path.startsWith('/plataforma/')?path.slice(12):null;
-  const isDarkSurface=path===''||path==='/'||path==='/busca'||path==='/universos'||!!platformSlug;
+  const gameSlug=path.startsWith('/jogo/')?path.slice(6):path.startsWith('/ofertas/')?path.slice(9):null;
+  const gameUniverse=gameSlug?uMap.get(catalogBySlug.get(gameSlug)?.universe):null;
+  const isDarkSurface=path===''||path==='/'||path==='/busca'||path==='/universos'||!!platformSlug||!!gameSlug;
   document.body.classList.toggle('dark-surface-route',isDarkSurface);
   const isUniverseHero=path.startsWith('/universo/')&&(params.get('tab')||'tudo')==='tudo';
   document.body.classList.toggle('universe-hero-route',isUniverseHero);
-  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?PLATFORM_CHROME[platformSlug]:null);
+  applyUniverseChrome(isUniverseHero?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?PLATFORM_CHROME[platformSlug]:gameSlug?paletteForUniverse(gameUniverse):null);
   updateAmbientBg(null);
   navActive(path);
   if(path==='/'||path==='')renderHome();

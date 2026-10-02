@@ -273,7 +273,7 @@ async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game
   const d=await fetchIgdbVisual(title,platform,year);
   if(!d)return;
   const hero=document.querySelector(heroSelector);
-  if(hero&&d.hero?.url)setHeroBackground(hero,d.hero.url);
+  if(hero&&d.hero?.url){setHeroBackground(hero,d.hero.url);updateAmbientBg(d.hero.url)}
   if(coverSelector&&d.cover?.url){
     const cover=document.querySelector(coverSelector);
     setCoverImage(cover,title,platform,d.cover.url);

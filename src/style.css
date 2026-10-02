@@ -1929,6 +1929,30 @@ body.dark-surface-route .btn-primary:hover{filter:brightness(1.08)}
 body.dark-surface-route .purchase-condition{color:var(--text-2)}
 body.dark-surface-route .purchase-row-arrow{color:var(--text-2)}
 
+/* ============================================================
+   RODADA 5, ITEM 5 — ficha do jogo e comparadora 100% em tokens
+   (nenhum bege). Card de compra e linhas de oferta em --glass-2, sem
+   blur (blur só na camada de fundo ambiente, nunca em card).
+   ============================================================ */
+body.dark-surface-route .purchase-module{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
+body.dark-surface-route .purchase-title-row{border-bottom-color:var(--glass-border)}
+body.dark-surface-route .purchase-media-group{background:rgba(255,255,255,.05);border-color:var(--glass-border)}
+body.dark-surface-route .purchase-price-row{border-color:var(--glass-border)}
+body.dark-surface-route .plat-btn{background:var(--glass-3);border-color:var(--glass-border);color:var(--text-1)}
+body.dark-surface-route .plat-btn[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--action-on-glass);border-color:var(--action-on-glass)}
+body.dark-surface-route .compare-game-card,
+body.dark-surface-route .compare-results,
+body.dark-surface-route .compare-block .empty.compact{background:var(--glass-2);border-color:var(--glass-border)}
+body.dark-surface-route .compare-offers .o-thumb-empty,
+body.dark-surface-route .orow{border-color:var(--glass-border)}
+body.dark-surface-route .compare-filterbar{background:rgba(255,255,255,.05)}
+body.dark-surface-route .compare-filterbar span{color:var(--text-2)}
+body.dark-surface-route .compare-filterbar a{background:var(--glass-3);color:var(--text-1)}
+body.dark-surface-route .compare-filterbar a[aria-current="true"]{background:var(--action);color:var(--on-action)}
+body.dark-surface-route .compare-offer-card{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
+body.dark-surface-route .o-sub{color:var(--text-2)}
+body.dark-surface-route .o-price small{color:var(--text-2)}
+
 /* Fundo ambiente opcional (AMBIENT_BG em app-1-core.js) — mesma arte do
    hero, uma única vez, sem novo pedido de rede. Estático: sem parallax,
    sem scroll. Mobile/prefers-reduced-motion: sem blur ao vivo, cai em
