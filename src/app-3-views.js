@@ -41,10 +41,12 @@ function homeOfferCard(p,label){
   const platform=p.variants?.[0]?.[1]||'';
   const cached=bestUsed(p);
   const value=cached?.minDisplay||(mockOn()?demoPrice(p.title,'used'):null);
+  // Item 2 (rodada 5): sem sobretítulo — o rótulo era o único lugar da
+  // condição, então o preço nunca aparece sem ela ("Usado R$ X").
   return `<article class="lux-product-card">
     <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
-    <div class="lux-product-body"><span class="eyebrow">${esc(label)}</span><h3><a href="#/jogo/${p.slug}">${esc(p.title)}</a></h3><p>${esc(platform)}${p.year?` · ${p.year}`:''}</p>
-    ${value?`<strong>${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
+    <div class="lux-product-body"><h3><a href="#/jogo/${p.slug}">${esc(p.title)}</a></h3><p>${esc(platform)}${p.year?` · ${p.year}`:''}</p>
+    ${value?`<strong>Usado ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
   </article>`;
 }
 let homeHeroTimer=null,homeRenderId=0;
@@ -54,7 +56,7 @@ function homeFeatureMarkup(trends){
   return `<section class="home-feature" aria-label="Destaques em alta" data-home-carousel>
     ${items.map((t,i)=>`<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
       <div class="home-feature-art game-hero-art" data-home-hero-art data-home-hero-title="${esc(t.title)}" style="--hero-h:${hashStr(t.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(t.title))}</b><span>DESTAQUE EM ALTA</span></div></div>
-      <div class="home-feature-copy"><span class="eyebrow">${esc(sentence(t.tag||'Em alta'))}</span><h1 id="home-feature-title-${i}">${esc(t.title)}</h1><p>${esc(t.copy||'Um dos assuntos gamer em destaque agora.')}</p>
+      <div class="home-feature-copy">${norm(t.tag||'')==='pre venda'?`<span class="game-hero-kicker">PRÉ-VENDA</span>`:''}<h1 id="home-feature-title-${i}">${esc(t.title)}</h1><p>${esc(t.copy||'Um dos assuntos gamer em destaque agora.')}</p>
         <div class="home-feature-actions"><a class="btn btn-primary" href="${esc(homeTrendHref(t))}">Explorar agora</a><a class="btn btn-glass" href="#/em-alta">Ver tudo em alta</a></div>
       </div>
     </article>`).join('')}
@@ -134,13 +136,13 @@ function renderHome(){
   ].filter(([p])=>p);
   main.innerHTML=`
   ${homeFeatureMarkup(slides)}
-  ${top.length?`<div class="home-trending-cards" aria-label="Outros destaques">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><span class="eyebrow">${esc(sentence(t.tag))}</span><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>`:''}
+  ${top.length?`<div class="home-trending-cards" aria-label="Outros destaques">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>`:''}
 
   <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas em jogos</h2></div>${offerRowArrowsMarkup('home-offers')}<a href="#/busca?cond=usado">Ver todas →</a></div>
     <div class="home-offer-grid" data-offer-row="home-offers">${featured.map(([p,label])=>homeOfferCard(p,label)).join('')}</div>
   </section>
 
-  <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><span class="eyebrow">ALÉM DOS JOGOS</span><h2 id="home-merch-title">Complete o seu espaço gamer.</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
+  <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><h2 id="home-merch-title">Complete o seu espaço gamer.</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
     <div class="merch-home-grid">
       <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
       <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
