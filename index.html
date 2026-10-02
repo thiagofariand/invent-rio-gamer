@@ -27,11 +27,21 @@
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="#/" aria-label="Inventário Gamer — início">
-      <img class="brand-logo" src="/assets/inventario-logo-color-darkbg.png?v=Teste-Layout-Beta2" alt="Inventário Gamer">
+      <img class="brand-logo brand-logo-desktop" src="/assets/inventario-logo-color-darkbg.png?v=Teste-Layout-Beta2" alt="Inventário Gamer">
+      <!-- Pacote único, item 7.1: logo compacta pro cabeçalho de 1 linha do
+           mobile — mesmo arquivo, com o subtítulo "GAMES · COLECIONÁVEIS ·
+           OFERTAS" apagado por pixel (fica só a mochila + INVENTÁRIO GAMER),
+           já que é uma imagem única (não dá pra cortar o texto via CSS). -->
+      <img class="brand-logo brand-logo-mobile" src="/assets/inventario-logo-mobile-compact.png?v=Teste-Layout-Beta2" alt="Inventário Gamer">
     </a>
     <div class="search">
       <span class="s-ico" aria-hidden="true">⌕</span>
       <input id="searchInput" type="search" autocomplete="off" placeholder="Busque por games, franquias ou colecionáveis..." aria-label="Buscar games, franquias ou colecionáveis" aria-expanded="false" aria-controls="suggest" role="combobox" aria-autocomplete="list">
+      <!-- Pacote único, item 7.2: no mobile, a busca abre em tela cheia
+           reaproveitando este MESMO campo (reposicionado via CSS/JS quando
+           body.mobile-search-open) — sem duplicar a lógica de sugestões já
+           ligada em #searchInput/#suggest. Este botão só aparece nesse modo. -->
+      <button type="button" id="mobileSearchClose" class="mobile-search-close" aria-label="Fechar busca">✕</button>
       <div id="suggest" class="suggest" role="listbox" hidden></div>
     </div>
     <button id="searchGo" class="search-go" aria-label="Buscar">Buscar</button>
@@ -108,9 +118,22 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <nav class="mobile-bottom" aria-label="Navegação móvel">
-  <a href="#/"><b>⌂</b><span>Início</span></a>
-  <button type="button" data-mobile-search><b>⌕</b><span>Busca</span></button>
-  <a href="#/inventario"><b>▣</b><span>Inventário</span></a>
+  <a href="#/" data-mobile-tab="inicio">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg>
+    <span>Início</span>
+  </a>
+  <a href="#/universos" data-mobile-tab="universos">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+    <span>Universos</span>
+  </a>
+  <button type="button" data-mobile-search data-mobile-tab="busca">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+    <span>Busca</span>
+  </button>
+  <a href="#/inventario" data-mobile-tab="inventario">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="18" height="10" rx="2"/><path d="M3 10a9 9 0 0 1 18 0"/><path d="M10 14h4"/></svg>
+    <span>Inventário</span>
+  </a>
 </nav>
 
 <script src="/catalog-data.js?v=Teste-Layout-Beta2"></script>

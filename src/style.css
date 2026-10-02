@@ -1602,7 +1602,14 @@ html{overflow-x:hidden}
   .universe-feature-row{height:auto}
   .universe-hero{height:var(--hero-h)}
   .universe-hero .game-hero-copy{padding:0 20px 28px}
+  /* Pacote único, item 7.3: as setas do hero de universo/plataforma ficavam
+     fixas em top:20px (herdado do desktop) mesmo no mobile — bem em cima
+     do título na versão estreita. Descem pra base, ao lado dos
+     indicadores, 12px de vão entre eles. */
   .universe-hero .home-feature-controls{left:22px;bottom:18px}
+  .universe-hero .home-feature-nav{top:auto;bottom:6px}
+  .universe-hero .home-feature-nav.prev{left:110px;right:auto}
+  .universe-hero .home-feature-nav.next{left:152px;right:auto}
   .universe-hero-count{right:22px;bottom:22px}
   .universe-inventory-panel{height:var(--hero-h)}
 }
@@ -2194,3 +2201,117 @@ html[data-theme="neutral"] body.dark-surface-route{
    camada de keyart desfocada (#ambientBg/#ambientShade, ligada por force=true
    em updateAmbientBg() só neste tema). Superfícies em vidro escuro
    translúcido — mesmos tokens do :root, sem override aqui. */
+
+/* ============================================================
+   PACOTE ÚNICO, SEÇÃO 7 — MOBILE (<900px)
+   ============================================================ */
+@media(max-width:899px){
+  /* 7.1 — cabeçalho de uma linha só (56px): logo compacta + hambúrguer
+     (sidebar-drawer-btn já existe e já só aparece com body.sidebar-hidden,
+     que é automático <900px via syncSidebarMode() — não precisa de regra
+     nova pra isso). Sem busca nem "Meu Inventário" no topo. */
+  .header-inner{
+    height:56px;min-height:56px;padding:0 14px;gap:10px;
+    display:flex;align-items:center;flex-wrap:nowrap;
+  }
+  .brand{width:auto;max-width:60vw}
+  .brand-logo-desktop{display:none}
+  .brand-logo-mobile{display:block;height:30px;width:auto;object-fit:contain}
+  .search{display:none}
+  .main-nav{display:none}
+  .inv-link{display:none}
+  .site-header{padding-top:env(safe-area-inset-top)}
+  @supports(padding-top:env(safe-area-inset-top)){
+    .header-inner{height:calc(56px + env(safe-area-inset-top))}
+  }
+
+  /* Busca em tela cheia (item 7.2): quando aberta, o MESMO .search do
+     cabeçalho vira um overlay fixo cobrindo a tela — sem duplicar a
+     lógica de sugestões, que já está ligada em #searchInput/#suggest. */
+  body.mobile-search-open .search{
+    display:flex;position:fixed;inset:0;z-index:200;
+    background:var(--glass-overlay);padding:calc(14px + env(safe-area-inset-top)) 14px 14px;
+    align-items:flex-start;
+  }
+  body.mobile-search-open .search input{height:48px;font-size:16px}
+  /* .s-ico usa top:50% pensado pro .search de altura normal (44px) — aqui
+     .search virou a tela inteira, então 50% centralizaria no meio da
+     viewport. Realinha com o centro vertical da barra de busca (mesmo
+     padding-top do bloco acima + metade da altura do input). */
+  body.mobile-search-open .s-ico{top:calc(14px + env(safe-area-inset-top) + 24px);transform:translateY(-50%)}
+  .mobile-search-close{display:none}
+  body.mobile-search-open .mobile-search-close{
+    display:flex;position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top));
+    width:48px;height:48px;align-items:center;justify-content:center;
+    background:none;border:0;color:var(--text-1,#fff);font-size:18px;z-index:1;
+  }
+  body.mobile-search-open .suggest{position:fixed;left:14px;right:14px;top:calc(70px + env(safe-area-inset-top));max-height:calc(100vh - 90px - env(safe-area-inset-top))}
+
+  /* 7.2 — barra inferior: 4 itens, vidro opaco, ícone+rótulo 11px, ativo
+     em var(--action). Substitui por completo a versão antiga (3 itens,
+     texto ⌂⌕▣, fundo branco) — regra mais específica (classe .mobile-bottom
+     sozinha tem a mesma especificidade da versão antiga lá em cima, mas
+     esta vem depois no arquivo, então vence). */
+  .mobile-bottom{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    position:fixed;z-index:100;left:0;right:0;bottom:0;
+    height:calc(56px + env(safe-area-inset-bottom));
+    padding:0 4px env(safe-area-inset-bottom);
+    background:var(--glass-overlay);border-top:1px solid var(--glass-border);
+    backdrop-filter:var(--glass-overlay-blur);-webkit-backdrop-filter:var(--glass-overlay-blur);
+  }
+  @supports not (backdrop-filter:blur(1px)){.mobile-bottom{background:rgba(14,6,10,.97)}}
+  .mobile-bottom a,.mobile-bottom button{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border:0;background:none;text-decoration:none;color:var(--text-2,rgba(255,255,255,.65));
+    font-size:11px;font-weight:600;padding:4px;height:100%;
+  }
+  .mobile-bottom [aria-current="page"]{color:var(--action,var(--accent))}
+  body{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+
+  /* 7.3 — setas do hero da home na base, ao lado dos indicadores (já feito
+     na rodada 5 item 9 — .home-feature-nav já cai aqui sem regra extra). */
+
+  /* 7.4 — carrossel de ofertas: card com 78% da LARGURA DA TELA, vazando
+     até a borda direita (sem padding depois do último card — só cancela o
+     padding da página nas duas pontas e devolve só do lado esquerdo, pro
+     primeiro card continuar alinhado com o resto do conteúdo); scroll-
+     padding-left = essa mesma margem, pro snap parar alinhado; sem setas. */
+  .home-offer-grid,.universe-offer-grid{
+    margin-left:-12px;margin-right:-12px;
+    padding-left:12px;padding-right:0;
+    scroll-padding-left:12px;
+  }
+  .home-offer-grid>*,.universe-offer-grid>*{flex-basis:78vw}
+  .offer-row-arrows{display:none!important}
+
+  /* 7.3 (continuação) — em telas estreitas e altas (393px), o hero da home
+     a 480px de altura (valor herdado, não deste pacote) não tinha espaço
+     pros 90px de setas+indicadores reservados embaixo: com título em 2
+     linhas + parágrafo em 2 linhas + 2 botões empilhados, o conteúdo da
+     cópia passava de 560px e o excesso ficava cortado por baixo — foi
+     isso que, ao descer as setas pra base (regra acima), passou a jogá-las
+     em cima do botão "Explorar agora" em vez de abaixo dele. Aumentar a
+     altura mínima do hero (só <=899px) dá o espaço que faltava sem mexer
+     no padding-top artístico (reserva a área onde a key art focaliza). */
+  .home-feature,.home-feature-copy{min-height:580px}
+}
+
+/* 7.5 — botões primários em var(--action)/var(--on-action): já é o
+   comportamento padrão de .btn-primary (e body.dark-surface-route
+   .btn-primary); nenhuma regra de largura de tela sobrescrevia isso —
+   conferido em "Ver todos os jogos de {plataforma}" (#/plataforma/:slug)
+   e nos CTAs do hero, sem override a corrigir. */
+
+@media(max-width:620px){
+  /* 7.6 — banner "Conheça o universo" no mobile: arte ~40% da largura (a
+     altura de 96px já estava certa desde o pacote 1/seção 5). */
+  .universe-search-banner.has-image::after{
+    -webkit-mask-image:
+      linear-gradient(90deg,transparent 0%,#000 60%),
+      linear-gradient(180deg,transparent 0%,#000 10%,#000 90%,transparent 100%);
+    mask-image:
+      linear-gradient(90deg,transparent 0%,#000 60%),
+      linear-gradient(180deg,transparent 0%,#000 10%,#000 90%,transparent 100%);
+  }
+}

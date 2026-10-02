@@ -478,5 +478,36 @@ updateBadge();
 route();
 
 
-/* mobile: foco direto na busca */
-document.querySelector('[data-mobile-search]')?.addEventListener('click',()=>{window.scrollTo(0,0);searchInput.focus();});
+/* ---------- pacote único, item 7.2: busca em tela cheia no mobile ----------
+   Reaproveita o mesmo #searchInput/#suggest do cabeçalho (toda a lógica de
+   sugestões/teclado já ligada neles) — só muda a classe do body, que o CSS
+   usa pra tirar o campo do cabeçalho e cobrir a tela inteira. */
+const DESKTOP_SEARCH_PLACEHOLDER=searchInput.placeholder;
+const MOBILE_SEARCH_PLACEHOLDER='Buscar jogos, franquias…';
+function openMobileSearch(){
+  document.body.classList.add('mobile-search-open');
+  searchInput.placeholder=MOBILE_SEARCH_PLACEHOLDER;
+  searchInput.focus();
+}
+function closeMobileSearch(){
+  document.body.classList.remove('mobile-search-open');
+  searchInput.placeholder=DESKTOP_SEARCH_PLACEHOLDER;
+  closeSuggest();
+}
+document.querySelector('[data-mobile-search]')?.addEventListener('click',openMobileSearch);
+document.getElementById('mobileSearchClose')?.addEventListener('click',closeMobileSearch);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('mobile-search-open'))closeMobileSearch()});
+window.addEventListener('hashchange',closeMobileSearch);
+
+/* Destaca a aba ativa da barra inferior (mobile) conforme a rota. */
+function syncMobileBottomActive(){
+  const path=parseHash().path;
+  const map={'':'inicio','/':'inicio','/busca':'busca','/inventario':'inventario'};
+  let key=map[path]||(path.startsWith('/universo')||path==='/universos'?'universos':null);
+  document.querySelectorAll('.mobile-bottom [data-mobile-tab]').forEach(el=>{
+    if(el.dataset.mobileTab===key)el.setAttribute('aria-current','page');
+    else el.removeAttribute('aria-current');
+  });
+}
+window.addEventListener('hashchange',syncMobileBottomActive);
+syncMobileBottomActive();
