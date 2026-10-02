@@ -2365,3 +2365,99 @@ html[data-theme="neutral"] body.dark-surface-route{
   .game-hero-art.cover-fallback{filter:none;transform:scale(1)}
   .universe-hero-art.cover-fallback .uh-art-img{filter:none;transform:scale(1)}
 }
+
+/* ============================================================
+   PACOTE 2, SEÇÃO 2 — PÁGINA DO JOGO
+   ============================================================ */
+/* 2.1 — hero mais baixo (era ~420px), pílulas de disponibilidade +
+   pré-venda juntas no lugar da antiga "plataforma · ano". */
+.game-hero.product-hero{--hero-h:342px;min-height:var(--hero-h)}
+.game-hero.product-hero .game-hero-art{min-height:var(--hero-h)}
+.hero-pills-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.hero-pills-row .game-hero-kicker,.avail-pill{margin-bottom:0}
+.avail-pill{
+  display:inline-flex;align-items:center;min-height:24px;padding:4px 10px;
+  background:rgba(0,0,0,.4);color:var(--text-1,#fff);
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:999px;
+}
+
+/* 2.2 — card de compra horizontal (só .purchase-module.horizontal — o
+   .purchase-module "normal", sem a classe, continua servindo a página
+   /tema/ exatamente como antes). */
+.purchase-module.horizontal{
+  display:grid;grid-template-columns:150px 230px 1fr;gap:24px;align-items:start;
+  width:100%;min-height:236px;padding:18px;border-radius:18px;
+  background:var(--glass-2);border:1px solid var(--glass-border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.purchase-module.horizontal .purchase-cover{width:150px}
+.purchase-module.horizontal .purchase-cover .cover{width:150px;height:200px;aspect-ratio:auto}
+.purchase-platform-col{display:flex;flex-direction:column;gap:4px;min-width:0}
+.purchase-platform-col h2{font:500 22px/1.2 var(--font-ui);color:var(--text-1)}
+.purchase-platform-label{font-size:12px;color:var(--text-2);margin-bottom:4px}
+.purchase-platform-col .plat-row{margin-top:6px}
+/* chip selecionado: contorno sem preenchimento (item 2.2b) */
+.purchase-platform-col .plat-btn[aria-pressed="true"]{background:transparent;box-shadow:inset 0 0 0 1.5px var(--action-on-glass);border-color:var(--action-on-glass);color:var(--text-1)}
+
+.ppanel{display:grid;grid-template-columns:repeat(var(--ppanel-cols,3),1fr);grid-auto-rows:min-content;gap:12px;align-content:start}
+.ppanel-group{
+  grid-column:span var(--span,1);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-2);
+  padding-bottom:6px;border-bottom:1px solid var(--glass-border);text-transform:uppercase;
+}
+.ppanel-col{
+  position:relative;display:flex;flex-direction:column;gap:2px;min-height:150px;padding:14px;
+  border-radius:14px;background:var(--glass-3);text-decoration:none;color:var(--text-1);
+}
+.ppanel-col.is-empty{opacity:.5}
+.ppanel-cond{font-size:13px;font-weight:500}
+.ppanel-price-wrap{display:flex;flex-direction:column;gap:2px;margin-top:auto}
+.ppanel-from{font-size:12px;color:var(--text-2)}
+.ppanel-price{font-size:27px;font-weight:500;line-height:1.1;letter-spacing:-.01em}
+.ppanel-col .mock-chip{align-self:flex-start}
+.ppanel-arrow{
+  position:absolute;right:12px;bottom:12px;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:var(--action);color:var(--on-action);
+  font-weight:700;
+}
+.ppanel-col:hover{background:rgba(255,255,255,.12)}
+.ppanel-col.is-empty:hover{background:var(--glass-3)}
+.purchase-module-note{margin-top:10px}
+
+/* 2.3 — Colecionáveis/Fan-made: cards horizontais de 104px, lado a lado. */
+.collectible-row-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.collectible-row-card{
+  display:flex;align-items:center;gap:14px;height:104px;padding:0 16px;border-radius:16px;
+  background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;color:var(--text-1);
+}
+.crc-icon{
+  flex:none;width:72px;height:72px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;
+  background:linear-gradient(150deg,#8E2620,#B93A30);
+}
+.collectible-row-card.fanmade .crc-icon{background:linear-gradient(150deg,#153A5C,#205E8C)}
+.crc-body{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.crc-body b{font:500 18px/1.2 var(--font-ui)}
+.crc-copy{font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crc-cta{flex:none;color:var(--action-on-glass);font-weight:600;font-size:14px}
+
+/* 2.4 — contraste: setas/links secundários do card de compra. */
+.purchase-row-arrow,.ppanel-from{color:var(--text-2)}
+
+/* 2.5 — mobile: capa+plataforma na 1ª linha, preços em lista vertical,
+   merch empilhado com 96px. */
+@media(max-width:899px){
+  .purchase-module.horizontal{grid-template-columns:96px 1fr;grid-template-rows:auto auto;padding:14px;gap:14px 16px}
+  .purchase-module.horizontal .purchase-cover{width:96px}
+  .purchase-module.horizontal .purchase-cover .cover{width:96px;height:128px}
+  .ppanel{grid-column:1/-1;grid-template-columns:1fr;gap:8px}
+  .ppanel-group{display:none}
+  .ppanel-col{flex-direction:row;align-items:center;min-height:0;height:56px;gap:10px}
+  .ppanel-cond{flex:none;width:72px}
+  .ppanel-price-wrap{margin-left:auto;margin-top:0;display:flex;flex-direction:row;align-items:baseline;gap:6px}
+  .ppanel-price-wrap .ppanel-from{display:none}
+  .ppanel-from{margin-top:0}
+  .ppanel-price{font-size:20px}
+  .ppanel-arrow{position:static;width:26px;height:26px;flex:none}
+  .collectible-row-grid{grid-template-columns:1fr;gap:10px}
+  .collectible-row-card{height:96px}
+}

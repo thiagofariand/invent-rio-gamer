@@ -505,10 +505,14 @@ function heroVisual(title,{image=''}={}){
     ${src?'':`<div class="game-hero-placeholder"><b>${esc(initialsOf(title))}</b></div>`}
   </div>`;
 }
-function gameHeroMarkup({title,kicker='',copy='',image='',actions=''}) {
-  return `<section class="game-hero">
+// pillsHtml (pacote 2, item 2.1): HTML já pronto (pode ter mais de uma
+// pílula — disponibilidade + PRÉ-VENDA) — passa por cima de `kicker`
+// quando os dois vierem, já que kicker escapa a string (só serve pra
+// texto simples de uma pílula só, usado pelas páginas de universo/tema).
+function gameHeroMarkup({title,kicker='',copy='',image='',actions='',pillsHtml='',heroClass=''}) {
+  return `<section class="game-hero ${heroClass}">
     <div class="game-hero-copy">
-      ${kicker?`<span class="game-hero-kicker">${esc(kicker)}</span>`:''}
+      ${pillsHtml||(kicker?`<span class="game-hero-kicker">${esc(kicker)}</span>`:'')}
       <h1>${esc(title)}</h1>
       ${copy?`<p>${esc(copy)}</p>`:''}
       ${actions?`<div class="game-hero-actions">${actions}</div>`:''}
@@ -559,6 +563,88 @@ function purchaseOptionsMarkup(p,platform){
   }
   return blocks.join('');
 }
+
+// Pacote 2, item 2.1: pílula de disponibilidade da ficha do jogo —
+// deriva da família de console do PRÓPRIO jogo (variants), não da
+// franquia inteira. Campo opcional p.exclusivo (true|false|'nintendo'|
+// 'playstation'|'xbox') sobrepõe a regra automática quando precisar
+// corrigir um caso que o dado de catálogo não modela bem.
+function gameConsoleFamilies(p){
+  const set=new Set();
+  p.variants.forEach(v=>{const k=PLATFORM_ECO_KEY[v[0]];if(k)set.add(k)});
+  return set;
+}
+function availabilityPillLabel(p,u){
+  if(p.exclusivo===false)return null;
+  if(typeof p.exclusivo==='string')return `Exclusivo ${PLATFORM_LABEL[p.exclusivo]||p.exclusivo}`;
+  const families=gameConsoleFamilies(p);
+  if(p.exclusivo===true){
+    const only=[...families][0];
+    return only?`Exclusivo ${PLATFORM_LABEL[only]}`:null;
+  }
+  if(families.size===1){
+    const only=[...families][0];
+    return (u&&u.casa===only)?`Exclusivo ${PLATFORM_LABEL[only]}`:null;
+  }
+  if(families.size>=2)return 'Multiplataforma';
+  return null;
+}
+function productHeroPillsMarkup(p,u){
+  const avail=availabilityPillLabel(p,u);
+  const badge=releaseBadge(p);
+  const pills=[];
+  if(avail)pills.push(`<span class="avail-pill">${esc(avail)}</span>`);
+  if(badge)pills.push(`<span class="game-hero-kicker">${esc(badge)}</span>`);
+  return pills.length?`<div class="hero-pills-row">${pills.join('')}</div>`:'';
+}
+
+// Pacote 2, item 2.2: painel de preços em 3 colunas (Novo/Usado/Download),
+// agrupadas por rótulo fino (FÍSICO cobre Novo+Usado; DIGITAL é só
+// Download). Cada coluna é um bloco inteiro clicável (abre a comparadora
+// na aba da condição); sem oferta carregada ainda, esmaece e tira a seta.
+function purchasePriceColMarkup(cond,p,platform){
+  const label=cond==='new'?'Novo':cond==='used'?'Usado':'Download';
+  if(cond==='digital'){
+    return `<a class="ppanel-col" href="${offerPageHref(p,platform,'digital')}">
+      <span class="ppanel-cond">${label}</span>
+      <span class="ppanel-price-wrap"><span class="ppanel-from">consultar nas lojas</span></span>
+      <span class="ppanel-arrow">→</span>
+    </a>`;
+  }
+  const s=summaryOf(cond,p.title,platform);
+  if(s&&s.status==='ok'&&s.count){
+    return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
+      <span class="ppanel-cond">${label}</span>
+      <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}</span>
+      <span class="ppanel-arrow">→</span>
+    </a>`;
+  }
+  if(s&&s.status==='ok'&&!s.count){
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+  }
+  // ainda carregando ou sem fonte real — preço de exemplo, mesmo visual
+  // de "tem oferta" (com EXEMPLO), igual já era antes desta seção.
+  return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
+    <span class="ppanel-cond">${label}</span>
+    <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demoPrice(p.title,cond))}</strong>${mockChip()}</span>
+    <span class="ppanel-arrow">→</span>
+  </a>`;
+}
+function purchasePricePanelMarkup(p,platform){
+  const physical=p.physical!==false;
+  const digital=p.digital===true||hasDigital(p,platform);
+  const cols=[];
+  if(p.new!==false)cols.push(['new']);
+  if(p.used!==false)cols.push(['used']);
+  if(digital)cols.push(['digital']);
+  if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
+  const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
+  return `<div class="ppanel" id="purchaseOptions" style="--ppanel-cols:${cols.length}">
+    ${fisicoSpan?`<div class="ppanel-group" style="--span:${fisicoSpan}">FÍSICO</div>`:''}
+    ${digital?`<div class="ppanel-group" style="--span:1">DIGITAL</div>`:''}
+    ${cols.map(([cond])=>purchasePriceColMarkup(cond,p,platform)).join('')}
+  </div>`;
+}
 function visualMenuCard({title,copy,kind='collectibles',image='',href='#'}){
   const src=localOrRemoteImage(image);
   const icon=kind==='fanmade'?ico('brush',34):ico('cube',34);
@@ -585,6 +671,35 @@ function purchaseModuleMarkup(p,platform,{coverImage=''}={}){
     </div>
   </article>`;
 }
+// Pacote 2, item 2.2: card de compra HORIZONTAL (só na ficha do jogo de
+// verdade — renderProduct). Classe "horizontal" isola o CSS novo do
+// .purchase-module antigo, que /tema/ (renderTheme, página de demo de
+// trending) continua usando sem mudança — não fazia parte do pedido desta
+// seção e tem outra estrutura de DOM (coluna vertical).
+function purchaseModuleHorizontalMarkup(p,platform){
+  const cover=visualAsset('games',p.slug,'cover');
+  const plats=p.variants.map(v=>v[1]).filter((v,i,a)=>a.indexOf(v)===i);
+  return `<article class="purchase-module horizontal" id="comprar-jogo">
+    <div class="purchase-cover" id="productCoverSlot">${coverTile(p.title,{platform,image:cover})}</div>
+    <div class="purchase-platform-col">
+      <h2>Comprar este jogo</h2>
+      <p class="purchase-platform-label">Escolha a plataforma</p>
+      <div class="plat-row" role="group" aria-label="Plataforma">${plats.map(x=>`<button class="plat-btn" aria-pressed="${x===platform}" data-act="pick-platform" data-slug="${p.slug}" data-plat="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+    </div>
+    ${purchasePricePanelMarkup(p,platform)}
+  </article>`;
+}
+// Pacote 2, item 2.3: Colecionáveis/Fan-made viram cards horizontais de
+// 104px, lado a lado, só na ficha do jogo (visualMenuCard — vertical,
+// 205px de arte — continua igual pras outras páginas que o usam).
+function collectibleRowCard({title,copy,kind='collectibles',href='#'}){
+  const icon=kind==='fanmade'?ico('brush',28):ico('cube',28);
+  return `<a class="collectible-row-card ${kind}" href="${esc(href)}">
+    <span class="crc-icon">${icon}</span>
+    <span class="crc-body"><b>${esc(title)}</b><span class="crc-copy">${esc(copy)}</span></span>
+    <span class="crc-cta">Explorar →</span>
+  </a>`;
+}
 function renderProduct(slug,params,token){
   const p=catalogBySlug.get(slug);
   if(!p)return renderNotFound();
@@ -595,19 +710,21 @@ function renderProduct(slug,params,token){
   setTitle(`${p.title} (${platform})`);
   const ref=gameRef(p),cur=invGet(ref.id);
   const heroImage=visualAsset('games',p.slug,'hero');
-  const merchImage=visualAsset('games',p.slug,'merch');
-  const fanImage=visualAsset('games',p.slug,'fanmade');
   const heroActions=`
     ${saveButton(ref,{label:true})}
     ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
+  // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
+  // título continua trazendo esse contexto em texto corrido (não é mais
+  // pílula), e o kicker vira as novas pílulas (disponibilidade + PRÉ-VENDA).
   const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
-  ${gameHeroMarkup({title:p.title,kicker:platform,copy:heroCopy,image:heroImage,actions:heroActions})}
-  <div class="game-commerce-grid">
-    ${purchaseModuleMarkup(p,platform)}
-    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',image:merchImage,href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
-    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',image:fanImage,href:`#/merch?cat=fanmade&uni=${p.universe}`})}
+  ${gameHeroMarkup({title:p.title,pillsHtml:productHeroPillsMarkup(p,u),copy:heroCopy,image:heroImage,actions:heroActions,heroClass:'product-hero'})}
+  ${purchaseModuleHorizontalMarkup(p,platform)}
+  <p class="fine purchase-module-note">Preços de exemplo até a conexão das fontes oficiais.</p>
+  <div class="collectible-row-grid">
+    ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
+    ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?cat=fanmade&uni=${p.universe}`})}
   </div>`;
   hydrateIgdbVisuals({
     title:igdbTitleFor(p,platform),
@@ -621,7 +738,7 @@ function renderProduct(slug,params,token){
     await fetchCond(p.title,platform,cond);
     if(token!==viewToken)return;
     const slot=$('#purchaseOptions');
-    if(slot)slot.innerHTML=purchaseOptionsMarkup(p,platform);
+    if(slot)slot.outerHTML=purchasePricePanelMarkup(p,platform);
   });
 }
 
@@ -1106,7 +1223,7 @@ function renderTrendingPage(){
 const GAMES_HUB_CASAS=[
   {casa:'nintendo',label:'Nintendo',cls:'eco-nintendo',logo:'/assets/nintendo-logo.svg'},
   {casa:'playstation',label:'PlayStation',cls:'eco-playstation',logo:'/assets/playstation-logo.svg'},
-  {casa:'xbox',label:'Xbox',cls:'eco-xbox',logo:'/assets/xbox-mark.svg'}
+  {casa:'xbox',label:'Xbox',cls:'eco-xbox',logo:null}
 ];
 function gamesHubLinks(casa){
   return universes.filter(u=>u.casa===casa&&u.hasCatalog&&titlesOf(u.slug).length)
