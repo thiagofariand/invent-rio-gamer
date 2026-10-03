@@ -390,6 +390,7 @@ document.addEventListener('click',e=>{
       const total=parseInt(progressEl.dataset.total||'0',10);
       progressEl.outerHTML=uinvProgressMarkup(newCount,total);
     }
+    if(btn.classList.contains('hec-own-btn'))btn.textContent=!on?'✓ Na coleção':'♡ Tenho';
     return;
   }
   if(act==='open-offers'){openOffersModal(btn.dataset.title,btn.dataset.platform,btn.dataset.cond);return}

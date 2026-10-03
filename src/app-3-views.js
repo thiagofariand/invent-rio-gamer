@@ -123,26 +123,49 @@ async function loadDailyHomeTrends(renderId){
     hydrateHomeHero(replacement);
   }catch{}
 }
+// Pacote2, item 5: ordem fixa pedida pro corpo da home — Em alta (dados de
+// trending), Ofertas, Clássicos (retrô+usado), Além dos jogos (merch). Cada
+// fileira de jogo (Ofertas/Clássicos) é deduplicada contra as anteriores —
+// "Em alta" usa itens de trending (não são o mesmo tipo de registro) então
+// fica fora dessa deduplicação.
+function homeOffersPool(){
+  const curatedSlugs=['twilight-princess','ragnarok','sonic-mania-plus','resident-evil-4-remake','resident-evil-4'];
+  const curated=curatedSlugs.map(s=>catalogBySlug.get(s)).filter(Boolean);
+  const seen=new Set(curated.map(p=>p.slug));
+  const extra=catalog.filter(p=>!seen.has(p.slug)&&p.used!==false&&!p.variants.every(v=>isRetro(v[1])))
+    .sort((a,b)=>a.title.localeCompare(b.title));
+  const pool=[...curated];
+  for(const p of extra){if(pool.length>=12)break;if(!pool.some(x=>x.slug===p.slug)){pool.push(p);seen.add(p.slug)}}
+  return pool.slice(0,12);
+}
+function homeClassicsPool(excludeSlugs){
+  return catalog.filter(p=>!excludeSlugs.has(p.slug)&&p.used!==false&&p.variants.some(v=>isRetro(v[1])))
+    .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0))
+    .slice(0,12);
+}
 function renderHome(){
   setTitle('');
   const trend=D.trendingNow;
-  const slides=trend.slice(0,3),top=trend.filter(t=>!slides.includes(t)).slice(0,3);
+  const slides=trend.slice(0,3),top=trend.filter(t=>!slides.includes(t)).slice(0,12);
   const renderId=++homeRenderId;
-  const featured=[
-    [catalogBySlug.get('twilight-princess'),'Nintendo · usado'],
-    [catalogBySlug.get('ragnarok'),'PlayStation · usado'],
-    [catalogBySlug.get('sonic-mania-plus'),''],
-    [catalogBySlug.get('resident-evil-4-remake')||catalogBySlug.get('resident-evil-4'),'PlayStation · novo']
-  ].filter(([p])=>p);
+  const offersPool=homeOffersPool();
+  const classicsPool=homeClassicsPool(new Set(offersPool.map(p=>p.slug)));
   main.innerHTML=`
   ${homeFeatureMarkup(slides)}
-  ${top.length?`<div class="home-trending-cards" aria-label="Outros destaques">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>`:''}
 
-  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas em jogos</h2></div>${offerRowArrowsMarkup('home-offers')}<a href="#/busca?cond=usado">Ver todas →</a></div>
-    <div class="home-offer-grid" data-offer-row="home-offers">${featured.map(([p,label])=>homeOfferCard(p,label)).join('')}</div>
+  ${top.length?`<section class="lux-section" aria-labelledby="home-trend-title"><div class="lux-section-head"><div><h2 id="home-trend-title">Em alta</h2></div>${offerRowArrowsMarkup('home-trend')}<a href="#/em-alta">Ver tudo em alta →</a></div>
+    <div class="home-trending-cards" data-offer-row="home-trend" aria-label="Jogos em alta">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>
+  </section>`:''}
+
+  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas</h2></div>${offerRowArrowsMarkup('home-offers')}<a href="#/busca?cond=usado">Ver todas →</a></div>
+    <div class="home-offer-grid" data-offer-row="home-offers">${offersPool.map(hoverExpandGameCard).join('')}</div>
   </section>
 
-  <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><h2 id="home-merch-title">Complete o seu espaço gamer.</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
+  ${classicsPool.length?`<section class="lux-section" aria-labelledby="home-classics-title"><div class="lux-section-head"><div><h2 id="home-classics-title">Clássicos</h2></div>${offerRowArrowsMarkup('home-classics')}<a href="#/busca?retro=1">Ver todos →</a></div>
+    <div class="home-offer-grid" data-offer-row="home-classics">${classicsPool.map(hoverExpandGameCard).join('')}</div>
+  </section>`:''}
+
+  <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
     <div class="merch-home-grid">
       <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
       <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
@@ -153,8 +176,10 @@ function renderHome(){
   initHomeCarousel(carousel);
   hydrateHomeHero(carousel);
   loadDailyHomeTrends(renderId);
-  hydrateIgdbCovers(main,12);
+  hydrateIgdbCovers(main,12+offersPool.length+classicsPool.length);
   initOfferCarousels(main);
+  hydrateHoverExpandPrices([...offersPool,...classicsPool]);
+  initHoverExpand(main);
 }
 
 /* ---------- busca e resultados ---------- */
@@ -1040,6 +1065,92 @@ async function hydrateUniverseOffers(games,token){
     const slot=main.querySelector(`[data-universe-offer-price="${p.slug}"]`);
     if(!slot)return;
     slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
+  });
+}
+// Pacote2, item 5: card com "hover-expand" (ver initHoverExpand) pras
+// fileiras Ofertas e Clássicos da home — são jogos de catálogo de verdade,
+// então dá pra mostrar as 3 condições com preço próprio. A fileira "Em
+// alta" usa os itens de trending (home-trend-card, sem dado de preço
+// consistente por condição) e não ganha este tratamento — ver renderHome.
+function expandPriceLineMarkup(label,cond,p,platform){
+  if(cond==='digital'){
+    if(!hasDigital(p,platform))return '';
+    const s=summaryOf('digital',p.title,platform);
+    if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
+    return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><em>consultar nas lojas</em></a>`;
+  }
+  if((cond==='new'&&p.new===false)||(cond==='used'&&p.used===false))return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
+  const s=summaryOf(cond,p.title,platform);
+  if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
+  if(mockOn())return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(demoPrice(p.title,cond))}</b>${mockChip()}</a>`;
+  return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
+}
+function hecExpandedPricesMarkup(p,platform){
+  return `${expandPriceLineMarkup('Novo','new',p,platform)}${expandPriceLineMarkup('Usado','used',p,platform)}${expandPriceLineMarkup('Digital','digital',p,platform)}`;
+}
+function bestOfferHrefFor(p,platform){
+  const best=universeOfferPhysicalBest(p,platform),digital=universeOfferDigital(p,platform);
+  return best?comparisonHref(p,platform,best.cond):digital?comparisonHref(p,platform,'digital'):`#/jogo/${p.slug}?plat=${enc(platform)}`;
+}
+function hoverExpandGameCard(p){
+  const platform=p.variants?.[0]?.[1]||'';
+  const ref=gameRef(p),on=invGet(ref.id)?.status==='owned';
+  return `<article class="hec-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
+    <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
+    <div class="hec-footer-chip"><span>${esc(p.title)}</span></div>
+    <div class="hec-panel">
+      <h3 class="hec-title">${esc(p.title)}</h3>
+      <p class="hec-meta">${esc(platform)}${p.year?` · ${p.year}`:''}</p>
+      <div class="hec-prices" data-hec-prices="${esc(p.slug)}">${hecExpandedPricesMarkup(p,platform)}</div>
+      <div class="hec-actions">
+        <button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>
+        <a class="btn btn-primary btn-sm" href="${bestOfferHrefFor(p,platform)}">Ver ofertas</a>
+      </div>
+    </div>
+  </article>`;
+}
+async function hydrateHoverExpandPrices(games){
+  await mapLimit(games,2,async p=>{
+    const platform=p.variants?.[0]?.[1]||'';
+    const conds=['used','new'].filter(cond=>!((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false)));
+    if(hasDigital(p,platform))conds.push('digital');
+    await Promise.all(conds.map(cond=>fetchCond(p.title,platform,cond)));
+    const slot=main.querySelector(`[data-hec-prices="${p.slug}"]`);
+    if(slot&&slot.isConnected)slot.innerHTML=hecExpandedPricesMarkup(p,platform);
+  });
+}
+// Intenção de 150ms pra abrir/trocar card, 120ms pra fechar; só um aberto por
+// vez; nunca em fileiras de resultado de busca (não chamado lá). Desligado
+// em touch (sem hover de verdade) e em prefers-reduced-motion.
+function initHoverExpand(root){
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+  const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  $$('[data-offer-row] .hec-card',root).forEach(card=>{
+    let openTimer=null,closeTimer=null;
+    const track=card.closest('[data-offer-row]');
+    const open=()=>{
+      if(track){$$('.hec-card.is-open',track).forEach(c=>{if(c!==card)closeCard(c)})}
+      const baseW=card.getBoundingClientRect().width;
+      card.style.flex='0 0 auto';
+      card.style.width=Math.round(baseW+224)+'px';
+      card.classList.add('is-open');
+      if(!reduced&&track){
+        const r=card.getBoundingClientRect(),tr=track.getBoundingClientRect();
+        if(r.right>tr.right)track.scrollBy({left:r.right-tr.right+24,behavior:'smooth'});
+      }
+    };
+    const closeCard=c=>{c.classList.remove('is-open');c.style.flex='';c.style.width=''};
+    card.addEventListener('mouseenter',()=>{
+      clearTimeout(closeTimer);
+      openTimer=setTimeout(open,150);
+    });
+    card.addEventListener('mouseleave',()=>{
+      clearTimeout(openTimer);
+      closeTimer=setTimeout(()=>closeCard(card),120);
+    });
+    card.addEventListener('focusin',open);
+    card.addEventListener('focusout',e=>{if(!card.contains(e.relatedTarget))closeCard(card)});
+    card.addEventListener('keydown',e=>{if(e.key==='Escape')closeCard(card)});
   });
 }
 // Pacote2, item 4.1: "Mais para descobrir" troca o grid fixo de 3 cards

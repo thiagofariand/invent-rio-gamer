@@ -1874,6 +1874,37 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
   .home-offer-grid>*{flex-basis:76%}
   .universe-offer-grid>*{flex-basis:76%}
 }
+/* Pacote2, item 5: hover-expand (modo C — capa nítida + a MESMA capa
+   ampliada/borrada atrás do painel; modo B com artwork horizontal real fica
+   pronto atrás da classe .hec-card.art-b, mas nunca é usado neste sandbox
+   sem rede pra IGDB — ver resumo). Só @media(hover:hover) and (pointer:fine)
+   liga a interação (ver initHoverExpand); no toque, o card é um link normal. */
+.hec-card{position:relative;display:block;border-radius:12px;overflow:hidden;background:none;cursor:pointer}
+.hec-card .cover{width:100%}
+.hec-cover{display:block}
+.hec-footer-chip{position:absolute;left:8px;right:8px;bottom:8px;pointer-events:none;transition:opacity 150ms ease}
+.hec-footer-chip span{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(10,8,6,.55);color:#fff;font-size:12px;font-weight:600;padding:4px 8px;border-radius:999px}
+.hec-panel{position:absolute;inset:0;left:auto;width:224px;opacity:0;pointer-events:none;padding:16px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(90deg,transparent,rgba(24,18,15,.35) 18%,rgba(24,18,15,.92) 48%);transition:opacity 150ms ease 60ms}
+@media (hover:hover) and (pointer:fine){
+  .hec-card{transition:width 240ms ease}
+  .hec-card.is-open{z-index:5}
+  .hec-card.is-open .hec-footer-chip{opacity:0}
+  .hec-card.is-open .hec-panel{right:0;opacity:1;pointer-events:auto}
+}
+.hec-title{color:#fff;font:600 15px/1.2 var(--font-ui)}
+.hec-meta{color:rgba(255,255,255,.72);font-size:12px}
+.hec-prices{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+.hec-price-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px;color:#fff;text-decoration:none;font-size:12.5px}
+.hec-price-line b{font-size:14px;font-weight:600}
+.hec-price-line em{font-style:normal;color:rgba(255,255,255,.65);font-size:11.5px}
+.hec-price-line.is-off{color:rgba(255,255,255,.45)}
+.hec-price-label{color:rgba(255,255,255,.65);font-size:11px;flex:none}
+.hec-actions{display:flex;gap:6px;margin-top:auto}
+.hec-own-btn{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.hec-own-btn.is-on{background:var(--action-on-glass);color:var(--on-action)}
+@media (prefers-reduced-motion:reduce){
+  .hec-card,.hec-footer-chip,.hec-panel{transition:none!important}
+}
 /* Setas: par vidro/sólido no canto superior direito da linha do título. */
 .offer-row-arrows{display:flex;gap:8px;flex:none;align-items:center}
 .offer-row-arrows[hidden]{display:none}
