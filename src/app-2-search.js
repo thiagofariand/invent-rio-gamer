@@ -140,7 +140,12 @@ function fetchCond(title,platform,cond){
       const st=d&&d.sources&&d.sources.mercado_livre?d.sources.mercado_livre.status:'error';
       res={status:r.ok?(offers.length?'ok':(st==='ok'?'empty':(st||'error'))):'error',offers,t:Date.now()};
     }catch{res={status:'offline',offers:[],t:Date.now()}}
-    if(!res.offers.length&&mockOffers()){res={status:'ok',realStatus:res.status,offers:M.offersFor(title,platform,cond),mock:true,t:Date.now()}}
+    // Pacote3, item 2.1: a lista de anúncios de exemplo agora vem de
+    // sampleOfferList (app-1-core.js), que deriva do MESMO preço único de
+    // sampleOffers(title) usado em toda a vitrine — troca o antigo
+    // M.offersFor(), que tinha sua própria semente e podia divergir do
+    // preço já mostrado no card antes da API responder.
+    if(!res.offers.length&&mockOffers()){res={status:'ok',realStatus:res.status,offers:sampleOfferList(title,{title},cond),mock:true,t:Date.now()}}
     results.set(k,res);
     if(!res.mock&&(res.status==='ok'||res.status==='empty')){const s=summarize(res);sums[k]={t:Date.now(),status:s.status,count:s.count,min:s.min,minDisplay:s.minDisplay,image:s.image||''};LS.set(KEYS.sums,sums)}
     memo.delete(k);
@@ -165,6 +170,19 @@ function rowAction(r){
     return `<button class="btn btn-outline" data-act="open-merch-offers" data-id="${esc(r.item.id)}">Ver ofertas →</button>`;
   }
   return '';
+}
+// Pacote3, item 2.1: preço de exemplo da linha de busca vem do MESMO
+// sampleOffers(title) do resto do site — se o bucket do jogo não inclui
+// esta condição, cai em "sem ofertas" (não inventa mais preço pra toda
+// condição como o antigo demoPrice fazia).
+function purchasePriceMarkup(cond,p,platform){
+  const s=summaryOf(cond,p.title,platform);
+  if(s&&s.status==='ok'&&s.count){
+    return `<span class="purchase-from">a partir de</span><strong>${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}`;
+  }
+  const demo=sampleOffers(p.title,{year:p.year})[cond];
+  if(demo)return `<span class="purchase-from">a partir de</span><strong>${esc(demo.display)}</strong>${mockChip()}`;
+  return `<span class="purchase-from">sem ofertas</span>`;
 }
 function conditionRowMarkup(r,cond){
   const ck=esc(condKey(r,cond));

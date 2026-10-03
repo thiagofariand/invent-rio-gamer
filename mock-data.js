@@ -10,9 +10,10 @@
    - abra o site com  ?mock=0  (e  ?mock=1  para ligar de novo).
 
    Como substituir por dados reais:
-   - offersFor(): trocar pela resposta do /api/offers (já existe
-     para Mercado Livre) — o site só usa este gerador quando a API
-     não devolve ofertas e o modo demonstração está ligado.
+   - o preço de exemplo dos JOGOS não mora mais aqui: é
+     sampleOffers()/sampleOfferList() em src/app-1-core.js (pacote3,
+     item 2) — PRICE_MODE='real' lá é o lugar pra trocar quando
+     houver fonte de dados real.
    - items: trocar por uma fonte real de merch/fan-made
      (API de loja, feed de parceiro ou cadastro manual). A forma
      de cada item está descrita no comentário do primeiro objeto.
@@ -30,35 +31,6 @@ window.INV_MOCK=(function(){
   const fmt=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
 
   const SOURCES=['Marketplace exemplo','Loja parceira exemplo','Vendedor exemplo'];
-
-  /* cond: 'used' | 'new'. Devolve ofertas no MESMO formato do /api/offers. */
-  function offersFor(title,platform,cond){
-    const r=rng(hash(`${cond}|${title}|${platform}`));
-    const count=2+Math.floor(r()*6);
-    const base=cond==='new'?190+r()*200:55+r()*190;
-    const list=[];
-    for(let i=0;i<count;i++){
-      const price=Math.round((base*(0.9+r()*0.9))*10)/10;
-      const value=Math.floor(price)+0.9;
-      list.push({
-        source:SOURCES[Math.floor(r()*SOURCES.length)],
-        sourceKind:'nacional',
-        title:`${title} ${platform} — anúncio de exemplo ${i+1}`,
-        condition:cond==='new'?'Novo':'Usado',
-        priceValue:value,
-        displayPrice:fmt(value),
-        originalDisplayPrice:fmt(value),
-        url:'#exemplo',
-        image:'',
-        location:'',
-        currency:'BRL',
-        shippingIncluded:r()>0.75,
-        mock:true
-      });
-    }
-    return list.sort((a,b)=>a.priceValue-b.priceValue);
-  }
-
 
   /* Ofertas de exemplo para um item de merch/colecionável.
      A primeira oferta sempre tem o mesmo preço do item (para o "a partir de" bater). */
@@ -119,5 +91,5 @@ window.INV_MOCK=(function(){
     {id:'mock-eevee-diorama',cat:'fanmade',type:'artesanal',origin:'artesanal',unique:true,universe:'pokemon',title:'Diorama Eevee e evoluções (peça única)',subtitle:'Artesanal · sem código de barras',price:260,creator:'Ateliê exemplo'}
   ];
 
-  return {config,offersFor,offersForItem,items,fmt};
+  return {config,offersForItem,items,fmt};
 })();

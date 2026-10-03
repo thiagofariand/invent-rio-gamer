@@ -5,7 +5,7 @@
    Ofertas reais: /api/offers (Mercado Livre)
    ============================================================ */
 const D=window.INV_DATA;
-const M=window.INV_MOCK||{config:{enabled:false,offers:false,merch:false},items:[],offersFor:()=>[],offersForItem:()=>[]};
+const M=window.INV_MOCK||{config:{enabled:false,offers:false,merch:false},items:[],offersForItem:()=>[]};
 
 /* ---------- utilitários ---------- */
 const $=(s,r=document)=>r.querySelector(s);
@@ -19,6 +19,82 @@ const safeUrl=u=>/^https?:\/\//i.test(String(u||''))?String(u):'#';
 const sentence=s=>{s=String(s||'').toLowerCase();return s.charAt(0).toUpperCase()+s.slice(1)};
 function hashStr(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 async function mapLimit(items,limit,fn){let cursor=0;async function worker(){while(cursor<items.length){const i=cursor++;try{await fn(items[i],i)}catch{}}}await Promise.all(Array.from({length:Math.min(limit,items.length)},worker))}
+
+// Pacote3, item 2: PRICE_MODE troca entre preços de exemplo ('demo') e uma
+// futura fonte real ('real', ainda não implementada) — padrão 'demo' em
+// TODOS os ambientes, inclusive produção; não existe modo "hidden" (nunca
+// escondemos o preço de exemplo, só identificamos com o selo EXEMPLO).
+const PRICE_MODE='demo';
+// rng determinístico (mulberry32) — mesma fórmula que já existia dentro de
+// mock-data.js, só exposta aqui pra sampleOffers/sampleOfferList (abaixo)
+// poderem gerar a MESMA lista de anúncios que M.offersFor gerava, agora a
+// partir do preço único de sampleOffers (sem duas fontes divergentes).
+function mulberry32(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const SAMPLE_OFFER_SOURCES=['Marketplace exemplo','Loja parceira exemplo','Vendedor exemplo'];
+// Pacote3, item 2.1: ÚNICA função que decide o preço de exemplo de um jogo
+// — chamada de qualquer tela (home, hero, cards, hover, card de compra,
+// comparadora, busca) sempre com o MESMO resultado pro mesmo gameId, porque
+// tudo vem de hashStr(gameId+sal) — nunca Math.random(). Distribuição fixa
+// por hash (35% só usado / 25% só novo / 25% os dois / 10% só digital sem
+// preço / 5% sem oferta nenhuma); usado sempre 55%-85% do novo (mesmo
+// quando só usado existe, o novo "de referência" é calculado por baixo pra
+// manter a proporção, só não é mostrado); jogos retrô (ano<=2012) saem mais
+// baratos (fator .6 no preço-base).
+function sampleOffers(gameId,meta){
+  meta=meta||{};
+  const title=meta.title||gameId;
+  const year=meta.year!=null?meta.year:catalog.find(p=>p.title===title)?.year;
+  const bucketRoll=hashStr(gameId+'|pacote3-bucket')%100;
+  const bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
+  const isRetro=year!=null&&Number(year)<=2012;
+  let newBase=189+(hashStr(gameId+'|pacote3-base')%172); // 189..360
+  if(isRetro)newBase=Math.round(newBase*0.6);
+  const newPrice=Math.floor(newBase)+0.9;
+  const usedFrac=0.55+(hashStr(gameId+'|pacote3-usedfrac')%31)/100; // .55..85
+  const usedPrice=Math.floor(newBase*usedFrac)+0.9;
+  const hasNew=bucket==='new'||bucket==='both',hasUsed=bucket==='used'||bucket==='both',hasDigital=bucket==='digital';
+  return {
+    bucket,
+    new:hasNew?{price:newPrice,display:brl(newPrice),exemplo:true}:null,
+    used:hasUsed?{price:usedPrice,display:brl(usedPrice),exemplo:true}:null,
+    // "consultar nas lojas" — o bucket "só digital" nunca tem preço de
+    // exemplo, só confirma que a condição existe pro jogo (item 2.1).
+    digital:hasDigital?{price:null,display:null,consult:true,exemplo:true}:null,
+    // Preço de referência SEMPRE presente (ignora o bucket) — usado só pela
+    // página /tema/ (renderTheme), que é uma vitrine de demonstração própria
+    // e sempre mostra Novo+Usado juntos quando a configuração do destaque
+    // pede os dois; mantém o MESMO valor de new/used quando o bucket já os
+    // inclui, só não vira null quando o bucket escolheu outra condição.
+    rawNew:{price:newPrice,display:brl(newPrice),exemplo:true},
+    rawUsed:{price:usedPrice,display:brl(usedPrice),exemplo:true}
+  };
+}
+// Lista de "anúncios" de exemplo (pro modal comparador/autoload de preço),
+// derivada do MESMO preço de sampleOffers — o primeiro item da lista
+// ordenada é sempre esse preço, os demais variam só pra cima dele.
+function sampleOfferList(gameId,meta,cond){
+  const s=sampleOffers(gameId,meta);
+  const entry=cond==='used'?s.used:cond==='new'?s.new:null;
+  if(!entry)return [];
+  const title=meta?.title||gameId;
+  const r=mulberry32(hashStr(gameId+'|'+cond+'|pacote3-list'));
+  const count=2+Math.floor(r()*6);
+  const list=[];
+  for(let i=0;i<count;i++){
+    const value=i===0?entry.price:Math.floor(entry.price*(1+r()*0.18))+0.9;
+    list.push({source:SAMPLE_OFFER_SOURCES[Math.floor(r()*SAMPLE_OFFER_SOURCES.length)],sourceKind:'nacional',title:`${title} — anúncio de exemplo ${i+1}`,condition:cond==='new'?'Novo':'Usado',priceValue:value,displayPrice:brl(value),originalDisplayPrice:brl(value),url:'#exemplo',image:'',location:'',currency:'BRL',shippingIncluded:r()>0.75,mock:true,exemplo:true});
+  }
+  return list.sort((a,b)=>a.priceValue-b.priceValue);
+}
+// Menor condição física de exemplo (usado é sempre <= novo por construção,
+// então "both" devolve usado) — usado pelos cards que mostram só 1 preço
+// (home, hub de games) quando ainda não há oferta real em cache.
+function sampleOffersBestPhysical(gameId,meta){
+  const s=sampleOffers(gameId,meta);
+  if(s.used)return {cond:'used',label:'Usado',...s.used};
+  if(s.new)return {cond:'new',label:'Novo',...s.new};
+  return null;
+}
 
 const LS={
   get(k,def){try{const v=localStorage.getItem(k);return v==null?def:JSON.parse(v)}catch{return def}},

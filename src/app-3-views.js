@@ -40,13 +40,18 @@ function homeOfferCard(p,label){
   if(!p)return '';
   const platform=p.variants?.[0]?.[1]||'';
   const cached=bestUsed(p);
-  const value=cached?.minDisplay||(mockOn()?demoPrice(p.title,'used'):null);
+  // Pacote3, item 2.1: sem oferta real em cache, cai no preço de exemplo
+  // ÚNICO do jogo (sampleOffers) — pode ser Usado OU Novo (o bucket do
+  // jogo decide, nunca força "Usado" pra quem só tem Novo de exemplo).
+  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+  const condLabel=cached?'Usado':demo?.label;
+  const value=cached?.minDisplay||demo?.display;
   // Item 2 (rodada 5): sem sobretítulo — o rótulo era o único lugar da
   // condição, então o preço nunca aparece sem ela ("Usado R$ X").
   return `<article class="lux-product-card">
     <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
     <div class="lux-product-body"><h3><a href="#/jogo/${p.slug}">${esc(p.title)}</a></h3><p>${esc(platform)}${p.year?` · ${p.year}`:''}</p>
-    ${value?`<strong>Usado ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
+    ${value?`<strong>${esc(condLabel)} ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
   </article>`;
 }
 let homeHeroTimer=null,homeRenderId=0;
@@ -506,18 +511,6 @@ function localOrRemoteImage(u){
   const s=String(u||'').trim();
   return (/^https?:\/\//i.test(s)||s.startsWith('/'))?s:'';
 }
-function demoPrice(title,kind){
-  const seed=hashStr(`${title}|${kind}|layout-demo`);
-  const ranges={
-    used:[79,220],
-    new:[189,360],
-    digital:[129,300],
-    special:[399,900]
-  };
-  const [min,max]=ranges[kind]||[99,299];
-  const value=min+(seed%(max-min+1));
-  return brl(Math.floor(value)+0.90);
-}
 // Pacote 2, item 1.4: fallback sem artwork válida nunca mais mostra um
 // rótulo de placeholder ("KEY ART DO JOGO" etc.) — só a sigla, pequena e
 // apagada (opacity .10 via CSS, .game-hero-placeholder b).
@@ -549,45 +542,8 @@ function gameHeroMarkup({title,kicker='',copy='',image='',actions='',pillsHtml='
 function storePills(names){
   return `<div class="store-pills">${names.filter(Boolean).map(n=>`<span class="store-pill">${esc(n)}</span>`).join('')}</div>`;
 }
-function purchasePriceMarkup(cond,p,platform){
-  const s=summaryOf(cond,p.title,platform);
-  if(s&&s.status==='ok'&&s.count){
-    return `<span class="purchase-from">a partir de</span><strong>${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}`;
-  }
-  return `<span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(p.title,cond))}</strong>${mockChip()}`;
-}
 function offerPageHref(p,platform,cond){
   return `#/ofertas/${p.slug}?plat=${enc(platform)}&cond=${enc(cond)}`;
-}
-function physicalMediaMarkup(p,platform){
-  const rows=[];
-  if(p.new!==false){
-    rows.push(`<a class="purchase-price-row" href="${offerPageHref(p,platform,'new')}"><span class="purchase-condition">Novo</span><span class="purchase-value">${purchasePriceMarkup('new',p,platform)}</span><span class="purchase-row-arrow">→</span></a>`);
-  }
-  if(p.used!==false){
-    rows.push(`<a class="purchase-price-row" href="${offerPageHref(p,platform,'used')}"><span class="purchase-condition">Usado</span><span class="purchase-value">${purchasePriceMarkup('used',p,platform)}</span><span class="purchase-row-arrow">→</span></a>`);
-  }
-  return `<section class="purchase-media-group">
-    <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Físico</h3></div><span class="purchase-arrow">→</span></div>
-    <div class="purchase-price-list">${rows.join('')}</div>
-  </section>`;
-}
-function digitalMediaMarkup(p,platform){
-  return `<section class="purchase-media-group">
-    <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Digital</h3></div><span class="purchase-arrow">→</span></div>
-    <a class="purchase-price-row" href="${offerPageHref(p,platform,'digital')}"><span class="purchase-condition">Download</span><span class="purchase-value"><span class="purchase-from">consultar nas lojas</span></span><span class="purchase-row-arrow">→</span></a>
-  </section>`;
-}
-function purchaseOptionsMarkup(p,platform){
-  const physical=p.physical!==false;
-  const digital=p.digital===true || hasDigital(p,platform);
-  const blocks=[];
-  if(physical)blocks.push(physicalMediaMarkup(p,platform));
-  if(digital)blocks.push(digitalMediaMarkup(p,platform));
-  if(!blocks.length){
-    blocks.push(`<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`);
-  }
-  return blocks.join('');
 }
 
 // Pacote 2, item 2.1: pílula de disponibilidade da ficha do jogo —
@@ -650,11 +606,16 @@ function purchasePriceColMarkup(cond,p,platform){
   if(s&&s.status==='ok'&&!s.count){
     return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
   }
-  // ainda carregando ou sem fonte real — preço de exemplo, mesmo visual
-  // de "tem oferta" (com EXEMPLO), igual já era antes desta seção.
+  // Pacote3, item 2.1: ainda carregando ou sem fonte real — preço único de
+  // sampleOffers(p.title). Se o bucket do jogo não tem essa condição, vira
+  // "sem ofertas" de verdade (não inventa mais um preço pra toda condição).
+  const demo=sampleOffers(p.title,{year:p.year})[cond];
+  if(!demo){
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+  }
   return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
     <span class="ppanel-cond">${label}</span>
-    <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demoPrice(p.title,cond))}</strong>${mockChip()}</span>
+    <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demo.display)}</strong>${mockChip()}</span>
     <span class="ppanel-arrow">→</span>
   </a>`;
 }
@@ -684,18 +645,6 @@ function visualMenuCard({title,copy,kind='collectibles',image='',href='#'}){
       <h2>${esc(title)}</h2>
       <p>${esc(copy)}</p>
       <a class="link-cta" href="${esc(href)}">Explorar →</a>
-    </div>
-  </article>`;
-}
-function purchaseModuleMarkup(p,platform,{coverImage=''}={}){
-  const cover=coverImage||visualAsset('games',p.slug,'cover');
-  return `<article class="purchase-module" id="comprar-jogo">
-    <div class="purchase-cover" id="productCoverSlot">${coverTile(p.title,{platform,image:cover})}</div>
-    <div class="purchase-main">
-      <div class="purchase-title-row"><div><span class="purchase-kicker">COMPRAR O JOGO</span><h2>${esc(p.title)}</h2></div></div>
-      <div class="plat-row" role="group" aria-label="Plataforma">${p.variants.map(v=>v[1]).filter((v,i,a)=>a.indexOf(v)===i).map(x=>`<button class="plat-btn" aria-pressed="${x===platform}" data-act="pick-platform" data-slug="${p.slug}" data-plat="${esc(x)}">${esc(x)}</button>`).join('')}</div>
-      <div class="purchase-options" id="purchaseOptions">${purchaseOptionsMarkup(p,platform)}</div>
-      <p class="purchase-demo-note">Referência visual: preços e disponibilidade podem ser exemplos. Quando as fontes reais entrarem, este mesmo componente recebe os valores verdadeiros.</p>
     </div>
   </article>`;
 }
@@ -1084,7 +1033,12 @@ function expandPriceLineMarkup(label,cond,p,platform){
   if((cond==='new'&&p.new===false)||(cond==='used'&&p.used===false))return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
   const s=summaryOf(cond,p.title,platform);
   if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
-  if(mockOn())return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(demoPrice(p.title,cond))}</b>${mockChip()}</a>`;
+  // Pacote3, item 2.1: preço único de sampleOffers — se o bucket do jogo
+  // não tem esta condição, mostra "sem ofertas" de verdade.
+  if(mockOn()){
+    const demo=sampleOffers(p.title,{year:p.year})[cond];
+    if(demo)return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(demo.display)}</b>${mockChip()}</a>`;
+  }
   return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
 }
 function hecExpandedPricesMarkup(p,platform){
@@ -1320,11 +1274,17 @@ function themeDemoConfig(t){
 function themePurchaseGroup(title,kind,enabled,platform,slug){
   if(!enabled)return '';
   if(kind==='physical'){
+    // Pacote3, item 2.1: /tema/ é a vitrine de demo dos destaques (nem
+    // sempre tem jogo de catálogo por trás) e sempre mostra Novo+Usado
+    // juntos quando configurado assim — usa rawNew/rawUsed (ignora o
+    // bucket) pra não quebrar esse layout, mas com o MESMO gerador/hash
+    // de preço do resto do site (mesmo título, mesmo valor).
+    const s=sampleOffers(title);
     return `<section class="purchase-media-group">
       <div class="purchase-media-head"><div><span class="purchase-media-kicker">MÍDIA</span><h3>Físico</h3></div><span class="purchase-arrow">→</span></div>
       <div class="purchase-price-list">
-        <a class="purchase-price-row" href="#/ofertas/${esc(slug)}?plat=${enc(platform)}&cond=new"><span class="purchase-condition">Novo</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(title,'new'))}</strong>${mockChip()}</span><span class="purchase-row-arrow">→</span></a>
-        <a class="purchase-price-row" href="#/ofertas/${esc(slug)}?plat=${enc(platform)}&cond=used"><span class="purchase-condition">Usado</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(demoPrice(title,'used'))}</strong>${mockChip()}</span><span class="purchase-row-arrow">→</span></a>
+        <a class="purchase-price-row" href="#/ofertas/${esc(slug)}?plat=${enc(platform)}&cond=new"><span class="purchase-condition">Novo</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(s.rawNew.display)}</strong>${mockChip()}</span><span class="purchase-row-arrow">→</span></a>
+        <a class="purchase-price-row" href="#/ofertas/${esc(slug)}?plat=${enc(platform)}&cond=used"><span class="purchase-condition">Usado</span><span class="purchase-value"><span class="purchase-from">preço de exemplo</span><strong>${esc(s.rawUsed.display)}</strong>${mockChip()}</span><span class="purchase-row-arrow">→</span></a>
       </div>
     </section>`;
   }
