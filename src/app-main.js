@@ -156,6 +156,14 @@ function route(){
   closeSidebarDrawer();
   syncSidebarMode();
   renderSidebar();
+  // Pacote3, item 4.2: só o miolo (#main) faz crossfade na troca de rota —
+  // header/sidebar não entram nesse efeito (renderSidebar acima já rodou,
+  // sem fade). O conteúdo novo já está no DOM (innerHTML trocado de forma
+  // síncrona pelos render*); o duplo rAF garante que o navegador pinte o
+  // frame com opacity:0 antes de soltar pra opacity:1, virando um fade-in
+  // do conteúdo novo (scroll pro topo já aconteceu acima, sem flash).
+  main.classList.add('route-fade');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>main.classList.remove('route-fade')));
   // Pacote2, item 3.5: o campo do cabeçalho só mostra o texto digitado na
   // própria rota de resultado (#/busca) — em qualquer outra rota ele some,
   // pra não ficar um texto "fantasma" de uma busca antiga enquanto navega.

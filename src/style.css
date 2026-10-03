@@ -1827,27 +1827,31 @@ body.sidebar-hidden main,body.sidebar-hidden .site-footer{margin-left:var(--page
 .sidebar-drawer-btn{display:none;appearance:none;border:0;background:var(--glass-3);color:#fff;width:40px;height:40px;border-radius:12px;align-items:center;justify-content:center;flex:none}
 body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 
-.sidebar-nav{display:flex;flex-direction:column;gap:10px;flex:none}
-.sidebar-group{display:flex;flex-direction:column;gap:1px;padding-bottom:10px;border-bottom:1px solid var(--glass-border)}
+.sidebar-nav{display:flex;flex-direction:column;gap:10px;flex:none;position:relative}
+.sidebar-group{display:flex;flex-direction:column;gap:1px;padding-bottom:10px;border-bottom:1px solid var(--glass-border);position:relative;z-index:1}
 .sidebar-group:last-child{border-bottom:0;padding-bottom:0}
-.sidebar-item{display:flex;align-items:center;gap:12px;height:36px;padding:0 10px;border-radius:10px;color:#fff;text-decoration:none;flex:none}
+.sidebar-item{display:flex;align-items:center;gap:12px;height:36px;padding:0 10px;border-radius:10px;color:#fff;text-decoration:none;flex:none;position:relative;z-index:1}
 .sidebar-item .ico{flex:none;width:20px;height:20px}
 .sidebar-item span{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sidebar-item:hover{background:rgba(255,255,255,.06)}
 .sidebar-item[aria-current="page"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:transparent}
 .sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* Pacote3, item 4.1: um ÚNICO indicador (.sidebar-indicator, ver JS
+   initSidebarIndicator) desliza por trás do item em foco/hover — troca os
+   antigos backgrounds individuais de :hover por isso (fundo nunca mais
+   "pisca" item a item, desliza). */
+.sidebar-indicator{position:absolute;left:0;right:0;top:0;height:36px;border-radius:10px;background:rgba(255,255,255,.06);opacity:0;transform:translateY(0);transition:transform var(--dur-morph) var(--ease-spring),opacity 150ms ease,background-color 150ms ease;pointer-events:none;z-index:0}
+.sidebar-indicator.is-visible{opacity:1}
 /* Pacote2, item 6: Nintendo/PlayStation/Xbox usam a cor --c (acao da
    paleta-plataformas.json) no hover/ativo, com uma barrinha à esquerda que
-   nasce de scaleY(0). As outras linhas da sidebar não têm --c e continuam
-   neutras (resting state igual nas 3). */
+   nasce de scaleY(0) — a cor do indicador compartilhado também muda pra
+   --c quando o mouse está sobre um desses 3 (ver JS). As outras linhas da
+   sidebar não têm --c e continuam neutras. */
 .sidebar-item-casa{position:relative}
 .sidebar-item-casa::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--c,transparent);transform:scaleY(0);transform-origin:center;transition:transform 250ms var(--ease-spring)}
-.sidebar-item-casa:hover{background:color-mix(in oklab,var(--c,#fff) 14%,transparent);transition:background-color 150ms ease}
 .sidebar-item-casa:hover .ico{color:var(--c)}
 .sidebar-item-casa:hover::before,.sidebar-item-casa[aria-current="page"]::before{transform:scaleY(1)}
-.sidebar-item-casa[aria-current="page"]{background:color-mix(in oklab,var(--c,#fff) 10%,transparent)}
 .sidebar-item-casa[aria-current="page"] .ico{color:var(--c)}
-@media(prefers-reduced-motion:reduce){.sidebar-item-casa::before{transition:none}}
+@media(prefers-reduced-motion:reduce){.sidebar-item-casa::before{transition:none}.sidebar-indicator{transition:opacity 150ms ease}}
 /* "Universos em destaque" (item 4, rodada 5): mostra de 3 a 5 itens,
    medido de verdade por fitSidebarFeatured()/ResizeObserver (app-main.js)
    — o item que não cabe ganha o atributo hidden, nunca rolagem. */
@@ -2717,4 +2721,27 @@ body.dark-surface-route .footer-fine{border-top-color:var(--glass-border)}
   .footer-col summary{cursor:pointer;list-style:disclosure-triangle}
   .footer-col summary::-webkit-details-marker{display:inline}
   body.dark-surface-route .footer-col{border-bottom-color:var(--glass-border)}
+}
+
+/* 4.2: crossfade só do #main na troca de rota (header/sidebar não remontam
+   nesse efeito — ver route() em app-main.js). */
+main{transition:opacity 150ms ease}
+main.route-fade{opacity:0}
+@media(prefers-reduced-motion:reduce){main{transition:none}}
+
+/* 4.3: entrada do hero (só no primeiro slide de cada visita — .is-entering
+   é removida via JS logo depois de rodar uma vez). */
+.hhw.is-entering .hhw-slide.is-active .hhw-art{animation:hhw-art-in 400ms ease-out}
+.hhw.is-entering .hhw-slide.is-active .hhw-copy{animation:hhw-copy-in 300ms ease-out 100ms both}
+@keyframes hhw-art-in{from{transform:scale(1.03)}to{transform:scale(1)}}
+@keyframes hhw-copy-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* 4.4: entrada escalonada dos 6 pôsteres da 1ª fileira da home — 1x por
+   sessão (ver initStaggerEntrance). */
+.home-destaques .poster-card.is-stagger{animation:poster-stagger-in 400ms ease-out both}
+.home-destaques .poster-card.is-stagger-done{animation:none}
+@keyframes poster-stagger-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+  .hhw.is-entering .hhw-slide.is-active .hhw-art,
+  .hhw.is-entering .hhw-slide.is-active .hhw-copy,
+  .home-destaques .poster-card.is-stagger{animation:none}
 }

@@ -193,6 +193,10 @@ function initHomeHeroWide(root){
   if(!slides.length)return;
   const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const coarse=matchMedia('(pointer:coarse)').matches;
+  // Pacote3, item 4.3: entrada (escala da arte + texto subindo) só no
+  // primeiro slide de cada visita — a classe cai sozinha depois de rodar
+  // uma vez, pra trocas de slide por rotação/clique nunca repetirem.
+  if(!reduced){root.classList.add('is-entering');setTimeout(()=>root.classList.remove('is-entering'),600)}
   const DURATION=7000;
   let current=0,userDisabled=reduced||coarse,paused=false,intervalId=null;
   function paint(){
@@ -382,6 +386,23 @@ function initLazySections(root){
   },{rootMargin:'400px 0px'});
   sections.forEach(s=>io.observe(s));
 }
+// Pacote3, item 4.4: os 6 pôsteres da 1ª fileira sobem 20px e aparecem com
+// 40ms de atraso entre si — só 1x por sessão (sessionStorage), senão toda
+// volta pra home replicaria a entrada.
+function initStaggerEntrance(root){
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  let already=false;
+  try{already=sessionStorage.getItem('inventario-gamer:v1:home-stagger-done')==='1'}catch{}
+  if(already)return;
+  const cards=$$('.home-destaques .poster-card',root).slice(0,6);
+  if(!cards.length)return;
+  cards.forEach((card,i)=>{
+    card.style.animationDelay=(i*40)+'ms';
+    card.classList.add('is-stagger');
+    card.addEventListener('animationend',()=>card.classList.add('is-stagger-done'),{once:true});
+  });
+  try{sessionStorage.setItem('inventario-gamer:v1:home-stagger-done','1')}catch{}
+}
 function initPeekRows(root){
   $$('[data-peek-row]',root).forEach(track=>{
     const id=track.dataset.peekRow;
@@ -421,6 +442,7 @@ function renderHome(){
   initLazySections(main);
   hydrateHoverExpandPrices(destaquesPoolList);
   initHoverExpand(main);
+  initStaggerEntrance(main);
   main.addEventListener('click',e=>{
     const btn=e.target.closest('[data-destaques-order]');
     if(!btn)return;
@@ -1944,6 +1966,7 @@ function sidebarContent(){
   const invActive=location.hash==='#/inventario';
   return `
     <nav class="sidebar-nav" aria-label="Navegação principal">
+      <div class="sidebar-indicator" data-sidebar-indicator aria-hidden="true"></div>
       <div class="sidebar-group">
         ${sidebarItem('em-alta','Em alta','trend')}
         ${sidebarItem('ofertas','Ofertas','tag')}
@@ -1988,11 +2011,37 @@ function fitAllSidebars(){
     if(el)fitSidebarFeatured(el);
   });
 }
+// Pacote3, item 4.1: liga o indicador compartilhado a hover/foco dos itens
+// (slide via transform — funciona também com a sidebar recolhida, já que só
+// depende de getBoundingClientRect, não de largura fixa). Snap instantâneo
+// pro item ativo a cada render (troca de rota já tem o crossfade do 4.2
+// cuidando da transição visual maior; a sidebar não remonta nesse momento).
+function initSidebarIndicator(root){
+  const nav=root.querySelector('.sidebar-nav');
+  const indicator=root.querySelector('[data-sidebar-indicator]');
+  if(!nav||!indicator)return;
+  const items=$$('.sidebar-item',nav);
+  const moveTo=el=>{
+    if(!el){indicator.classList.remove('is-visible');return}
+    const navRect=nav.getBoundingClientRect(),itemRect=el.getBoundingClientRect();
+    indicator.style.height=itemRect.height+'px';
+    indicator.style.transform=`translateY(${Math.round(itemRect.top-navRect.top)}px)`;
+    indicator.style.background=el.classList.contains('sidebar-item-casa')?`color-mix(in oklab,${getComputedStyle(el).getPropertyValue('--c')||'#fff'} 14%,transparent)`:'rgba(255,255,255,.06)';
+    indicator.classList.add('is-visible');
+  };
+  const activeItem=items.find(el=>el.getAttribute('aria-current')==='page');
+  moveTo(activeItem||null);
+  items.forEach(el=>{
+    el.addEventListener('mouseenter',()=>moveTo(el));
+    el.addEventListener('focus',()=>moveTo(el));
+  });
+  nav.addEventListener('mouseleave',()=>moveTo(activeItem||null));
+}
 function renderSidebar(){
   const html=sidebarContent();
   const desktop=document.getElementById('appSidebar');
   const drawer=document.getElementById('sidebarDrawer');
-  if(desktop)desktop.innerHTML=html;
-  if(drawer)drawer.innerHTML=html;
+  if(desktop){desktop.innerHTML=html;initSidebarIndicator(desktop)}
+  if(drawer){drawer.innerHTML=html;initSidebarIndicator(drawer)}
   fitAllSidebars();
 }
