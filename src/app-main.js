@@ -148,6 +148,7 @@ function route(){
   else if(path==='/universos')renderUniverses(params);
   else if(path==='/merch')renderMerch(params);
   else if(path==='/inventario')renderInventory(params);
+  else if(SIMPLE_PAGES[path.slice(1)])renderSimplePage(path.slice(1));
   else renderNotFound();
   main.focus({preventScroll:true});
   window.scrollTo(0,0);

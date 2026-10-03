@@ -1940,6 +1940,22 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 @media (prefers-reduced-motion:reduce){
   .hec-card,.hec-footer-chip,.hec-panel{transition:none!important}
 }
+/* Pacote3, item 3.5: poster-card — pôster 3/4 sem texto/degradê por cima,
+   título+meta+preço ficam ABAIXO (.poster-info), fora da área que o
+   hover-expand cobre. .hec-fixed trava a largura original do conjunto
+   pôster+texto quando o card abre (ver initHoverExpand) — o painel lateral
+   (.hec-panel, reaproveitado) só ocupa o espaço NOVO à direita, nunca
+   espreme nem estica a capa. */
+.poster-card .hec-fixed{display:block}
+.poster-card .hec-cover{border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+.poster-card .hec-cover .cover{aspect-ratio:3/4;border-radius:0!important}
+.poster-info{padding-top:8px;display:flex;flex-direction:column;gap:2px}
+.poster-title{color:var(--text-1);font:500 14px/1.3 var(--font-ui);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.poster-title:hover{text-decoration:underline}
+.poster-meta{color:var(--text-2);font-size:12px}
+.poster-price{color:var(--text-1);font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.poster-price:hover{text-decoration:underline}
+.poster-price.is-quiet{color:var(--text-2);font-weight:500}
 /* Setas: par vidro/sólido no canto superior direito da linha do título. */
 .offer-row-arrows{display:flex;gap:8px;flex:none;align-items:center}
 .offer-row-arrows[hidden]{display:none}
@@ -2584,4 +2600,121 @@ html[data-theme="neutral"] body.dark-surface-route{
 @media(prefers-reduced-motion:reduce){
   .btn-primary{transition:background-color 150ms ease}
   .btn-primary:active{transform:none;border-radius:inherit}
+}
+
+/* ============================================================
+   PACOTE3, SEÇÃO 3 — HOME NOVA
+   ============================================================ */
+/* 3.1/3.2/3.3: hero largo */
+.hhw{position:relative;width:100%;height:clamp(260px,39vh,300px);border-radius:18px;overflow:hidden;background:#1a1512}
+.hhw-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility 0s linear .5s;z-index:1}
+.hhw-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .5s ease,visibility 0s linear;z-index:2}
+.hhw-art{position:absolute;inset:0;background:linear-gradient(135deg,#2a2622,#57433B);background-size:cover;background-position:center}
+.hhw-art.has-image{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.55) 42%,rgba(14,10,8,.12) 78%),var(--hero-img)}
+.hhw-art.cover-fallback{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.72) 55%),var(--hero-img);filter:blur(28px) saturate(1.1);transform:scale(1.2)}
+.hhw-art .game-hero-placeholder{opacity:.12}
+.hhw-copy{position:relative;z-index:3;height:100%;width:min(560px,62%);padding:28px 32px;display:flex;flex-direction:column;justify-content:center;gap:12px;color:#fff}
+.hhw-pill{display:inline-block;align-self:flex-start;background:rgba(0,0,0,.4);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
+.hhw-copy h1{font:700 clamp(28px,2.8vw,40px)/1.08 var(--font-ui);letter-spacing:-.02em;max-width:18ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hhw-cta{margin-top:4px}
+.hhw-thumbs{position:absolute;right:24px;bottom:24px;z-index:6;display:flex;gap:10px}
+.hhw-thumb{width:112px;height:63px;border-radius:9px;overflow:hidden;position:relative;border:1.5px solid rgba(255,255,255,.3);background:#2a2420;opacity:.75;cursor:pointer;padding:0;transition:opacity 150ms ease,border-color 150ms ease}
+.hhw-thumb:hover,.hhw-thumb:focus-visible{opacity:.92}
+.hhw-thumb.is-active{opacity:1;border-color:#fff}
+.hhw-thumb-img{position:absolute;inset:0;background-size:cover;background-position:center;background-color:hsl(var(--hero-h,0) 20% 22%)}
+.hhw-thumb-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25)}
+.hhw-thumb-fill{display:block;height:100%;width:100%;background:var(--action);transform-origin:left;transform:scaleX(0)}
+@keyframes hhw-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.hhw-pause{position:absolute;left:24px;bottom:24px;z-index:6;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hhw-pause:hover{background:rgba(0,0,0,.6)}
+@media(max-width:899px){
+  .hhw{height:auto;min-height:320px}
+  .hhw-copy{width:100%;padding:24px 20px 76px}
+  .hhw-thumbs{display:none}
+  .hhw-pause{bottom:16px;left:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hhw-slide{transition:none}
+  .hhw-thumb-fill{animation:none!important}
+}
+
+/* 3.4/3.5/3.7: fileira "peek" (6 cards cheios + a 7ª espiando 8px) usada
+   por Destaques e Retrô — mesmo poster-card/hover-expand dos dois. */
+.destaques-alt{display:flex;gap:4px;background:var(--glass-3);border:1px solid var(--glass-border);border-radius:999px;padding:3px}
+.destaques-alt-btn{padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text-2);text-decoration:none;transition:background-color 150ms ease,color 150ms ease}
+.destaques-alt-btn[aria-pressed="true"]{background:var(--action);color:var(--on-action)}
+.row-subtitle{color:var(--text-2);font-size:13px;margin-top:2px}
+.row-title-link{color:var(--text-1);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.row-title-arrow{opacity:0;transition:opacity 150ms ease,transform 150ms ease;transform:translateX(-4px)}
+.row-title-link:hover .row-title-arrow{opacity:1;transform:translateX(0)}
+.row-see-all-mobile{display:none;color:var(--text-2);font-size:13px;text-decoration:none;font-weight:600}
+@media(max-width:899px){.row-see-all-mobile{display:inline-block}}
+.peek-row-wrap{position:relative}
+.peek-grid{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none}
+.peek-grid::-webkit-scrollbar{display:none}
+.peek-grid>*{flex:0 0 calc((100% - 88px)/6);scroll-snap-align:start;min-width:0}
+.peek-row-arrow{position:absolute;right:-6px;top:38%;width:40px;height:40px;border-radius:50%;background:var(--action);color:var(--on-action);border:0;cursor:pointer;font-size:18px;z-index:3;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.peek-row-arrow[hidden]{display:none}
+@media(max-width:1100px){.peek-grid>*{flex-basis:calc((100% - 48px)/4)}}
+@media(max-width:899px){.peek-grid>*{flex-basis:46%}}
+@media(max-width:560px){.peek-grid>*{flex-basis:76%}}
+
+/* 3.6: Universos em destaque — card grande + 3 compactos empilhados */
+.home-universes-grid{display:grid;grid-template-columns:520px 1fr;gap:16px;align-items:stretch}
+.ud-big{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:6px;height:290px;padding:24px;border-radius:18px;overflow:hidden;text-decoration:none;background:var(--ud-base,#1f0b14);background-size:cover;background-position:center}
+.ud-big::before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.15) 55%,transparent 80%)}
+.ud-big.has-image{background-image:var(--hero-img)}
+.ud-fallback-sigla{position:absolute;right:20px;bottom:20px;font:700 64px/1 var(--font-ui);color:rgba(255,255,255,.1);z-index:1}
+.ud-big.has-image .ud-fallback-sigla{display:none}
+.ud-pill,.ud-name,.ud-count,.ud-cta{position:relative;z-index:2}
+.ud-pill{background:rgba(0,0,0,.4);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
+.ud-name{color:#fff;font:500 32px/1.1 var(--font-ui)}
+.ud-count{color:rgba(255,255,255,.75);font-size:13px}
+.ud-cta{margin-top:6px}
+.home-universes-compact{display:flex;flex-direction:column;gap:12px;height:100%}
+.ud-compact{flex:1;display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04)}
+.ud-compact-cover{flex:none;width:56px;height:72px;display:block}
+.ud-compact-cover .cover{width:56px;height:72px;aspect-ratio:auto;border-radius:8px!important}
+.ud-compact-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ud-compact-body b{color:var(--text-1);font:500 17px/1.2 var(--font-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ud-compact-body small{color:var(--text-2);font-size:12px}
+.ud-compact-cta{flex:none}
+@media(max-width:899px){
+  .home-universes-grid{grid-template-columns:1fr;gap:12px}
+  .ud-big{height:180px}
+  .home-universes-compact{flex-direction:column}
+}
+
+/* 3.8: colecionáveis/merch em quadrados */
+.merch-square-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.merch-square-card{border-radius:14px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border)}
+.merch-square-card .cover{aspect-ratio:1/1;border-radius:0!important}
+.merch-square-body{padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.merch-square-body b{color:var(--text-1);font:500 14px/1.25 var(--font-ui)}
+.merch-square-body small{color:var(--text-2);font-size:11.5px}
+.merch-square-price{color:var(--text-1);font-weight:600;font-size:14px;margin-top:2px}
+
+/* 3.12: ritmo vertical compacto da home — dobra cabe hero + Destaques sem
+   rolar em 1440x770 (critério de aceite do pacote3). Só aqui: o resto do
+   site mantém .lux-section{margin-top:72px} padrão. */
+.home-destaques{margin-top:12px}
+.home-destaques .lux-section-head{margin-bottom:6px}
+.poster-info{padding-top:6px;gap:1px}
+
+/* 3.11: rodapé global em 3 colunas (desktop) / acordeão nativo (mobile) */
+.footer-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding-bottom:12px}
+.footer-col{border:0}
+.footer-col summary{color:var(--text-1,var(--ink));font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;cursor:default;list-style:none}
+.footer-col summary::-webkit-details-marker{display:none}
+.footer-col ul{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.footer-col a{color:inherit;text-decoration:none;font-size:13px}
+.footer-col a:hover{text-decoration:underline}
+.footer-fine{border-top:1px solid var(--line);padding-top:14px}
+body.dark-surface-route .footer-fine{border-top-color:var(--glass-border)}
+@media(max-width:899px){
+  .footer-columns{grid-template-columns:1fr;gap:0}
+  .footer-col{border-bottom:1px solid var(--line);padding:12px 0}
+  .footer-col summary{cursor:pointer;list-style:disclosure-triangle}
+  .footer-col summary::-webkit-details-marker{display:inline}
+  body.dark-surface-route .footer-col{border-bottom-color:var(--glass-border)}
 }

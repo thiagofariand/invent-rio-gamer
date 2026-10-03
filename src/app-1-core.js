@@ -213,6 +213,16 @@ try{
   xhrPal.send(null);
   if(xhrPal.status===200)PALETA_UNIVERSOS=JSON.parse(xhrPal.responseText);
 }catch(e){/* mantém o fallback "padrao" acima */}
+// Pacote3, item 3.1: slides do hero largo da home — mesmo padrão de carga
+// síncrona do arquivo acima. Sem arquivo ou vazio: HOME_HEROES fica [] e
+// renderHome() cai no fallback de /api/trending (ver loadHomeHeroSlides).
+let HOME_HEROES=[];
+try{
+  const xhrHeroes=new XMLHttpRequest();
+  xhrHeroes.open('GET','/src/data/home-heroes.json?v=Pacote3',false);
+  xhrHeroes.send(null);
+  if(xhrHeroes.status===200){const parsed=JSON.parse(xhrHeroes.responseText);if(Array.isArray(parsed))HOME_HEROES=parsed}
+}catch(e){/* mantém HOME_HEROES=[] — cai no fallback */}
 const paletaIdx=new Map();
 (PALETA_UNIVERSOS.universos||[]).forEach(p=>{
   paletaIdx.set(p.slug,p);

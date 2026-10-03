@@ -74,8 +74,29 @@
 
 <main id="main" tabindex="-1"></main>
 
+<!-- Pacote3, item 3.11: rodapé global em 3 colunas (institucional/explorar/
+     legal) — vira <details> empilhado no mobile (ver CSS: o <summary> só
+     funciona como acordeão abaixo de 900px; no desktop as 3 colunas ficam
+     sempre abertas, o marcador nativo é escondido). As páginas atrás dos
+     links (#/sobre, #/contato, #/privacidade, #/termos, #/aviso-afiliado)
+     são só "Conteúdo em elaboração" por enquanto — o texto jurídico de
+     verdade é o dono quem escreve, não é pra inventar aqui. -->
 <footer class="site-footer">
-  <div class="footer-inner">
+  <div class="footer-inner footer-columns">
+    <details class="footer-col" open>
+      <summary>Institucional</summary>
+      <ul><li><a href="#/sobre">Sobre</a></li><li><a href="#/contato">Contato</a></li></ul>
+    </details>
+    <details class="footer-col" open>
+      <summary>Explorar</summary>
+      <ul><li><a href="#/em-alta">Em alta</a></li><li><a href="#/busca?cond=usado">Ofertas</a></li><li><a href="#/universos">Universos</a></li></ul>
+    </details>
+    <details class="footer-col" open>
+      <summary>Legal</summary>
+      <ul><li><a href="#/privacidade">Privacidade</a></li><li><a href="#/termos">Termos</a></li><li><a href="#/aviso-afiliado">Aviso de afiliado</a></li></ul>
+    </details>
+  </div>
+  <div class="footer-inner footer-fine">
     <span>Inventário Gamer organiza e compara ofertas; a compra acontece na loja de origem. Alguns links são de afiliado: se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra pra você.</span>
     <span>Marcas e logotipos pertencem aos seus respectivos donos. O Inventário Gamer não é afiliado a Nintendo, Sony ou Microsoft.</span>
     <span><button id="mockToggle" type="button">Modo demonstração</button> · itens de exemplo são sempre identificados.</span>

@@ -54,29 +54,14 @@ function homeOfferCard(p,label){
     ${value?`<strong>${esc(condLabel)} ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
   </article>`;
 }
-let homeHeroTimer=null,homeRenderId=0;
+let homeRenderId=0;
 const homeTrendHref=t=>t.href||`#/tema/${t.slug}`;
-function homeFeatureMarkup(trends){
-  const items=trends.slice(0,3);
-  return `<section class="home-feature" aria-label="Destaques em alta" data-home-carousel>
-    ${items.map((t,i)=>`<article class="home-feature-slide ${i===0?'is-active':''}" data-home-slide aria-hidden="${i!==0}">
-      <div class="home-feature-art game-hero-art" data-home-hero-art data-home-hero-title="${esc(t.title)}" style="--hero-h:${hashStr(t.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(t.title))}</b><span>DESTAQUE EM ALTA</span></div></div>
-      <div class="home-feature-copy">${norm(t.tag||'')==='pre venda'?`<span class="game-hero-kicker">PRÉ-VENDA</span>`:''}<h1 id="home-feature-title-${i}">${esc(t.title)}</h1><p>${esc(t.copy||'Um dos assuntos gamer em destaque agora.')}</p>
-        <div class="home-feature-actions"><a class="btn btn-primary" href="${esc(homeTrendHref(t))}">Explorar agora</a><a class="btn btn-glass" href="#/em-alta">Ver tudo em alta</a></div>
-      </div>
-    </article>`).join('')}
-    <div class="home-feature-controls" role="group" aria-label="Escolher destaque">${items.map((t,i)=>`<button type="button" data-home-dot="${i}" aria-label="Mostrar ${esc(t.short||t.title)}" aria-current="${i===0}"></button>`).join('')}</div>
-    <button type="button" class="home-feature-nav prev" data-home-prev aria-label="Destaque anterior">‹</button>
-    <button type="button" class="home-feature-nav next" data-home-next aria-label="Próximo destaque">›</button>
-  </section>`;
-}
-async function hydrateHomeHero(root){
-  const arts=$$('[data-home-hero-art]',root);
-  await mapLimit(arts,2,async art=>{
-    const d=await fetchIgdbVisual(art.dataset.homeHeroTitle||'');
-    if(art.isConnected&&d?.hero?.url)setHeroBackground(art,d.hero.url);
-  });
-}
+// initHomeCarousel: driver genérico de slide (crossfade + pontos + setas +
+// contador), nascido pro hero antigo da home — continua em uso pelo hero da
+// página de UNIVERSO (universeHeroMarkup/hydrateUniverseHero, mais abaixo
+// no arquivo), por isso fica fora do bloco "home nova" (pacote3, seção 3)
+// mesmo não sendo mais chamado pela home em si.
+let homeHeroTimer=null;
 function initHomeCarousel(root){
   clearInterval(homeHeroTimer);
   const slides=$$('[data-home-slide]',root),dots=$$('[data-home-dot]',root),counter=$('[data-home-counter]',root);
@@ -111,80 +96,338 @@ function initHomeCarousel(root){
   root.addEventListener('focusout',e=>{if(!root.contains(e.relatedTarget))paused=false});
   show(0);start();
 }
-async function loadDailyHomeTrends(renderId){
+
+/* ============================================================
+   PACOTE3, SEÇÃO 3 — HOME NOVA
+   Ordem: hero largo, Destaques, Universos em destaque, Retrô,
+   Colecionáveis e merch, rodapé (rodapé é HTML estático, ver index.html).
+   ============================================================ */
+
+/* ---- 3.1/3.2/3.3: hero largo com miniaturas e rotação automática ---- */
+function catalogGameForTrend(t){return catalog.find(p=>p.title===t.title)||null}
+function homeHeroSlideFromTrend(t,pillLabel){
+  const game=catalogGameForTrend(t);
+  let ctaHtml;
+  if(game){
+    const platform=game.variants?.[0]?.[1]||'';
+    ctaHtml=`<a class="btn btn-primary" href="${bestOfferHrefFor(game,platform)}">${posterPriceChipText(game,platform)}</a>`;
+  }else{
+    ctaHtml=`<a class="btn btn-primary" href="${esc(homeTrendHref(t))}">Ver detalhes</a>`;
+  }
+  return {
+    pill:pillLabel,title:t.title,
+    igdbTitle:t.title,igdbPlatform:game?.variants?.[0]?.[1]||'',igdbYear:game?.year||'',
+    href:homeTrendHref(t),ctaHtml,thumbLabel:t.short||t.title
+  };
+}
+function homeHeroSlideFromUniverse(slug){
+  const u=uMap.get(slug);
+  if(!u)return null;
+  const titles=titlesOf(slug);
+  const rep=representativeFranchiseGame(titles);
+  const pal=paletteForUniverse(u);
+  const platform=rep?.variants?.[0]?.[1]||'';
+  return {
+    pill:'UNIVERSO',title:pal?.nome||u.name,
+    igdbTitle:rep?igdbTitleFor(rep,platform):u.name,igdbPlatform:platform,igdbYear:rep?.year||'',
+    href:`#/universo/${u.slug}`,
+    ctaHtml:`<a class="btn btn-primary" href="#/universo/${u.slug}">Conhecer o universo →</a>`,
+    thumbLabel:pal?.nome||u.name
+  };
+}
+function resolveHomeHeroSlide(entry){
+  if(!entry||!entry.slug)return null;
+  if(entry.tipo==='universo')return homeHeroSlideFromUniverse(entry.slug);
+  const t=D.trendingNow.find(x=>x.slug===entry.slug);
+  if(!t)return null;
+  const pillMap={jogo:'EM ALTA',lancamento:'LANÇAMENTO','oferta-merch':'OFERTA'};
+  return homeHeroSlideFromTrend(t,pillMap[entry.tipo]||'EM ALTA');
+}
+// 3.1: slides vêm de src/data/home-heroes.json (HOME_HEROES, carregado
+// síncrono em app-1-core.js); sem arquivo/itens válidos, cai nos destaques
+// locais de D.trendingNow (mesma fonte que /api/trending cura manualmente).
+function loadHomeHeroSlides(){
+  const fromFile=(HOME_HEROES||[]).map(resolveHomeHeroSlide).filter(Boolean);
+  if(fromFile.length)return fromFile.slice(0,4);
+  return D.trendingNow.slice(0,4).map(t=>homeHeroSlideFromTrend(t,'EM ALTA'));
+}
+function homeHeroWideMarkup(slides){
+  return `<section class="hhw" aria-roledescription="carrossel" aria-label="Destaques" data-hhw>
+    ${slides.map((s,i)=>`<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}">
+      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="hhw-copy">
+        <span class="hhw-pill">${esc(s.pill)}</span>
+        <h1>${esc(s.title)}</h1>
+        <div class="hhw-cta">${s.ctaHtml}</div>
+      </div>
+    </article>`).join('')}
+    <div class="hhw-thumbs" role="group" aria-label="Escolher destaque">${slides.map((s,i)=>`<button type="button" class="hhw-thumb ${i===0?'is-active':''}" data-hhw-thumb="${i}" aria-current="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}" title="${esc(s.thumbLabel)}"><span class="hhw-thumb-img" data-hhw-thumb-img style="--hero-h:${hashStr(s.title)%360}"></span><span class="hhw-thumb-bar"><span class="hhw-thumb-fill" data-hhw-fill></span></span></button>`).join('')}</div>
+    <button type="button" class="hhw-pause" data-hhw-pause aria-pressed="false" aria-label="Pausar rotação automática">${ico('check',0)}</button>
+  </section>`;
+}
+async function hydrateHomeHeroWide(root){
+  const arts=$$('[data-hhw-art]',root);
+  await mapLimit(arts,2,async(art,i)=>{
+    const d=await fetchIgdbVisual(art.dataset.hhwTitle||'',art.dataset.hhwPlatform||'',art.dataset.hhwYear||'');
+    if(!art.isConnected)return;
+    const thumbImg=root.querySelectorAll('[data-hhw-thumb-img]')[i];
+    if(d?.hero?.url){
+      setHeroBackground(art,d.hero.url);
+      if(thumbImg)thumbImg.style.backgroundImage=`url("${d.hero.url.replace(/"/g,'%22')}")`;
+    }else if(d?.cover?.url){
+      setHeroBackground(art,d.cover.url,true);
+      if(thumbImg)thumbImg.style.backgroundImage=`url("${d.cover.url.replace(/"/g,'%22')}")`;
+    }
+  });
+}
+// 3.3: 7s por slide, crossfade via CSS (.is-active opacity), pausa em
+// hover/foco/aba oculta; qualquer interação manual desliga a rotação pelo
+// resto da sessão; sem rotação com prefers-reduced-motion ou pointer:coarse
+// (toque). 3.2: a barra de progresso da miniatura ativa usa uma animação
+// CSS (scaleX 0->1, linear, 7s) que dá pra pausar/retomar via
+// animationPlayState — pausa junto com a rotação.
+function initHomeHeroWide(root){
+  const PAUSE_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+  const PLAY_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>';
+  const slides=$$('[data-hhw-slide]',root),thumbs=$$('[data-hhw-thumb]',root),pauseBtn=$('[data-hhw-pause]',root);
+  if(!slides.length)return;
+  const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const coarse=matchMedia('(pointer:coarse)').matches;
+  const DURATION=7000;
+  let current=0,userDisabled=reduced||coarse,paused=false,intervalId=null;
+  function paint(){
+    slides.forEach((sl,idx)=>{const on=idx===current;sl.classList.toggle('is-active',on);sl.setAttribute('aria-hidden',String(!on));$$('a,button',sl).forEach(el=>el.tabIndex=on?0:-1)});
+    thumbs.forEach((th,idx)=>{
+      const on=idx===current;
+      th.classList.toggle('is-active',on);
+      th.setAttribute('aria-current',String(on));
+      const fill=th.querySelector('[data-hhw-fill]');
+      if(!fill)return;
+      fill.style.animation='none';
+      void fill.offsetWidth;
+      fill.style.animation=(on&&!userDisabled)?`hhw-fill ${DURATION}ms linear forwards`:'';
+      fill.style.animationPlayState=paused?'paused':'running';
+    });
+  }
+  function show(i){current=(i+slides.length)%slides.length;paint()}
+  function advance(){if(!paused&&!document.hidden)show(current+1)}
+  function startInterval(){clearInterval(intervalId);if(userDisabled)return;intervalId=setInterval(advance,DURATION)}
+  function disableAuto(){if(userDisabled)return;userDisabled=true;clearInterval(intervalId);paint()}
+  thumbs.forEach((th,i)=>th.addEventListener('click',()=>{disableAuto();show(i)}));
+  slides.forEach(sl=>$$('a,button',sl).forEach(el=>el.addEventListener('click',disableAuto)));
+  pauseBtn?.addEventListener('click',()=>{
+    paused=!paused;
+    pauseBtn.setAttribute('aria-pressed',String(paused));
+    pauseBtn.innerHTML=paused?PLAY_ICON:PAUSE_ICON;
+    pauseBtn.setAttribute('aria-label',paused?'Retomar rotação automática':'Pausar rotação automática');
+    thumbs.forEach(th=>{const f=th.querySelector('[data-hhw-fill]');if(f)f.style.animationPlayState=paused?'paused':'running'});
+  });
+  pauseBtn.innerHTML=PAUSE_ICON;
+  root.addEventListener('mouseenter',()=>{paused=true;thumbs.forEach(th=>{const f=th.querySelector('[data-hhw-fill]');if(f)f.style.animationPlayState='paused'})});
+  root.addEventListener('mouseleave',()=>{if(pauseBtn.getAttribute('aria-pressed')==='true')return;paused=false;thumbs.forEach(th=>{const f=th.querySelector('[data-hhw-fill]');if(f)f.style.animationPlayState='running'})});
+  root.addEventListener('focusin',()=>{paused=true});
+  root.addEventListener('focusout',e=>{if(!root.contains(e.relatedTarget)&&pauseBtn.getAttribute('aria-pressed')!=='true')paused=false});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)return;paint()});
+  // Slide inicial sorteado 1x por sessão (sessionStorage); a partir daí a
+  // ordem é sempre sequencial fixa a partir desse ponto.
+  let startIndex=0;
   try{
-    const response=await fetch('/api/trending',{headers:{Accept:'application/json'}});
-    if(!response.ok)return;
-    const data=await response.json();
-    const items=(data.items||[]).filter(t=>t&&t.title&&t.href).slice(0,3);
-    if(items.length<3||renderId!==homeRenderId)return;
-    const current=$('[data-home-carousel]',main);
-    if(!current)return;
-    const holder=document.createElement('div');
-    holder.innerHTML=homeFeatureMarkup(items);
-    const replacement=holder.firstElementChild;
-    current.replaceWith(replacement);
-    initHomeCarousel(replacement);
-    hydrateHomeHero(replacement);
+    const saved=sessionStorage.getItem('inventario-gamer:v1:home-hero-start');
+    if(saved!=null&&!Number.isNaN(parseInt(saved,10)))startIndex=parseInt(saved,10)%slides.length;
+    else{startIndex=Math.floor(Math.random()*slides.length);sessionStorage.setItem('inventario-gamer:v1:home-hero-start',String(startIndex))}
   }catch{}
+  show(startIndex);
+  startInterval();
 }
-// Pacote2, item 5: ordem fixa pedida pro corpo da home — Em alta (dados de
-// trending), Ofertas, Clássicos (retrô+usado), Além dos jogos (merch). Cada
-// fileira de jogo (Ofertas/Clássicos) é deduplicada contra as anteriores —
-// "Em alta" usa itens de trending (não são o mesmo tipo de registro) então
-// fica fora dessa deduplicação.
-function homeOffersPool(){
-  const curatedSlugs=['twilight-princess','ragnarok','sonic-mania-plus','resident-evil-4-remake','resident-evil-4'];
-  const curated=curatedSlugs.map(s=>catalogBySlug.get(s)).filter(Boolean);
-  const seen=new Set(curated.map(p=>p.slug));
-  const extra=catalog.filter(p=>!seen.has(p.slug)&&p.used!==false&&!p.variants.every(v=>isRetro(v[1])))
-    .sort((a,b)=>a.title.localeCompare(b.title));
-  const pool=[...curated];
-  for(const p of extra){if(pool.length>=12)break;if(!pool.some(x=>x.slug===p.slug)){pool.push(p);seen.add(p.slug)}}
-  return pool.slice(0,12);
+
+/* ---- 3.4/3.5: Destaques (alternador Em alta/Mais novos/Menor preço) ---- */
+function posterPriceChipText(p,platform){
+  const cached=bestUsed(p);
+  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+  const label=cached?'Usado':demo?.label;
+  const value=cached?.minDisplay||demo?.display;
+  // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
+  return value?`${label} a partir de ${esc(value)}${!cached?' '+mockChip():''}`:'Ver detalhes';
 }
-function homeClassicsPool(excludeSlugs){
-  return catalog.filter(p=>!excludeSlugs.has(p.slug)&&p.used!==false&&p.variants.some(v=>isRetro(v[1])))
-    .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0))
-    .slice(0,12);
+const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço']];
+function destaquesPool(order,exclude){
+  const pool=catalog.filter(p=>!exclude.has(p.title));
+  if(order==='novos')return pool.filter(p=>p.year).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)).slice(0,12);
+  if(order==='menor-preco'){
+    return pool.map(p=>{
+      const best=bestUsed(p);
+      const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+      const price=best?.min??demo?.price??null;
+      return {p,price};
+    }).filter(x=>x.price!=null).sort((a,b)=>a.price-b.price).slice(0,12).map(x=>x.p);
+  }
+  const trendTitles=new Set(D.trendingNow.map(t=>t.title));
+  const trendGames=pool.filter(p=>trendTitles.has(p.title));
+  const rest=pool.filter(p=>!trendTitles.has(p.title)).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0));
+  return [...trendGames,...rest].slice(0,12);
 }
-function renderHome(){
-  setTitle('');
-  const trend=D.trendingNow;
-  const slides=trend.slice(0,3),top=trend.filter(t=>!slides.includes(t)).slice(0,12);
-  const renderId=++homeRenderId;
-  const offersPool=homeOffersPool();
-  const classicsPool=homeClassicsPool(new Set(offersPool.map(p=>p.slug)));
-  main.innerHTML=`
-  ${homeFeatureMarkup(slides)}
-
-  ${top.length?`<section class="lux-section" aria-labelledby="home-trend-title"><div class="lux-section-head"><div><h2 id="home-trend-title">Em alta</h2></div>${offerRowArrowsMarkup('home-trend')}<a href="#/em-alta">Ver tudo em alta →</a></div>
-    <div class="home-trending-cards" data-offer-row="home-trend" aria-label="Jogos em alta">${top.map(t=>`<article class="home-trend-card"><div class="home-trend-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{note:false})}</div><div><h2><a href="#/tema/${t.slug}">${esc(t.short)}</a></h2><p>${esc(t.copy)}</p></div><a class="round-arrow" href="#/tema/${t.slug}" aria-label="Abrir ${esc(t.short)}">→</a></article>`).join('')}</div>
-  </section>`:''}
-
-  <section class="lux-section" aria-labelledby="home-offers-title"><div class="lux-section-head"><div><h2 id="home-offers-title">Ofertas</h2></div>${offerRowArrowsMarkup('home-offers')}<a href="#/busca?cond=usado">Ver todas →</a></div>
-    <div class="home-offer-grid" data-offer-row="home-offers">${offersPool.map(hoverExpandGameCard).join('')}</div>
-  </section>
-
-  ${classicsPool.length?`<section class="lux-section" aria-labelledby="home-classics-title"><div class="lux-section-head"><div><h2 id="home-classics-title">Clássicos</h2></div>${offerRowArrowsMarkup('home-classics')}<a href="#/busca?retro=1">Ver todos →</a></div>
-    <div class="home-offer-grid" data-offer-row="home-classics">${classicsPool.map(hoverExpandGameCard).join('')}</div>
-  </section>`:''}
-
-  <section class="merch-home-stage" aria-labelledby="home-merch-title"><div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
-    <div class="merch-home-grid">
-      <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
-      <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
-      <a class="merch-home-card" href="#/merch?cat=merch"><span class="merch-home-icon">${ico('bag',28)}</span><div><b>Decoração gamer</b><small>Quadros, luminárias, placas e suportes.</small></div><span>→</span></a>
+function destaquesAlternatorMarkup(order){
+  return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" href="#/?destaques=${k}" aria-pressed="${k===order}" data-destaques-order="${k}">${esc(l)}</a>`).join('')}</div>`;
+}
+function destaquesSection(order,heroExclude){
+  const pool=destaquesPool(order,heroExclude);
+  if(!pool.length)return '';
+  return `<section class="lux-section home-destaques" aria-labelledby="home-destaques-title" data-lazy-eager>
+    <div class="lux-section-head">
+      <div>${rowTitleLink('home-destaques-title','Destaques',`#/em-alta?ordem=${order}`)}</div>
+      ${destaquesAlternatorMarkup(order)}
+    </div>
+    <div class="peek-row-wrap">
+      <div class="peek-grid" data-peek-row="home-destaques">${pool.map(posterCard).join('')}</div>
+      <button type="button" class="peek-row-arrow" data-peek-next="home-destaques" aria-label="Ver mais destaques" hidden>→</button>
     </div>
   </section>`;
-  const carousel=$('[data-home-carousel]',main);
-  initHomeCarousel(carousel);
-  hydrateHomeHero(carousel);
-  loadDailyHomeTrends(renderId);
-  hydrateIgdbCovers(main,12+offersPool.length+classicsPool.length);
-  initOfferCarousels(main);
-  hydrateHoverExpandPrices([...offersPool,...classicsPool]);
+}
+
+/* ---- 3.6: Universos em destaque (mesma lista curada da sidebar) ---- */
+function universeDestaqueBig(u){
+  const titles=titlesOf(u.slug);
+  const rep=representativeFranchiseGame(titles);
+  const pal=paletteForUniverse(u);
+  const platform=rep?.variants?.[0]?.[1]||'';
+  const base=pal?.fundo||'#1f0b14';
+  return `<a class="ud-big igdb-cover-slot" href="#/universo/${u.slug}" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
+    <span class="ud-fallback-sigla" aria-hidden="true">${esc(u.sigla)}</span>
+    <span class="ud-pill">${esc(PLATFORM_LABEL[u.casa]||'Multi')}</span>
+    <span class="ud-name">${esc(pal?.nome||u.name)}</span>
+    <span class="ud-count">${titles.length} jogos catalogados</span>
+    <span class="btn btn-primary ud-cta">Conhecer o universo →</span>
+  </a>`;
+}
+function universeDestaqueCompact(entry,u){
+  const titles=titlesOf(u.slug);
+  const rep=representativeFranchiseGame(titles);
+  const platform=rep?.variants?.[0]?.[1]||'';
+  return `<a class="ud-compact" href="#/universo/${u.slug}">
+    <span class="ud-compact-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{note:false})}</span>
+    <span class="ud-compact-body"><b>${esc(entry.nome||u.name)}</b><small>${titles.length} jogos · ${esc(PLATFORM_LABEL[u.casa]||'Multi')}</small></span>
+    <span class="btn btn-ghost btn-sm ud-compact-cta">Ver universo →</span>
+  </a>`;
+}
+function universosDestaqueSection(){
+  const entries=SIDEBAR_FEATURED_UNIVERSES.map(e=>({entry:e,u:uMap.get(e.slug)})).filter(x=>x.u).slice(0,4);
+  if(!entries.length)return '';
+  const [big,...rest]=entries;
+  return `<section class="lux-section home-universes" aria-labelledby="home-universes-title" data-lazy-section>
+    <div class="lux-section-head"><div>${rowTitleLink('home-universes-title','Universos em destaque','#/universos')}</div></div>
+    <div class="home-universes-grid">
+      ${universeDestaqueBig(big.u)}
+      <div class="home-universes-compact">${rest.map(x=>universeDestaqueCompact(x.entry,x.u)).join('')}</div>
+    </div>
+  </section>`;
+}
+
+/* ---- 3.7: Retrô (mesmo card/expansão de Destaques) ---- */
+function retroPool(exclude){
+  const rank=p=>{const s=sampleOffers(p.title,{year:p.year});return s.bucket==='both'?3:(s.bucket==='used'||s.bucket==='new')?2:s.bucket==='digital'?1:0};
+  return catalog.filter(p=>!exclude.has(p.title)&&p.variants.some(v=>isRetro(v[1])))
+    .sort((a,b)=>rank(b)-rank(a))
+    .slice(0,12);
+}
+function retroSection(exclude){
+  const pool=retroPool(exclude);
+  if(!pool.length)return '';
+  return `<section class="lux-section home-retro" aria-labelledby="home-retro-title" data-lazy-section>
+    <div class="lux-section-head"><div>${rowTitleLink('home-retro-title','Retrô','#/busca?retro=1')}<p class="row-subtitle">Clássicos, em preço de usado</p></div></div>
+    <div class="peek-row-wrap">
+      <div class="peek-grid" data-peek-row="home-retro">${pool.map(posterCard).join('')}</div>
+      <button type="button" class="peek-row-arrow" data-peek-next="home-retro" aria-label="Ver mais clássicos" hidden>→</button>
+    </div>
+  </section>`;
+}
+
+/* ---- 3.8: Colecionáveis e merch (quadrados) ou fallback "Além dos jogos" ---- */
+function homeMerchSquareCard(it){
+  const cta=it.unique
+    ?`<button type="button" class="btn btn-ghost btn-sm" data-act="mock-item" data-id="${esc(it.id)}">Ver item →</button>`
+    :`<button type="button" class="btn btn-ghost btn-sm" data-act="open-merch-offers" data-id="${esc(it.id)}">Ver oferta →</button>`;
+  return `<article class="merch-square-card">${coverTile(it.title,{size:'wide',mock:true})}
+    <div class="merch-square-body"><b>${esc(it.title)}</b><small>${esc(ORIGIN_LABEL[it.origin]||'')}</small><span class="merch-square-price">${brl(it.price)}</span>${cta}</div>
+  </article>`;
+}
+function homeMerchSection(){
+  const items=mockMerch()?M.items.slice(0,12):[];
+  if(!items.length){
+    return `<section class="merch-home-stage" aria-labelledby="home-merch-title" data-lazy-section>
+      <div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
+      <div class="merch-home-grid">
+        <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
+        <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
+      </div>
+    </section>`;
+  }
+  return `<section class="lux-section home-merch-squares" aria-labelledby="home-merch-title" data-lazy-section>
+    <div class="lux-section-head"><div>${rowTitleLink('home-merch-title','Colecionáveis e merch','#/merch')}</div></div>
+    <div class="merch-square-grid">${items.map(homeMerchSquareCard).join('')}</div>
+  </section>`;
+}
+
+/* ---- 3.10: título clicável com seta no hover (desktop) + "Ver tudo →" (mobile) ---- */
+function rowTitleLink(id,label,href){
+  return `<h2 id="${id}"><a class="row-title-link" href="${esc(href)}">${esc(label)}<span class="row-title-arrow" aria-hidden="true">→</span></a></h2><a class="row-see-all-mobile" href="${esc(href)}">Ver tudo →</a>`;
+}
+
+/* ---- 3.9: lazy load (IntersectionObserver, margem 400px) ---- */
+function initLazySections(root){
+  const sections=$$('[data-lazy-section]',root);
+  if(!sections.length)return;
+  if(!('IntersectionObserver' in window)){sections.forEach(s=>hydrateIgdbCovers(s,24));return}
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){hydrateIgdbCovers(e.target,24);io.unobserve(e.target)}});
+  },{rootMargin:'400px 0px'});
+  sections.forEach(s=>io.observe(s));
+}
+function initPeekRows(root){
+  $$('[data-peek-row]',root).forEach(track=>{
+    const id=track.dataset.peekRow;
+    const btn=root.querySelector(`[data-peek-next="${id}"]`);
+    if(!btn)return;
+    if(track.children.length<=6){btn.hidden=true;return}
+    btn.hidden=false;
+    btn.addEventListener('click',()=>{
+      const first=track.children[0];
+      const step=((first?.getBoundingClientRect().width)||220)+16;
+      track.scrollBy({left:step*6,behavior:'smooth'});
+    });
+  });
+}
+
+function renderHome(){
+  setTitle('');
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const order=DESTAQUES_ORDERS.some(([k])=>k===params.get('destaques'))?params.get('destaques'):'em-alta';
+  const renderId=++homeRenderId;
+  const heroSlides=loadHomeHeroSlides();
+  const heroExclude=new Set(heroSlides.map(s=>s.title));
+  const destaquesPoolList=destaquesPool(order,heroExclude);
+  const retroExclude=new Set([...heroExclude,...destaquesPoolList.map(p=>p.title)]);
+  main.innerHTML=`
+  ${homeHeroWideMarkup(heroSlides)}
+  ${destaquesSection(order,heroExclude)}
+  ${universosDestaqueSection()}
+  ${retroSection(retroExclude)}
+  ${homeMerchSection()}`;
+  const hero=$('[data-hhw]',main);
+  initHomeHeroWide(hero);
+  hydrateHomeHeroWide(hero);
+  initPeekRows(main);
+  // Acima da dobra (hero + Destaques) hidrata na hora; o resto é lazy (3.9).
+  hydrateIgdbCovers(main,heroSlides.length*2+destaquesPoolList.length+2);
+  initLazySections(main);
+  hydrateHoverExpandPrices(destaquesPoolList);
   initHoverExpand(main);
+  main.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-destaques-order]');
+    if(!btn)return;
+    e.preventDefault();
+    history.replaceState(null,'','#/?destaques='+btn.dataset.destaquesOrder);
+    renderHome();
+  });
 }
 
 /* ---------- busca e resultados ---------- */
@@ -1048,21 +1291,52 @@ function bestOfferHrefFor(p,platform){
   const best=universeOfferPhysicalBest(p,platform),digital=universeOfferDigital(p,platform);
   return best?comparisonHref(p,platform,best.cond):digital?comparisonHref(p,platform,'digital'):`#/jogo/${p.slug}?plat=${enc(platform)}`;
 }
-function hoverExpandGameCard(p){
-  const platform=p.variants?.[0]?.[1]||'';
+// Pacote3, item 3.5: conteúdo do painel de hover-expand (título, meta, 3
+// linhas de preço, ações) — extraído da antiga hoverExpandGameCard (pacote2
+// 5) pra ser reaproveitado pelo poster-card novo da home (3.5) sem duplicar.
+function hecPanelMarkup(p,platform){
   const ref=gameRef(p),on=invGet(ref.id)?.status==='owned';
-  return `<article class="hec-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
-    <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
-    <div class="hec-footer-chip"><span>${esc(p.title)}</span></div>
-    <div class="hec-panel">
-      <h3 class="hec-title">${esc(p.title)}</h3>
-      <p class="hec-meta">${esc(platform)}${p.year?` · ${p.year}`:''}</p>
-      <div class="hec-prices" data-hec-prices="${esc(p.slug)}">${hecExpandedPricesMarkup(p,platform)}</div>
-      <div class="hec-actions">
-        <button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>
-        <a class="btn btn-primary btn-sm" href="${bestOfferHrefFor(p,platform)}">Ver ofertas</a>
+  return `<h3 class="hec-title">${esc(p.title)}</h3>
+    <p class="hec-meta">${esc(platform)}${p.year?` · ${p.year}`:''}</p>
+    <div class="hec-prices" data-hec-prices="${esc(p.slug)}">${hecExpandedPricesMarkup(p,platform)}</div>
+    <div class="hec-actions">
+      <button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>
+      <a class="btn btn-primary btn-sm" href="${bestOfferHrefFor(p,platform)}">Ver ofertas</a>
+    </div>`;
+}
+// Menor preço físico de exemplo pra um chip de 1 linha (cards de pôster da
+// home) — "Usado R$ X" / sem oferta: "Ver detalhes".
+// Item 2.2: o selo EXEMPLO fica só nos 4 lugares nomeados no pacote (card
+// de compra, comparadora, botão do hero, painel do hover) — este chip de 1
+// linha do pôster não é um deles, e o card inteiro já abre num desses
+// lugares ao clicar, onde o selo aparece.
+function posterPriceChip(p,platform){
+  const cached=bestUsed(p);
+  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+  const label=cached?'Usado':demo?.label;
+  const value=cached?.minDisplay||demo?.display;
+  const href=value?bestOfferHrefFor(p,platform):`#/jogo/${p.slug}`;
+  return value
+    ?`<a class="poster-price" href="${href}">${esc(label)} ${esc(value)}</a>`
+    :`<a class="poster-price is-quiet" href="${href}">Ver detalhes</a>`;
+}
+// Pacote3, item 3.5: pôster 3/4 sem degradê/texto por cima — título,
+// plataforma·ano e chip de preço vêm ABAIXO da capa (.hec-fixed mantém essa
+// largura original fixa quando o card expande, só o painel lateral some no
+// espaço novo — ver initHoverExpand/.hec-fixed no CSS, "nunca esticar a
+// capa" valendo tanto aqui quanto no card antigo).
+function posterCard(p){
+  const platform=p.variants?.[0]?.[1]||'';
+  return `<article class="hec-card poster-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
+    <div class="hec-fixed">
+      <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+      <div class="poster-info">
+        <a class="poster-title" href="#/jogo/${p.slug}">${esc(p.title)}</a>
+        <p class="poster-meta">${esc(platShort(p))}${p.year?` · ${p.year}`:''}</p>
+        ${posterPriceChip(p,platform)}
       </div>
     </div>
+    <div class="hec-panel">${hecPanelMarkup(p,platform)}</div>
   </article>`;
 }
 async function hydrateHoverExpandPrices(games){
@@ -1081,12 +1355,17 @@ async function hydrateHoverExpandPrices(games){
 function initHoverExpand(root){
   if(!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
   const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  $$('[data-offer-row] .hec-card',root).forEach(card=>{
+  $$('.hec-card',root).forEach(card=>{
     let openTimer=null,closeTimer=null;
-    const track=card.closest('[data-offer-row]');
+    const track=card.closest('[data-offer-row],[data-peek-row]');
     const open=()=>{
       if(track){$$('.hec-card.is-open',track).forEach(c=>{if(c!==card)closeCard(c)})}
       const baseW=card.getBoundingClientRect().width;
+      // "Nunca esticar a capa": trava a largura do conteúdo original
+      // (.hec-fixed, quando existe — poster-card novo da home) ANTES de
+      // alargar o card; o espaço novo (+224px) fica livre só pro painel.
+      const fixedWrap=card.querySelector('.hec-fixed');
+      if(fixedWrap)fixedWrap.style.width=Math.round(baseW)+'px';
       card.style.flex='0 0 auto';
       card.style.width=Math.round(baseW+224)+'px';
       card.classList.add('is-open');
@@ -1095,7 +1374,10 @@ function initHoverExpand(root){
         if(r.right>tr.right)track.scrollBy({left:r.right-tr.right+24,behavior:'smooth'});
       }
     };
-    const closeCard=c=>{c.classList.remove('is-open');c.style.flex='';c.style.width=''};
+    const closeCard=c=>{
+      c.classList.remove('is-open');c.style.flex='';c.style.width='';
+      const fw=c.querySelector('.hec-fixed');if(fw)fw.style.width='';
+    };
     card.addEventListener('mouseenter',()=>{
       clearTimeout(closeTimer);
       openTimer=setTimeout(open,150);
@@ -1584,6 +1866,22 @@ function renderInventory(params){
 function renderNotFound(){
   setTitle('Página não encontrada');
   main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">Não encontramos esta página</h1><p>O endereço pode ter mudado. Volte ao início ou pesquise um jogo.</p><p style="margin-top:12px"><a class="btn btn-primary btn-sm" href="#/">Ir para o início</a></p></div>`;
+}
+// Pacote3, item 3.11: páginas simples atrás dos links do rodapé — só
+// "Conteúdo em elaboração" por enquanto (noindex: o texto jurídico de
+// verdade quem escreve é o dono, não dá pra inventar Privacidade/Termos).
+const SIMPLE_PAGES={
+  sobre:'Sobre',contato:'Contato',privacidade:'Privacidade',termos:'Termos de uso','aviso-afiliado':'Aviso de afiliado'
+};
+function renderSimplePage(slug){
+  const title=SIMPLE_PAGES[slug];
+  if(!title)return renderNotFound();
+  setTitle(title);
+  // Nota: rota hash de SPA — <meta name="robots"> inserido via innerHTML não
+  // tem efeito real de indexação (precisaria estar no <head> estático ou
+  // num cabeçalho HTTP); como são só placeholders "em elaboração", motor de
+  // busca não tem conteúdo relevante pra indexar de qualquer forma.
+  main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">${esc(title)}</h1><p>Conteúdo em elaboração.</p><p style="margin-top:12px"><a class="btn btn-outline btn-sm" href="#/">Voltar ao início</a></p></div>`;
 }
 
 
