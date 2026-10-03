@@ -194,10 +194,13 @@ const catalog=[
 {franchise:'Resident Evil',title:'Resident Evil Requiem',aliases:['re requiem','resident evil 9'],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S']],catalogSources:['TGA 2025']},
 {franchise:'Resident Evil',title:'Resident Evil Revelations',aliases:['re revelations'],variants:[['PlayStation','PS4']]},
 {franchise:'Resident Evil',title:'Resident Evil Revelations 2',aliases:['re revelations 2'],variants:[['PlayStation','PS4']]},
-{franchise:'Spider-Man',title:"Marvel's Spider-Man",aliases:['spider man ps4','spiderman 2018'],variants:[['PlayStation','PS4']]},
-{franchise:'Spider-Man',title:"Marvel's Spider-Man Remastered",aliases:['spider man remastered','spiderman remastered ps5'],variants:[['PlayStation','PS5']]},
-{franchise:'Spider-Man',title:"Marvel's Spider-Man: Miles Morales",aliases:['miles morales','spiderman miles morales'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
-{franchise:'Spider-Man',title:"Marvel's Spider-Man 2",aliases:['spider man 2','spiderman 2 ps5'],variants:[['PlayStation','PS5']]},
+// Pacote3, item 1.1: exclusivo:false nos 4 — também saíram no PC, então
+// não é "Só em console X" (o campo manual sobrepõe a regra automática, que
+// só olha variants/console e erraria "Só em console PlayStation" aqui).
+{franchise:'Spider-Man',title:"Marvel's Spider-Man",aliases:['spider man ps4','spiderman 2018'],variants:[['PlayStation','PS4']],exclusivo:false},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man Remastered",aliases:['spider man remastered','spiderman remastered ps5'],variants:[['PlayStation','PS5']],exclusivo:false},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man: Miles Morales",aliases:['miles morales','spiderman miles morales'],variants:[['PlayStation','PS4'],['PlayStation','PS5']],exclusivo:false},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man 2",aliases:['spider man 2','spiderman 2 ps5'],variants:[['PlayStation','PS5']],exclusivo:false},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda',aliases:['zelda 1','zelda nes'],variants:[['Nintendo','NES']]},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda: A Link to the Past',aliases:['a link to the past','alttp'],variants:[['Nintendo','SNES'],['Nintendo','Game Boy Advance']]},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda: Ocarina of Time',aliases:['ocarina of time','oot','zelda oot'],variants:[['Nintendo','Nintendo 64'],['Nintendo','3DS'],['Nintendo','Switch 2']],catalogSources:['Zelda 40th Anniversary Direct 2026-09']},

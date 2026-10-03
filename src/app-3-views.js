@@ -600,17 +600,19 @@ function gameConsoleFamilies(p){
   p.variants.forEach(v=>{const k=PLATFORM_ECO_KEY[v[0]];if(k)set.add(k)});
   return set;
 }
+// Pacote3, item 1.1: texto da pílula trocado de "Exclusivo X" pra "Só em
+// console X" (a regra de quando mostrar é a mesma, só mudou o rótulo).
 function availabilityPillLabel(p,u){
   if(p.exclusivo===false)return null;
-  if(typeof p.exclusivo==='string')return `Exclusivo ${PLATFORM_LABEL[p.exclusivo]||p.exclusivo}`;
+  if(typeof p.exclusivo==='string')return `Só em console ${PLATFORM_LABEL[p.exclusivo]||p.exclusivo}`;
   const families=gameConsoleFamilies(p);
   if(p.exclusivo===true){
     const only=[...families][0];
-    return only?`Exclusivo ${PLATFORM_LABEL[only]}`:null;
+    return only?`Só em console ${PLATFORM_LABEL[only]}`:null;
   }
   if(families.size===1){
     const only=[...families][0];
-    return (u&&u.casa===only)?`Exclusivo ${PLATFORM_LABEL[only]}`:null;
+    return (u&&u.casa===only)?`Só em console ${PLATFORM_LABEL[only]}`:null;
   }
   if(families.size>=2)return 'Multiplataforma';
   return null;
