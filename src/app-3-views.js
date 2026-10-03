@@ -230,6 +230,7 @@ function activeChips(F){
   F.conds.forEach(c=>chips.push(['cond',COND_URL[c],COND_LABEL[c]]));
   F.plats.forEach(p=>chips.push(['plat',p,p]));
   if(F.retro)chips.push(['retro','1','Retrô']);
+  if(F.universo){const u=uMap.get(F.universo);chips.push(['universo',F.universo,u?u.name:F.universo])}
   if(F.min!=null)chips.push(['min','',`a partir de ${brl(F.min)}`]);
   if(F.max!=null)chips.push(['max','',`até ${brl(F.max)}`]);
   return chips;
@@ -1041,16 +1042,65 @@ async function hydrateUniverseOffers(games,token){
     slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
   });
 }
-function universeDiscoveryCards(u){
-  return `<div class="universe-discovery-grid">
-    <a class="discovery-card official" href="#/merch?cat=colecionaveis&uni=${u.slug}"><span class="discovery-art">${ico('cube',34)}</span><span><small>ORIGEM</small><b>Produtos oficiais</b><em>Amiibo, figures, livros e acessórios relacionados a ${esc(u.name)}.</em></span><strong>Explorar →</strong></a>
-    <a class="discovery-card fanmade" href="#/merch?cat=fanmade&uni=${u.slug}"><span class="discovery-art">${ico('brush',34)}</span><span><small>ORIGEM</small><b>Feito por fãs</b><em>Artesanato, impressão 3D e peças autorais do universo.</em></span><strong>Explorar →</strong></a>
-    <a class="discovery-card decor" href="#/merch?cat=merch&uni=${u.slug}"><span class="discovery-art">${ico('bag',34)}</span><span><small>CATEGORIA</small><b>Decoração gamer</b><em>Quadros, luminárias, placas e itens para ambientes.</em></span><strong>Explorar →</strong></a>
-  </div>`;
+// Pacote2, item 4.1: "Mais para descobrir" troca o grid fixo de 3 cards
+// (que sempre aparecia, até sem nenhum item real atrás) por até 3 cards
+// largos SÓ pra quem tem conteúdo — Clássicos (retrô da própria franquia),
+// Colecionáveis e Fan-made. Sem nenhum card com item: a seção inteira some
+// (ver renderUniverse). Imagem: capa de um jogo retrô representativo pra
+// Clássicos (mesmo pipeline data-igdb-cover de hydrateIgdbCovers, sem pedido
+// novo); Colecionáveis/Fan-made não têm foto de produto no mock atual, então
+// usam o fallback oficial do item (gradiente da paleta + ícone).
+function discoverMoreCard({href,title,copy,count,kind,coverSlot=''}){
+  return `<a class="discover-more-card" href="${href}">
+    <span class="dmc-media ${kind}">${coverSlot||`<span class="dmc-fallback-icon">${ico(kind==='classicos'?'retro':kind==='fanmade'?'brush':'cube',30)}</span>`}</span>
+    <span class="dmc-body"><b>${esc(title)}</b><em>${esc(copy)}</em></span>
+    <span class="dmc-arrow" aria-hidden="true">→</span>
+  </a>`;
+}
+function universeDiscoverMoreSection(u){
+  const allTitles=titlesOf(u.slug);
+  const retroGames=allTitles.filter(p=>p.variants.some(v=>isRetro(v[1])));
+  const merchByCat=cat=>mockMerch()?M.items.filter(i=>i.universe===u.slug&&(cat==='merch'?(i.cat==='merch'||i.cat==='acessorios'):i.cat===cat)):[];
+  const colecionaveis=[...merchByCat('colecionaveis'),...merchByCat('merch')];
+  const fanmade=merchByCat('fanmade');
+  const cards=[];
+  if(retroGames.length){
+    const rep=representativeFranchiseGame(retroGames),platform=rep?.variants?.[0]?.[1]||'';
+    cards.push(discoverMoreCard({
+      href:`#/busca?universo=${u.slug}&retro=1`,kind:'classicos',
+      title:'Clássicos',
+      copy:`${retroGames.length} jogo${retroGames.length===1?'':'s'} retrô de ${u.name}.`,
+      coverSlot:rep?`<span class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(rep,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep.year||'')}"></span>`:''
+    }));
+  }
+  if(colecionaveis.length)cards.push(discoverMoreCard({
+    href:`#/merch?cat=colecionaveis&uni=${u.slug}`,kind:'colecionaveis',
+    title:'Colecionáveis e merch',
+    copy:`${colecionaveis.length} ${colecionaveis.length===1?'item':'itens'} de ${u.name} pra coleção e decoração.`
+  }));
+  if(fanmade.length)cards.push(discoverMoreCard({
+    href:`#/merch?cat=fanmade&uni=${u.slug}`,kind:'fanmade',
+    title:'Fan-made e decoração',
+    copy:`${fanmade.length} ${fanmade.length===1?'peça autoral feita':'peças autorais feitas'} por fãs.`
+  }));
+  if(!cards.length)return '';
+  return `<section class="lux-section universe-discover-more" aria-labelledby="universe-discover-more-title">
+    <div class="lux-section-head"><div><h2 id="universe-discover-more-title">Mais para descobrir</h2></div></div>
+    <div class="discover-more-grid">${cards.join('')}</div>
+  </section>`;
 }
 // Painel opaco (superfície tonal, nunca vidro) com a lista completa de jogos
 // da franquia, rolagem própria, e o toggle rápido de "Tenho" — fica ao lado
 // do hero na aba "tudo" da página de universo.
+// Pacote2, item 4.2: barra segmentada abaixo do "X de Y jogos" — 1 segmento
+// por jogo até 12; acima disso vira barra contínua (12 segmentos de 8px já
+// fica ilegível/apertado pra franquias grandes tipo Call of Duty).
+function uinvProgressMarkup(owned,total){
+  if(!total)return '';
+  if(total<=12)return `<div class="uinv-progress" data-uinv-progress data-total="${total}" role="img" aria-label="${owned} de ${total} jogos marcados como Tenho">${Array.from({length:total},(_,i)=>`<span class="uinv-seg ${i<owned?'is-filled':''}"></span>`).join('')}</div>`;
+  const pct=Math.round(owned/total*100);
+  return `<div class="uinv-progress uinv-progress-bar" data-uinv-progress data-total="${total}" role="img" aria-label="${owned} de ${total} jogos marcados como Tenho"><span class="uinv-bar-fill" style="width:${pct}%"></span></div>`;
+}
 function universeInventoryPanel(u,titles){
   const owned=invList().filter(i=>i.universe===u.slug&&i.status==='owned').length;
   const style='';
@@ -1069,6 +1119,7 @@ function universeInventoryPanel(u,titles){
       <span class="eyebrow">SUA COLEÇÃO</span>
       <h2 id="universe-games-title">Meu Inventário</h2>
       <p><span data-uinv-count>${owned}</span> de ${titles.length} jogos marcados como Tenho</p>
+      ${uinvProgressMarkup(owned,titles.length)}
     </div>
     <ul class="uinv-list">${rows}</ul>
   </aside>`;
@@ -1116,7 +1167,7 @@ function renderUniverse(slug,params,token){
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,12);
     body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div>${offerRowArrowsMarkup('uni-offers')}</div>${platChips}<div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:platChips+emptyCatalog)
-    +`<section class="lux-section universe-related" aria-labelledby="universe-related-title"><div class="lux-section-head"><div><h2 id="universe-related-title">Colecionáveis, merch e fan-made</h2></div><a href="#/merch?uni=${u.slug}">Ver todas as ofertas →</a></div>${universeDiscoveryCards(u)}</section>`;
+    +universeDiscoverMoreSection(u);
   }
   // Cores do universo (fundo/painel/ação) vêm dos tokens globais que
   // applyUniverseChrome() já definiu no :root pra rota universe-hero — não

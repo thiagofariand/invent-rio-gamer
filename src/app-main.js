@@ -383,7 +383,13 @@ document.addEventListener('click',e=>{
     btn.setAttribute('aria-pressed',String(!on));
     btn.closest('.uinv-row')?.classList.toggle('is-owned',!on);
     const countEl=$('[data-uinv-count]');
-    if(countEl)countEl.textContent=invList().filter(i=>i.universe===p.universe&&i.status==='owned').length;
+    const newCount=invList().filter(i=>i.universe===p.universe&&i.status==='owned').length;
+    if(countEl)countEl.textContent=newCount;
+    const progressEl=$('[data-uinv-progress]');
+    if(progressEl){
+      const total=parseInt(progressEl.dataset.total||'0',10);
+      progressEl.outerHTML=uinvProgressMarkup(newCount,total);
+    }
     return;
   }
   if(act==='open-offers'){openOffersModal(btn.dataset.title,btn.dataset.platform,btn.dataset.cond);return}

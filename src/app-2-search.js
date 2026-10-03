@@ -64,6 +64,9 @@ function readFilters(params){
     plats:new Set(list('plat')),
     min:num('min'),max:num('max'),
     retro:params.get('retro')==='1',
+    // Pacote2, item 4.1: #/busca?universo={slug}&retro=1 — link do card
+    // "Clássicos" da página de universo, escopando a busca pra franquia.
+    universo:params.get('universo')||'',
     sort:params.get('sort')||'relevancia'
   };
 }
@@ -77,6 +80,7 @@ function applyFilters(rows,F){
   return rows.filter(r=>{
     if(F.cats.size&&!F.cats.has(rowCat(r)))return false;
     if(r.kind==='game'){
+      if(F.universo&&r.p.universe!==F.universo)return false;
       if(F.conds.size&&!r.conds.some(c=>F.conds.has(c)))return false;
       if(F.plats.size&&!F.plats.has(r.platform))return false;
       if(F.retro&&!isRetro(r.platform))return false;
@@ -90,6 +94,7 @@ function applyFilters(rows,F){
         }
       }
     }else{
+      if(F.universo&&r.item.universe!==F.universo)return false;
       if(F.conds.size||F.plats.size||F.retro||(F.genres&&F.genres.size))return false;
       if(F.min!=null&&r.item.price<F.min)return false;
       if(F.max!=null&&r.item.price>F.max)return false;
