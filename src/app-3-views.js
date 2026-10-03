@@ -1664,7 +1664,14 @@ const SIDEBAR_FEATURED_UNIVERSES=[
 function sidebarItem(slug,label,icon){
   const href=goNav(slug);
   const active=location.hash===href;
-  return `<a class="sidebar-item" href="${href}"${active?' aria-current="page"':''}>${ico(icon,20)}<span>${esc(label)}</span></a>`;
+  // Pacote2, item 6: Nintendo/PlayStation/Xbox ganham a cor da própria
+  // plataforma (paleta-plataformas.json) no hover/estado ativo — as outras
+  // linhas da sidebar ficam neutras (ver CSS: só os 3 itens de casa usam
+  // --c, as demais não têm essa variável e caem no estilo padrão).
+  const casa=['nintendo','playstation','xbox'].includes(slug)?slug:null;
+  const c=casa?paletteForPlatform(casa)?.acao:null;
+  const style=c?` style="--c:${esc(c)}"`:'';
+  return `<a class="sidebar-item${casa?' sidebar-item-casa':''}" href="${href}"${style}${active?' aria-current="page"':''}>${ico(icon,20)}<span>${esc(label)}</span></a>`;
 }
 function sidebarUniverseItem(entry){
   const path=`#/universo/${entry.slug}`;

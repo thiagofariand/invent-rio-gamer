@@ -384,11 +384,17 @@ document.addEventListener('click',e=>{
     btn.closest('.uinv-row')?.classList.toggle('is-owned',!on);
     const countEl=$('[data-uinv-count]');
     const newCount=invList().filter(i=>i.universe===p.universe&&i.status==='owned').length;
-    if(countEl)countEl.textContent=newCount;
+    if(countEl){
+      countEl.textContent=newCount;
+      countEl.classList.remove('is-bumping');void countEl.offsetWidth;countEl.classList.add('is-bumping');
+    }
     const progressEl=$('[data-uinv-progress]');
     if(progressEl){
       const total=parseInt(progressEl.dataset.total||'0',10);
+      const pulseIndex=on?newCount:newCount-1;
       progressEl.outerHTML=uinvProgressMarkup(newCount,total);
+      const seg=$$('.uinv-seg')[pulseIndex];
+      if(seg)seg.classList.add('is-pulsing');
     }
     if(btn.classList.contains('hec-own-btn'))btn.textContent=!on?'✓ Na coleção':'♡ Tenho';
     return;

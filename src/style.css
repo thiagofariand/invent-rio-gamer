@@ -5,6 +5,14 @@
   --teal:#0D9488;--teal-ink:#0F766E;--teal-tint:#E6F6F4;
   --radius:8px;--shadow-pop:0 10px 30px rgba(31,41,55,.18);
   --header-h:72px;
+  /* Pacote2, item 6: tokens de movimento "expressivo" — nunca mais que
+     400ms, só transform/opacity/border-radius/background-color (ver regra
+     geral no fim do arquivo), prefers-reduced-motion desliga tudo. */
+  --dur-press:120ms;--dur-morph:320ms;--dur-group:380ms;
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+@supports (transition-timing-function:linear(0,1)){
+  :root{--ease-spring:linear(0,.42 7.9%,1.07 18.9%,1.16 23.5%,1.1 30.6%,1,.98 39.7%,1 50.8%,1)}
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:calc(var(--header-h) + 12px);min-height:100vh;background:var(--page-bg)}
@@ -256,8 +264,9 @@ main:focus-visible{outline:none}
 .modal-close:hover{background:#E5E7EB}
 .modal-body{padding:0 22px 20px}
 .otabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
-.otab{border:1px solid var(--line-strong);background:var(--white);border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600}
-.otab[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.otab{border:1px solid var(--line-strong);background:var(--white);border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600;flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
+.otab[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;flex-grow:1.7;border-radius:14px}
+@media(prefers-reduced-motion:reduce){.otab{transition:background-color 150ms ease,color 150ms ease}.otab[aria-pressed="true"]{flex-grow:0;border-radius:999px}}
 .othead,.orow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr) auto;gap:16px;align-items:center}
 .othead{font-size:12px;color:var(--muted);padding:0 0 8px;border-bottom:1px solid var(--line-strong);letter-spacing:.06em;text-transform:uppercase}
 .orow{padding:14px 0;border-bottom:1px solid var(--line)}
@@ -1575,6 +1584,7 @@ html{overflow-x:hidden}
   height:var(--hero-h);display:flex;flex-direction:column;border-radius:20px;overflow:hidden;
   background:var(--glass-1);border:1px solid var(--glass-border);border-top-color:rgba(255,255,255,.16);
   backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04);
 }
 @supports not (backdrop-filter:blur(1px)){
   .universe-inventory-panel{background:color-mix(in oklab,var(--panel-base,#2A2521) 88%,black 4%)}
@@ -1589,7 +1599,17 @@ html{overflow-x:hidden}
 .uinv-seg{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.12)}
 .uinv-seg.is-filled{background:var(--action-on-glass)}
 .uinv-progress-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
-.uinv-bar-fill{display:block;height:100%;background:var(--action-on-glass);border-radius:2px}
+.uinv-bar-fill{display:block;height:100%;background:var(--action-on-glass);border-radius:2px;transition:width var(--dur-morph) var(--ease-spring)}
+/* Pacote2, item 6: "bump" do contador + pulso do segmento ao marcar/
+   desmarcar "Tenho" no painel Meu Inventário (ver toggle-owned em
+   app-main.js, que adiciona/remove estas classes). */
+@keyframes uinv-bump{0%{transform:translateY(6px)}100%{transform:translateY(0)}}
+[data-uinv-count].is-bumping{display:inline-block;animation:uinv-bump 400ms var(--ease-spring)}
+@keyframes uinv-seg-pulse{0%{transform:scaleY(1)}40%{transform:scaleY(2.4)}100%{transform:scaleY(1)}}
+.uinv-seg.is-pulsing{animation:uinv-seg-pulse 500ms var(--ease-spring)}
+@media(prefers-reduced-motion:reduce){
+  [data-uinv-count].is-bumping,.uinv-seg.is-pulsing,.uinv-bar-fill{animation:none;transition:none}
+}
 .uinv-list{flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
 .uinv-row{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:12px}
 .uinv-row:hover{background:rgba(255,255,255,.06)}
@@ -1609,7 +1629,9 @@ html{overflow-x:hidden}
   border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fff;
   transition:border-color 120ms ease,border-width 120ms ease;
 }
-.uinv-check svg{stroke-width:2.5;opacity:.45;transition:opacity 120ms ease}
+.uinv-check svg{stroke-width:2.5;opacity:.45;transition:opacity var(--dur-press) ease,transform var(--dur-morph) var(--ease-spring)}
+.uinv-check.is-on svg{transform:scale(1.15) rotate(-8deg)}
+@media(prefers-reduced-motion:reduce){.uinv-check svg{transition:opacity var(--dur-press) ease}.uinv-check.is-on svg{transform:none}}
 .uinv-check.is-on{background:transparent;border-width:2px;border-color:var(--action-on-glass)}
 .uinv-check.is-on svg{opacity:1}
 .uinv-check:focus-visible{outline:2px solid #fff;outline-offset:2px}
@@ -1814,6 +1836,18 @@ body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 .sidebar-item:hover{background:rgba(255,255,255,.06)}
 .sidebar-item[aria-current="page"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:transparent}
 .sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* Pacote2, item 6: Nintendo/PlayStation/Xbox usam a cor --c (acao da
+   paleta-plataformas.json) no hover/ativo, com uma barrinha à esquerda que
+   nasce de scaleY(0). As outras linhas da sidebar não têm --c e continuam
+   neutras (resting state igual nas 3). */
+.sidebar-item-casa{position:relative}
+.sidebar-item-casa::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--c,transparent);transform:scaleY(0);transform-origin:center;transition:transform 250ms var(--ease-spring)}
+.sidebar-item-casa:hover{background:color-mix(in oklab,var(--c,#fff) 14%,transparent);transition:background-color 150ms ease}
+.sidebar-item-casa:hover .ico{color:var(--c)}
+.sidebar-item-casa:hover::before,.sidebar-item-casa[aria-current="page"]::before{transform:scaleY(1)}
+.sidebar-item-casa[aria-current="page"]{background:color-mix(in oklab,var(--c,#fff) 10%,transparent)}
+.sidebar-item-casa[aria-current="page"] .ico{color:var(--c)}
+@media(prefers-reduced-motion:reduce){.sidebar-item-casa::before{transition:none}}
 /* "Universos em destaque" (item 4, rodada 5): mostra de 3 a 5 itens,
    medido de verdade por fitSidebarFeatured()/ResizeObserver (app-main.js)
    — o item que não cabe ganha o atributo hidden, nunca rolagem. */
@@ -1900,8 +1934,9 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .hec-price-line.is-off{color:rgba(255,255,255,.45)}
 .hec-price-label{color:rgba(255,255,255,.65);font-size:11px;flex:none}
 .hec-actions{display:flex;gap:6px;margin-top:auto}
-.hec-own-btn{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
-.hec-own-btn.is-on{background:var(--action-on-glass);color:var(--on-action)}
+.hec-own-btn{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer;transition:background-color var(--dur-morph) var(--ease-spring),border-radius var(--dur-morph) var(--ease-spring)}
+.hec-own-btn.is-on{background:var(--action-on-glass);color:var(--on-action);border-radius:14px}
+@media(prefers-reduced-motion:reduce){.hec-own-btn{transition:none}}
 @media (prefers-reduced-motion:reduce){
   .hec-card,.hec-footer-chip,.hec-panel{transition:none!important}
 }
@@ -1943,7 +1978,7 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 /* Pacote2, item 4.1: "Mais para descobrir" — até 3 cards largos, só pra quem
    tem conteúdo de verdade atrás (ver universeDiscoverMoreSection). */
 .discover-more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.discover-more-card{display:flex;align-items:stretch;gap:0;min-height:112px;border-radius:16px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;transition:border-color .15s}
+.discover-more-card{display:flex;align-items:stretch;gap:0;min-height:112px;border-radius:16px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;transition:border-color .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04)}
 .discover-more-card:hover{border-color:rgba(255,255,255,.28)}
 .dmc-media{flex:0 0 38%;position:relative;overflow:hidden;background:linear-gradient(150deg,var(--panel-base),var(--page-bg));display:flex;align-items:center;justify-content:center;color:var(--text-2)}
 .dmc-media .cover{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:0!important;border:0;padding:0;box-shadow:none;clip-path:none;background-image:none}
@@ -1959,9 +1994,10 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 /* Pacote único, item 4.3/4.4 */
 .udir-exclusive{margin-left:8px;font-size:11px;font-weight:600;color:var(--text-2);text-transform:none;letter-spacing:0}
 .plat-filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
-.plat-filter-chip{padding:6px 14px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-2);font-size:13px;font-weight:600;text-decoration:none}
+.plat-filter-chip{padding:6px 14px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-2);font-size:13px;font-weight:600;text-decoration:none;flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
 .plat-filter-chip:hover{background:rgba(255,255,255,.14);color:var(--text-1)}
-.plat-filter-chip[aria-current="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
+.plat-filter-chip[aria-current="true"]{background:var(--action);border-color:transparent;color:var(--on-action);flex-grow:1.7;border-radius:14px}
+@media(prefers-reduced-motion:reduce){.plat-filter-chip{transition:background-color 150ms ease,color 150ms ease}.plat-filter-chip[aria-current="true"]{flex-grow:0;border-radius:999px}}
 
 /* ============================================================
    FASE 5 / RODADA 5 ITEM 6 — PÁGINA DA PLATAFORMA (2 colunas)
@@ -2466,6 +2502,11 @@ html[data-theme="neutral"] body.dark-surface-route{
 .purchase-platform-col .plat-row{margin-top:6px}
 /* chip selecionado: contorno sem preenchimento (item 2.2b) */
 .purchase-platform-col .plat-btn[aria-pressed="true"]{background:transparent;box-shadow:inset 0 0 0 1.5px var(--action-on-glass);border-color:var(--action-on-glass);color:var(--text-1)}
+/* Pacote2, item 6: grupo de chips (até 5) — o selecionado cresce, os outros
+   cedem espaço; grupos maiores (muitas plataformas) só mudam de cor. */
+.purchase-platform-col .plat-btn{flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
+.purchase-platform-col .plat-row:has(.plat-btn:nth-child(-n+5):last-child) .plat-btn[aria-pressed="true"]{flex-grow:1.7;border-radius:14px}
+@media(prefers-reduced-motion:reduce){.purchase-platform-col .plat-btn{transition:background-color 150ms ease,color 150ms ease}}
 
 .ppanel{display:grid;grid-template-columns:repeat(var(--ppanel-cols,3),1fr);grid-auto-rows:min-content;gap:12px;align-content:start}
 .ppanel-group{
@@ -2475,6 +2516,7 @@ html[data-theme="neutral"] body.dark-surface-route{
 .ppanel-col{
   position:relative;display:flex;flex-direction:column;gap:2px;min-height:150px;padding:14px;
   border-radius:14px;background:var(--glass-3);text-decoration:none;color:var(--text-1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04);
 }
 .ppanel-col.is-empty{opacity:.5}
 .ppanel-cond{font-size:13px;font-weight:500}
@@ -2496,6 +2538,7 @@ html[data-theme="neutral"] body.dark-surface-route{
 .collectible-row-card{
   display:flex;align-items:center;gap:14px;height:104px;padding:0 16px;border-radius:16px;
   background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;color:var(--text-1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04);
 }
 .crc-icon{
   flex:none;width:72px;height:72px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;
@@ -2527,4 +2570,18 @@ html[data-theme="neutral"] body.dark-surface-route{
   .ppanel-arrow{position:static;width:26px;height:26px;flex:none}
   .collectible-row-grid{grid-template-columns:1fr;gap:10px}
   .collectible-row-card{height:96px}
+}
+
+/* ============================================================
+   PACOTE2, ITEM 6 — MOVIMENTO EXPRESSIVO (botões primários)
+   :active aperta (14px + scale .95) em --dur-press; ao soltar, volta com
+   mola em --dur-morph. Fica no fim do arquivo de propósito: é um reforço
+   aditivo (transform/border-radius), não muda cor nem o raio de repouso de
+   nenhuma variante de .btn-primary já declarada antes (tema, home, etc.).
+   ============================================================ */
+.btn-primary{transition:transform var(--dur-morph) var(--ease-spring),border-radius var(--dur-morph) var(--ease-spring),background-color 150ms ease}
+.btn-primary:active{border-radius:14px;transform:scale(.95);transition:transform var(--dur-press) ease,border-radius var(--dur-press) ease}
+@media(prefers-reduced-motion:reduce){
+  .btn-primary{transition:background-color 150ms ease}
+  .btn-primary:active{transform:none;border-radius:inherit}
 }
