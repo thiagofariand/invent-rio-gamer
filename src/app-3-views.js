@@ -710,9 +710,10 @@ function renderProduct(slug,params,token){
   setTitle(`${p.title} (${platform})`);
   const ref=gameRef(p),cur=invGet(ref.id);
   const heroImage=visualAsset('games',p.slug,'hero');
+  const uDisplayName=u?(paletteForUniverse(u)?.nome||u.name):'';
   const heroActions=`
     ${saveButton(ref,{label:true})}
-    ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(u.name)} →</a>`:''}`;
+    ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(uDisplayName)} →</a>`:''}`;
   // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
   // título continua trazendo esse contexto em texto corrido (não é mais
   // pílula), e o kicker vira as novas pílulas (disponibilidade + PRÉ-VENDA).
@@ -1124,7 +1125,6 @@ function renderUniverse(slug,params,token){
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/games">Games</a> › <span>${esc(u.name)}</span></nav>
   ${tab==='tudo'?`<div class="universe-layout">${universeHeroMarkup(u,titles)}${titles.length?universeInventoryPanel(u,titles):''}</div>`:gameHeroMarkup({
     title:`Universo ${u.name}`,
-    kicker:ECO_LABEL[u.eco]||'',
     copy:`${titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.'}${(owned||want)?` Você marcou ${owned} como Tenho e ${want} como Quero.`:''}`,
     image:visualAsset('universes',u.slug,'hero')
   })}
@@ -1231,11 +1231,6 @@ function gamesHubLinks(casa){
     .slice(0,7)
     .map(u=>`<a href="#/universo/${u.slug}">${esc(u.name)} <small>${titlesOf(u.slug).length}</small></a>`).join('');
 }
-function gamesHubTrendLabel(p){
-  const u=uMap.get(p.universe);
-  if(u&&u.casa!=='multi')return {nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'}[u.casa];
-  return p.variants.some(v=>isRetro(v[1]))?'Retrô':'Multiplataforma';
-}
 // "Em alta no catálogo" (item 3 da fase): a spec original pedia /api/trending
 // pulando os itens já mostrados na home. O endpoint real só devolve até 3
 // itens (vídeos do YouTube casados com universo, sem plataforma/preço) —
@@ -1273,7 +1268,7 @@ function renderGames(params){
   <section class="lux-section" aria-labelledby="games-trend-title" style="margin-top:48px">
     <div class="lux-section-head"><div><h2 id="games-trend-title">Em alta no catálogo</h2></div>${offerRowArrowsMarkup('games-trend')}</div>
     <div class="tabs" role="tablist" style="margin:-6px 0 18px">${filterTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casaFilter}">${esc(l)}</a>`).join('')}</div>
-    <div class="home-offer-grid" data-offer-row="games-trend">${pool.map(p=>homeOfferCard(p,gamesHubTrendLabel(p))).join('')||'<p class="lede">Nenhum jogo encontrado neste filtro.</p>'}</div>
+    <div class="home-offer-grid" data-offer-row="games-trend">${pool.map(p=>homeOfferCard(p)).join('')||'<p class="lede">Nenhum jogo encontrado neste filtro.</p>'}</div>
   </section>`;
   hydrateIgdbCovers(main,pool.length+GAMES_HUB_CASAS.length*7);
   initOfferCarousels(main);

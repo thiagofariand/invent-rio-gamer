@@ -33,7 +33,7 @@ const trendingNow=[
   {title:'Astro Bot',tag:'JOGO DO ANO 2024',copy:'Vencedor de Jogo do Ano no The Game Awards 2024. Lançado em 06/09/2024 para PS5.',query:'astro bot ps5',digital:'https://www.playstation.com/pt-br/games/astro-bot/'}
 ];
 
-const franchiseDirectory={Nintendo:["Alan Wake","Assassin's Creed","Dark Souls","Diablo","Donkey Kong","EA Sports FC","Elden Ring","F-Zero","Final Fantasy","Kirby","Mario","Metroid","Mortal Kombat","Need for Speed","Paper Mario","Pokémon","Resident Evil","Sonic","Star Fox","Stellar Blade","Street Fighter","Super Smash Bros.","The Elder Scrolls","The Legend of Zelda","The Witcher","WarioWare","Yoshi"],PlayStation:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","God of War","Grand Theft Auto","Halo","LittleBigPlanet","Marvel Spider-Man","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher","inFAMOUS"],Multi:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","Grand Theft Auto","Halo","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher"]};
+const franchiseDirectory={Nintendo:["Alan Wake","Assassin's Creed","Dark Souls","Diablo","Donkey Kong","EA Sports FC","Elden Ring","F-Zero","Final Fantasy","Kirby","Mario","Metroid","Mortal Kombat","Need for Speed","Paper Mario","Pokémon","Resident Evil","Sonic","Star Fox","Stellar Blade","Street Fighter","Super Smash Bros.","The Elder Scrolls","The Legend of Zelda","The Witcher","WarioWare","Yoshi"],PlayStation:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","God of War","Grand Theft Auto","Halo","LittleBigPlanet","Spider-Man","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher","inFAMOUS"],Multi:["Alan Wake","Assassin's Creed","Call of Duty","Dark Souls","Diablo","EA Sports FC","Elden Ring","Final Fantasy","Grand Theft Auto","Halo","Mortal Kombat","Need for Speed","Resident Evil","Silent Hill","Sonic","Star Wars","Stellar Blade","Street Fighter","The Elder Scrolls","The Witcher"]};
 
 const collections={
   mario:{name:'Mario',short:'Mario',icon:'★',items:[
@@ -109,7 +109,7 @@ const collections={
     {slug:'god-of-war-2018',title:'God of War',year:2018,platforms:['PS4']},
     {slug:'ragnarok',title:'God of War Ragnarök',year:2022,platforms:['PS4','PS5']}
   ]},
-  marvelspiderman:{name:'Marvel Spider-Man',short:'Spider-Man',icon:'✦',items:[
+  marvelspiderman:{name:"Marvel's Spider-Man",short:'Spider-Man',icon:'✦',items:[
     {slug:'marvels-spider-man',title:"Marvel's Spider-Man",year:2018,platforms:['PS4']},
     {slug:'marvels-spider-man-remastered',title:"Marvel's Spider-Man Remastered",year:2020,platforms:['PS5']},
     {slug:'marvels-spider-man-miles-morales',title:"Marvel's Spider-Man: Miles Morales",year:2020,platforms:['PS4','PS5']},
@@ -194,10 +194,10 @@ const catalog=[
 {franchise:'Resident Evil',title:'Resident Evil Requiem',aliases:['re requiem','resident evil 9'],variants:[['PlayStation','PS5'],['Xbox','Xbox Series X|S']],catalogSources:['TGA 2025']},
 {franchise:'Resident Evil',title:'Resident Evil Revelations',aliases:['re revelations'],variants:[['PlayStation','PS4']]},
 {franchise:'Resident Evil',title:'Resident Evil Revelations 2',aliases:['re revelations 2'],variants:[['PlayStation','PS4']]},
-{franchise:'Marvel Spider-Man',title:"Marvel's Spider-Man",aliases:['spider man ps4','spiderman 2018'],variants:[['PlayStation','PS4']]},
-{franchise:'Marvel Spider-Man',title:"Marvel's Spider-Man Remastered",aliases:['spider man remastered','spiderman remastered ps5'],variants:[['PlayStation','PS5']]},
-{franchise:'Marvel Spider-Man',title:"Marvel's Spider-Man: Miles Morales",aliases:['miles morales','spiderman miles morales'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
-{franchise:'Marvel Spider-Man',title:"Marvel's Spider-Man 2",aliases:['spider man 2','spiderman 2 ps5'],variants:[['PlayStation','PS5']]},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man",aliases:['spider man ps4','spiderman 2018'],variants:[['PlayStation','PS4']]},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man Remastered",aliases:['spider man remastered','spiderman remastered ps5'],variants:[['PlayStation','PS5']]},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man: Miles Morales",aliases:['miles morales','spiderman miles morales'],variants:[['PlayStation','PS4'],['PlayStation','PS5']]},
+{franchise:'Spider-Man',title:"Marvel's Spider-Man 2",aliases:['spider man 2','spiderman 2 ps5'],variants:[['PlayStation','PS5']]},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda',aliases:['zelda 1','zelda nes'],variants:[['Nintendo','NES']]},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda: A Link to the Past',aliases:['a link to the past','alttp'],variants:[['Nintendo','SNES'],['Nintendo','Game Boy Advance']]},
 {franchise:'The Legend of Zelda',title:'The Legend of Zelda: Ocarina of Time',aliases:['ocarina of time','oot','zelda oot'],variants:[['Nintendo','Nintendo 64'],['Nintendo','3DS'],['Nintendo','Switch 2']],catalogSources:['Zelda 40th Anniversary Direct 2026-09']},
@@ -746,7 +746,7 @@ const genreByTitle=[
 ];
 const genreByFranchise={
   'Call of Duty':['tiro'],'Grand Theft Auto':['acao'],'God of War':['acao'],
-  'Resident Evil':['terror'],'Marvel Spider-Man':['acao','aventura'],
+  'Resident Evil':['terror'],'Spider-Man':['acao','aventura'],
   'The Legend of Zelda':['aventura'],'Sonic':['plataforma'],'Pokémon':['rpg'],
   'Mortal Kombat':['luta'],"Assassin's Creed":['acao','aventura'],'Mario':['plataforma'],'Splatoon':['tiro'],'Halo':['tiro'],'Final Fantasy':['rpg'],'Lies of P':['rpg'],'Marvel Tōkon':['luta'],'Grounded':['aventura'],'Metal Gear':['acao'],'Elden Ring':['acao','rpg'],'The Blood of Dawnwalker':['acao','rpg'],'Onimusha':['acao'],'Marvel Wolverine':['acao','aventura'],'Control':['acao'],'Silent Hill':['terror'],'EA Sports FC':['esporte'],'Minecraft Dungeons':['acao','rpg'],'Dynasty Warriors':['acao'],'Ace Combat':['acao'],'Gears of War':['tiro'],'Star Wars':['corrida'],'Castlevania':['acao','plataforma'],'Tales of':['rpg'],'Phantom Blade':['acao','rpg'],'Dragon Quest Monsters':['rpg'],'Dragon Quest':['rpg'],'The Duskbloods':['acao','rpg'],'Diablo':['rpg'],'Donkey Kong':['plataforma']
 };
@@ -782,7 +782,7 @@ const trendMeta={
   "Marvel's Wolverine":{slug:'marvels-wolverine',short:'Wolverine',universe:null},
   'The Legend of Zelda: Ocarina of Time':{slug:'ocarina-of-time-remake',short:'Ocarina of Time',universe:'the-legend-of-zelda'},
   "Fire Emblem: Fortune's Weave":{slug:'fire-emblem-fortunes-weave',short:'Fire Emblem',universe:'fire-emblem'},
-  "Marvel's Spider-Man 2":{slug:'marvels-spider-man-2',short:'Spider-Man 2',universe:null},
+  "Marvel's Spider-Man 2":{slug:'marvels-spider-man-2',short:'Spider-Man 2',universe:'spider-man'},
   'Astro Bot':{slug:'astro-bot',short:'Astro Bot',universe:null}
 };
 trendingNow.forEach(t=>Object.assign(t,trendMeta[t.title]||{slug:t.title.toLowerCase().replace(/[^a-z0-9]+/g,'-'),short:t.title,universe:null}));

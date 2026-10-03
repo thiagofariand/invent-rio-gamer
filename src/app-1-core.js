@@ -165,7 +165,7 @@ function releaseBadge(p){
 // FINAL da rodada pelos casos sinalizados como duvidosos.
 const CASA_TABLE={
   nintendo:['Mario','Zelda','The Legend of Zelda','Pokémon','Metroid','Kirby','Donkey Kong','Smash','Super Smash Bros.'],
-  playstation:['God of War','Uncharted','The Last of Us','Gran Turismo','Horizon','Ratchet & Clank','LittleBigPlanet',"Marvel's Spider-Man",'Marvel Spider-Man'],
+  playstation:['God of War','Uncharted','The Last of Us','Gran Turismo','Horizon','Ratchet & Clank','LittleBigPlanet','Spider-Man',"Marvel's Spider-Man",'Marvel Spider-Man'],
   xbox:['Halo','Gears','Forza'],
   multi:['Resident Evil','Sonic','Mortal Kombat','Call of Duty','GTA','Grand Theft Auto',"Assassin's Creed",'Dark Souls','Elden Ring','Alan Wake','Diablo','EA Sports FC','Silent Hill']
 };
@@ -179,7 +179,7 @@ function casaFor(name){return casaIdx.get(norm(name))||'multi'}
 // página de plataforma); fora dessas cai no fallback initialsOf().
 const SIGLA_TABLE={
   mario:'SM','the-legend-of-zelda':'Z',pokemon:'PK',metroid:'MT',kirby:'KB','donkey-kong':'DK','super-smash-bros':'SS',
-  'god-of-war':'GoW',uncharted:'UC','the-last-of-us':'TLOU','gran-turismo':'GT',horizon:'HZ','ratchet-and-clank':'RC','ratchet-clank':'RC',littlebigplanet:'LBP','marvel-spider-man':'SPM',
+  'god-of-war':'GoW',uncharted:'UC','the-last-of-us':'TLOU','gran-turismo':'GT',horizon:'HZ','ratchet-and-clank':'RC','ratchet-clank':'RC',littlebigplanet:'LBP','spider-man':'SP',
   halo:'HL',gears:'GR',forza:'FZ'
 };
 const sigIdx=new Map();
@@ -224,7 +224,6 @@ function addUniverse(name,eco){
 }
 Object.entries(D.franchiseDirectory).forEach(([eco,arr])=>arr.forEach(n=>addUniverse(n,eco)));
 catalog.forEach(p=>{addUniverse(p.franchise,'Multi').hasCatalog=true});
-const ECO_LABEL={Nintendo:'Nintendo',PlayStation:'PlayStation',Multi:'Multiplataforma e retrô'};
 const titlesOf=slug=>catalog.filter(p=>p.universe===slug);
 
 // Pacote único, item 4.2: "casa" (franquia dona) só serve pra ordenar e pro

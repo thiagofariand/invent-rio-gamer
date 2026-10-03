@@ -79,14 +79,17 @@
       "acaoTexto": "#000000"
     },
     {
-      "slug": "marvel-spider-man",
-      "nome": "Marvel Spider-Man",
+      "slug": "spider-man",
+      "nome": "Marvel's Spider-Man",
       "seed": "#1D4ED8",
       "fundo": "#0a35bf",
       "painel": "#103dc7",
       "acao": "#ec3934",
       "acaoTexto": "#000000",
-      "segundaCor": "#DC2626"
+      "segundaCor": "#DC2626",
+      "aliases": [
+        "marvel spider man"
+      ]
     },
     {
       "slug": "call-of-duty",

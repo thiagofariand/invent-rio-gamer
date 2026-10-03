@@ -155,11 +155,28 @@ function route(){
   closeSidebarDrawer();
   syncSidebarMode();
   renderSidebar();
+  // Pacote2, item 3.5: o campo do cabeçalho só mostra o texto digitado na
+  // própria rota de resultado (#/busca) — em qualquer outra rota ele some,
+  // pra não ficar um texto "fantasma" de uma busca antiga enquanto navega.
+  syncSearchFieldWithRoute(path,params);
 }
 window.addEventListener('hashchange',route);
 
 /* ---------- busca do cabeçalho + autocomplete ---------- */
-const searchInput=$('#searchInput'),suggestBox=$('#suggest');
+const searchInput=$('#searchInput'),suggestBox=$('#suggest'),searchClearBtn=$('#searchClear');
+function syncSearchFieldWithRoute(path,params){
+  searchInput.value=path==='/busca'?(params.get('q')||''):'';
+  syncSearchClearBtn();
+}
+function syncSearchClearBtn(){
+  if(searchClearBtn)searchClearBtn.hidden=!searchInput.value;
+}
+searchClearBtn?.addEventListener('click',()=>{
+  searchInput.value='';
+  syncSearchClearBtn();
+  closeSuggest();
+  searchInput.focus();
+});
 let sIndex=-1;
 function goSearch(q){location.hash='#/busca?q='+enc(q)}
 function closeSuggest(){suggestBox.hidden=true;sIndex=-1;searchInput.setAttribute('aria-expanded','false')}
@@ -169,11 +186,31 @@ function renderSuggest(raw){
   suggestBox.innerHTML=`<div class="sg-head">Sugestões</div>${list.map((s,i)=>{
     if(s.type==='universe')return `<a class="sg-item" href="#/universo/${s.u.slug}" data-i="${i}"><span class="cover mini" style="--h:${hashStr(s.u.name)%360}" aria-hidden="true"><span class="cv-ini">${esc(initialsOf(s.u.name))}</span></span><span><span class="sg-title">${esc(s.u.name)}</span><br><span class="sg-sub">Ver universo</span></span><span></span></a>`;
     const p=s.p,price=suggestPrice(p);
-    return `<a class="sg-item" href="#/jogo/${p.slug}" data-i="${i}"><span class="cover mini" style="--h:${hashStr(p.title)%360}" aria-hidden="true"><span class="cv-ini">${esc(initialsOf(p.title))}</span></span><span><span class="sg-title">${esc(p.title)}</span><br><span class="sg-sub">${esc(platShort(p))}</span></span><span class="sg-price">${price}</span></a>`;
+    return `<a class="sg-item" href="#/jogo/${p.slug}" data-i="${i}"><span class="cover mini" data-sg-slug="${esc(p.slug)}" style="--h:${hashStr(p.title)%360}" aria-hidden="true"><span class="cv-ini">${esc(initialsOf(p.title))}</span></span><span><span class="sg-title">${esc(p.title)}</span><br><span class="sg-sub">${esc(platShort(p))}</span></span><span class="sg-price">${price}</span></a>`;
   }).join('')}`;
   suggestBox.hidden=false;sIndex=-1;searchInput.setAttribute('aria-expanded','true');
+  hydrateSuggestCovers(list);
 }
-searchInput.addEventListener('input',()=>renderSuggest(searchInput.value));
+// Pacote2, item 3.5: a sugestão nasce com a sigla (igual sempre foi) e troca
+// pra capa real se/quando o IGDB responder — reaproveita o MESMO cache de
+// fetchIgdbVisual (app-3-views.js) usado na ficha do jogo, sem pedido novo
+// se o título já tiver passado por lá. Sem resposta (ou sem rede): fica na
+// sigla, que já é o fallback funcional.
+function hydrateSuggestCovers(list){
+  list.forEach(s=>{
+    if(s.type==='universe')return;
+    const p=s.p;
+    const el=suggestBox.querySelector(`[data-sg-slug="${p.slug}"]`);
+    if(!el)return;
+    fetchIgdbVisual(p.title,'',p.year||'').then(d=>{
+      const url=d?.cover?.url;
+      if(!url)return;
+      const stillThere=suggestBox.querySelector(`[data-sg-slug="${p.slug}"]`);
+      if(stillThere){stillThere.classList.add('has-image');stillThere.innerHTML=`<img class="cv-img" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`}
+    }).catch(()=>{});
+  });
+}
+searchInput.addEventListener('input',()=>{renderSuggest(searchInput.value);syncSearchClearBtn()});
 searchInput.addEventListener('focus',()=>{if(searchInput.value.trim().length>=2)renderSuggest(searchInput.value)});
 searchInput.addEventListener('keydown',e=>{
   const items=$$('.sg-item',suggestBox);

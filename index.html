@@ -37,6 +37,11 @@
     <div class="search">
       <span class="s-ico" aria-hidden="true">⌕</span>
       <input id="searchInput" type="search" autocomplete="off" placeholder="Busque por games, franquias ou colecionáveis..." aria-label="Buscar games, franquias ou colecionáveis" aria-expanded="false" aria-controls="suggest" role="combobox" aria-autocomplete="list">
+      <!-- Pacote2, item 3.5: ✕ próprio pra limpar o texto (troca a seta nativa
+           do input[type=search], que não dava pra estilizar em --text-2) —
+           só aparece com texto digitado, diferente do #mobileSearchClose
+           (que fecha a busca em tela cheia no mobile). -->
+      <button type="button" id="searchClear" class="search-clear-btn" aria-label="Limpar busca" hidden>✕</button>
       <!-- Pacote único, item 7.2: no mobile, a busca abre em tela cheia
            reaproveitando este MESMO campo (reposicionado via CSS/JS quando
            body.mobile-search-open) — sem duplicar a lógica de sugestões já
