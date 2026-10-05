@@ -32,7 +32,7 @@ const siteHeader=$('.site-header'),brandLogo=$('.brand-logo');
 // Logo com a mochila nas cores originais + texto branco (não o monograma
 // totalmente branco, que achata os detalhes da mochila em cima do vidro
 // escuro do cabeçalho — ver ajustes-fase-1, item G).
-const MONO_LOGO_WHITE='/assets/inventario-logo-color-darkbg.png?v=Teste-Layout-Beta2';
+const MONO_LOGO_WHITE='/assets/inventario-logo-darkbg-216.png?v=rodada11';
 // O cabeçalho é sempre vidro escuro agora (não só sobre o bloco de cor do
 // universo) — a logo fica sempre na versão clara, em qualquer scroll.
 brandLogo.src=MONO_LOGO_WHITE;

@@ -395,10 +395,14 @@ body{background:var(--store)}
 .site-header{background:rgba(255,255,255,.97);backdrop-filter:blur(12px)}
 .header-inner{max-width:1220px;padding:10px 24px;gap:16px}
 .brand{width:205px;min-width:170px;overflow:hidden}
-/* parteB 4: halo era o navegador suavizando o redimensionamento (a arte é
-   pixel art com bordas finas) — nearest-neighbor em vez de auto resolve
-   sem precisar de outro arquivo. */
-.brand-logo{display:block;width:100%;height:46px;object-fit:contain;object-position:left center;image-rendering:crisp-edges;image-rendering:pixelated}
+/* rodada11, item 2: o diagnóstico da parteB4 (image-rendering:pixelated)
+   estava certo pro SINTOMA (halo) mas errado pra CAUSA — essa arte não é
+   pixel art de grade uniforme (é geração por IA com blocos irregulares de
+   ~26px), então nearest-neighbor distorce as letras em vez de limpar.
+   Arquivo novo (inventario-logo-darkbg*.png, recortado rente, sem contorno)
+   + suavização normal (auto) + srcset 1x/2x/3x (sem depender de só um
+   tamanho) resolve o halo sem distorcer. */
+.brand-logo{display:block;width:100%;height:46px;object-fit:contain;object-position:left center;image-rendering:auto}
 .search{max-width:540px}
 .search input{
   height:44px;background:#fff;border:1px solid var(--line-strong);border-radius:0;
@@ -1060,7 +1064,12 @@ main{max-width:1240px;padding:34px 28px 80px}
 }
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
 .brand{width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
-.brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:crisp-edges;image-rendering:pixelated}
+/* rodada11, item 2: width (não height) casa com o srcset 1x/2x/3x — a
+   imagem nova é bem mais baixa (390/1692 de proporção) que a altura fixa
+   de 72px que a régua antiga usava, e essa esticava o cabeçalho de
+   56px (item da "floating glass card") com o logo quase encostando nas
+   bordas de cima/baixo. */
+.brand-logo{width:216px;max-width:100%;height:auto;object-fit:contain;object-position:left center;image-rendering:auto}
 /* Pacote único, item 7.1: duas imagens dentro de .brand (completa +
    compacta sem subtítulo) — só uma aparece por vez. Desktop/tablet mostra
    a completa; a regra que troca pra compacta vive só dentro de
