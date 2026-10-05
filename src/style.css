@@ -1601,9 +1601,28 @@ html{overflow-x:hidden}
    .game-hero-copy), então essa distância dá pra calcular sem JS. Setas com
    inset 20px (item A: nunca coladas na borda do card). */
 .universe-hero .home-feature-controls{bottom:4px;left:28px}
-.universe-hero .home-feature-nav{top:20px;transform:none}
-.universe-hero .home-feature-nav.prev{left:20px}
-.universe-hero .home-feature-nav.next{right:20px}
+/* rodada11, item 5: setas saem do canto superior esquerdo e viram faixa de
+   gradiente (72px) nas bordas esquerda/direita, centralizada na vertical,
+   com o círculo de 40px (.hfn-circle) dentro — só aparece no hover da
+   fileira ou foco de teclado (desktop com mouse fino; toque nunca mostra). */
+.universe-hero .home-feature-nav{
+  top:0;bottom:0;transform:none;width:72px;height:auto;border-radius:0;
+  background:none;border:0;backdrop-filter:none;-webkit-backdrop-filter:none;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease;
+}
+.universe-hero .home-feature-nav.prev{left:0;right:auto;background:linear-gradient(90deg,color-mix(in oklab,var(--page-bg) 85%,transparent) 0%,transparent 100%)}
+.universe-hero .home-feature-nav.next{left:auto;right:0;background:linear-gradient(270deg,color-mix(in oklab,var(--page-bg) 85%,transparent) 0%,transparent 100%)}
+.hfn-circle{width:40px;height:40px;border-radius:999px;background:rgba(10,4,8,.55);border:1px solid var(--glass-border);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;line-height:1}
+@supports not (backdrop-filter:blur(1px)){.hfn-circle{background:rgba(10,4,8,.82)}}
+@media(hover:hover) and (pointer:fine){
+  .universe-hero:hover .home-feature-nav,
+  .universe-hero .home-feature-nav:focus-visible{opacity:1;pointer-events:auto}
+}
+@media not ((hover:hover) and (pointer:fine)){
+  .universe-hero .home-feature-nav{display:none}
+}
+.universe-hero .game-hero-copy{padding-left:72px}
 .universe-hero-count{position:absolute;z-index:8;right:28px;bottom:18px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;letter-spacing:.03em}
 @media(max-width:760px){
   .universe-hero .game-hero-copy{width:100%}
@@ -1684,14 +1703,9 @@ html{overflow-x:hidden}
   .universe-feature-row{height:auto}
   .universe-hero{height:var(--hero-h)}
   .universe-hero .game-hero-copy{padding:0 20px 28px}
-  /* Pacote único, item 7.3: as setas do hero de universo/plataforma ficavam
-     fixas em top:20px (herdado do desktop) mesmo no mobile — bem em cima
-     do título na versão estreita. Descem pra base, ao lado dos
-     indicadores, 12px de vão entre eles. */
+  /* rodada11, item 5: setas não existem no mobile (display:none já cobre,
+     ver regra not(hover:hover and pointer:fine)) — só os indicadores. */
   .universe-hero .home-feature-controls{left:22px;bottom:18px}
-  .universe-hero .home-feature-nav{top:auto;bottom:6px}
-  .universe-hero .home-feature-nav.prev{left:110px;right:auto}
-  .universe-hero .home-feature-nav.next{left:152px;right:auto}
   .universe-hero-count{right:22px;bottom:22px}
   .universe-inventory-panel{height:var(--hero-h)}
 }
@@ -1994,15 +2008,6 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .poster-price{color:var(--text-1);font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .poster-price:hover{text-decoration:underline}
 .poster-price.is-quiet{color:var(--text-2);font-weight:500}
-/* Setas: par vidro/sólido no canto superior direito da linha do título. */
-.offer-row-arrows{display:flex;gap:8px;flex:none;align-items:center}
-.offer-row-arrows[hidden]{display:none}
-.offer-arrow{width:36px;height:36px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font-size:18px;line-height:1;transition:opacity .15s,filter .15s}
-.offer-arrow.prev{background:var(--glass-3);border:1px solid var(--glass-border);color:#fff}
-.offer-arrow.prev:hover{background:rgba(255,255,255,.14)}
-.offer-arrow.next{background:var(--action);color:var(--on-action)}
-.offer-arrow.next:hover{filter:brightness(1.08)}
-.lux-section-head>.offer-row-arrows{margin-left:auto;margin-right:12px}
 .universe-game-shelf .lux-section-head{align-items:center}
 
 /* Item D: rolagem discreta também no track do carrossel quando ele não
@@ -2462,7 +2467,6 @@ html[data-theme="neutral"] body.dark-surface-route{
     scroll-padding-left:12px;
   }
   .home-offer-grid>*,.universe-offer-grid>*{flex-basis:78vw}
-  .offer-row-arrows{display:none!important}
 
   /* 7.3 (continuação) — em telas estreitas e altas (393px), o hero da home
      a 480px de altura (valor herdado, não deste pacote) não tinha espaço
@@ -2705,15 +2709,29 @@ html[data-theme="neutral"] body.dark-surface-route{
 .row-title-link:hover .row-title-arrow{opacity:1;transform:translateX(0)}
 .row-see-all-mobile{display:none;color:var(--text-2);font-size:13px;text-decoration:none;font-weight:600}
 @media(max-width:899px){.row-see-all-mobile{display:inline-block}}
-.peek-row-wrap{position:relative}
 .peek-grid{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none}
 .peek-grid::-webkit-scrollbar{display:none}
 .peek-grid>*{flex:0 0 calc((100% - 88px)/6);scroll-snap-align:start;min-width:0}
-.peek-row-arrow{position:absolute;right:-6px;top:38%;width:40px;height:40px;border-radius:50%;background:var(--action);color:var(--on-action);border:0;cursor:pointer;font-size:18px;z-index:3;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.peek-row-arrow[hidden]{display:none}
 @media(max-width:1100px){.peek-grid>*{flex-basis:calc((100% - 48px)/4)}}
 @media(max-width:899px){.peek-grid>*{flex-basis:46%}}
 @media(max-width:560px){.peek-grid>*{flex-basis:76%}}
+/* rodada11, item 5: setas únicas pra qualquer fileira horizontal (peek-grid,
+   home-offer-grid, universe-offer-grid) — faixa de gradiente de 64px nas
+   bordas, com o círculo de 40px (.hfn-circle) dentro; só no hover da
+   fileira ou foco de teclado; desktop com mouse fino apenas (mobile nunca
+   mostra, usa swipe). JS alterna .is-edge-end nos extremos do scroll. */
+.carousel-row-wrap{position:relative}
+.carousel-edge{position:absolute;top:0;bottom:0;width:64px;border:0;padding:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity 150ms ease;z-index:5}
+.carousel-edge.prev{left:0;background:linear-gradient(90deg,color-mix(in oklab,var(--page-bg) 85%,transparent) 0%,transparent 100%)}
+.carousel-edge.next{right:0;background:linear-gradient(270deg,color-mix(in oklab,var(--page-bg) 85%,transparent) 0%,transparent 100%)}
+.carousel-edge.is-edge-end{display:none}
+@media(hover:hover) and (pointer:fine){
+  .carousel-row-wrap:hover .carousel-edge,
+  .carousel-edge:focus-visible{opacity:1;pointer-events:auto}
+}
+@media not ((hover:hover) and (pointer:fine)){
+  .carousel-edge{display:none}
+}
 
 /* 3.6: Universos em destaque — card grande + 3 compactos empilhados */
 .home-universes-grid{display:grid;grid-template-columns:520px minmax(0,1fr);gap:16px;align-items:stretch}

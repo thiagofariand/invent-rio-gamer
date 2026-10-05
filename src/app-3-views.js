@@ -316,9 +316,9 @@ function destaquesSection(order,heroExclude){
       <div>${rowTitleLink('home-destaques-title','Destaques',`#/em-alta?ordem=${order}`)}</div>
       ${destaquesAlternatorMarkup(order)}
     </div>
-    <div class="peek-row-wrap">
-      <div class="peek-grid" data-peek-row="home-destaques">${pool.map(posterCard).join('')}</div>
-      <button type="button" class="peek-row-arrow" data-peek-next="home-destaques" aria-label="Ver mais destaques" hidden>→</button>
+    <div class="carousel-row-wrap">
+      <div class="peek-grid" data-carousel-row="home-destaques" data-scroll-mult="6">${pool.map(posterCard).join('')}</div>
+      ${carouselEdgesMarkup('home-destaques')}
     </div>
   </section>`;
 }
@@ -373,9 +373,9 @@ function retroSection(exclude){
   if(!pool.length)return '';
   return `<section class="lux-section home-retro" aria-labelledby="home-retro-title" data-lazy-section>
     <div class="lux-section-head"><div>${rowTitleLink('home-retro-title','Retrô','#/busca?retro=1')}<p class="row-subtitle">Clássicos, em preço de usado</p></div></div>
-    <div class="peek-row-wrap">
-      <div class="peek-grid" data-peek-row="home-retro">${pool.map(posterCard).join('')}</div>
-      <button type="button" class="peek-row-arrow" data-peek-next="home-retro" aria-label="Ver mais clássicos" hidden>→</button>
+    <div class="carousel-row-wrap">
+      <div class="peek-grid" data-carousel-row="home-retro" data-scroll-mult="6">${pool.map(posterCard).join('')}</div>
+      ${carouselEdgesMarkup('home-retro')}
     </div>
   </section>`;
 }
@@ -438,21 +438,6 @@ function initStaggerEntrance(root){
   });
   try{sessionStorage.setItem('inventario-gamer:v1:home-stagger-done','1')}catch{}
 }
-function initPeekRows(root){
-  $$('[data-peek-row]',root).forEach(track=>{
-    const id=track.dataset.peekRow;
-    const btn=root.querySelector(`[data-peek-next="${id}"]`);
-    if(!btn)return;
-    if(track.children.length<=6){btn.hidden=true;return}
-    btn.hidden=false;
-    btn.addEventListener('click',()=>{
-      const first=track.children[0];
-      const step=((first?.getBoundingClientRect().width)||220)+16;
-      track.scrollBy({left:step*6,behavior:'smooth'});
-    });
-  });
-}
-
 function renderHome(){
   setTitle('');
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
@@ -471,7 +456,7 @@ function renderHome(){
   const hero=$('[data-hhw]',main);
   initHomeHeroWide(hero);
   hydrateHomeHeroWide(hero);
-  initPeekRows(main);
+  initCarouselRows(main);
   // Acima da dobra (hero + Destaques) hidrata na hora; o resto é lazy (3.9).
   hydrateIgdbCovers(main,heroSlides.length*2+destaquesPoolList.length+2);
   initLazySections(main);
@@ -1198,8 +1183,8 @@ function universeHeroMarkup(u,titles,preferredPlatforms){
       }).join('')}</div>
       ${slides.length>1?`<div class="home-feature-controls" role="group" aria-label="Artes em destaque">${slides.map((_,i)=>`<button type="button" data-home-dot="${i}" aria-current="${i===0}" aria-label="Mostrar destaque ${i+1}"></button>`).join('')}</div>
       <span class="universe-hero-count" data-home-counter aria-hidden="true">1/${slides.length}</span>
-      <button type="button" class="home-feature-nav prev" data-home-prev aria-label="Destaque anterior">‹</button>
-      <button type="button" class="home-feature-nav next" data-home-next aria-label="Próximo destaque">›</button>`:''}
+      <button type="button" class="home-feature-nav prev" data-home-prev aria-label="Destaque anterior"><span class="hfn-circle" aria-hidden="true">‹</span></button>
+      <button type="button" class="home-feature-nav next" data-home-next aria-label="Próximo destaque"><span class="hfn-circle" aria-hidden="true">›</span></button>`:''}
     </div>
   </section>`;
 }
@@ -1281,34 +1266,37 @@ function universeOfferPriceChipsMarkup(p,platform){
   if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}${digital.mock?' '+mockChip():''}</a>`);
   return chips.join('');
 }
-/* ---------- carrossel de ofertas (ajustes fase 1, item B) ----------
-   Componente reutilizável: fileira única (o CSS cuida do flex/scroll-snap),
-   setas que rolam 4 cards por clique, escondidas com 4 ou menos cards. Um
-   único id por fileira (ex. "home-offers", "uni-offers") liga o par de
-   setas ao container via data-offer-row/data-offer-arrows. */
-function offerRowArrowsMarkup(id){
-  return `<div class="offer-row-arrows" data-offer-arrows="${id}" hidden>
-    <button type="button" class="offer-arrow prev" data-offer-prev="${id}" aria-label="Itens anteriores">‹</button>
-    <button type="button" class="offer-arrow next" data-offer-next="${id}" aria-label="Próximos itens">›</button>
-  </div>`;
+/* ---------- carrossel de cards (rodada11, item 5) ----------
+   Componente único pras fileiras que rolam na horizontal (antes eram dois
+   sistemas separados — offer-row com 2 setas na cabeça da seção, peek-row
+   com 1 seta de "ver mais" fora da fileira). Agora as duas setas (prev/
+   next) ficam DENTRO da fileira, coladas nas bordas esquerda/direita,
+   dentro de uma faixa de gradiente — só aparecem no hover da fileira ou
+   foco de teclado numa delas (CSS cuida disso via :hover/:focus-visible,
+   não JS), e desaparecem no extremo correspondente (JS alterna
+   .is-edge-end). data-scroll-mult no track define quantos cards rolam por
+   clique (6 na home, 4 no resto — default 4 se o atributo faltar). */
+function carouselEdgesMarkup(id){
+  return `<button type="button" class="carousel-edge prev" data-carousel-prev="${id}" aria-label="Itens anteriores"><span class="hfn-circle" aria-hidden="true">‹</span></button>
+  <button type="button" class="carousel-edge next" data-carousel-next="${id}" aria-label="Próximos itens"><span class="hfn-circle" aria-hidden="true">›</span></button>`;
 }
-function initOfferCarousels(root){
-  $$('[data-offer-row]',root).forEach(track=>{
-    const id=track.dataset.offerRow;
-    const arrows=root.querySelector(`[data-offer-arrows="${id}"]`);
-    if(!arrows)return;
-    const count=track.children.length;
-    if(count<=4){arrows.hidden=true;return}
-    arrows.hidden=false;
-    const prev=arrows.querySelector('[data-offer-prev]'),next=arrows.querySelector('[data-offer-next]');
+function initCarouselRows(root){
+  $$('[data-carousel-row]',root).forEach(track=>{
+    const wrap=track.closest('.carousel-row-wrap');
+    const id=track.dataset.carouselRow;
+    const prev=wrap?.querySelector(`[data-carousel-prev="${id}"]`);
+    const next=wrap?.querySelector(`[data-carousel-next="${id}"]`);
+    if(!prev||!next)return;
+    const mult=Number(track.dataset.scrollMult)||4;
     const step=()=>(track.children[0]?.getBoundingClientRect().width||300)+16;
     const update=()=>{
       const max=track.scrollWidth-track.clientWidth;
-      prev.style.opacity=track.scrollLeft<=4?'.4':'1';
-      next.style.opacity=track.scrollLeft>=max-4?'.4':'1';
+      const needsScroll=max>4;
+      prev.classList.toggle('is-edge-end',!needsScroll||track.scrollLeft<=4);
+      next.classList.toggle('is-edge-end',!needsScroll||track.scrollLeft>=max-4);
     };
-    prev.addEventListener('click',()=>track.scrollBy({left:-step()*4,behavior:'smooth'}));
-    next.addEventListener('click',()=>track.scrollBy({left:step()*4,behavior:'smooth'}));
+    prev.addEventListener('click',()=>track.scrollBy({left:-step()*mult,behavior:'smooth'}));
+    next.addEventListener('click',()=>track.scrollBy({left:step()*mult,behavior:'smooth'}));
     track.addEventListener('scroll',update,{passive:true});
     track.setAttribute('tabindex','0');
     track.addEventListener('keydown',e=>{
@@ -1441,7 +1429,7 @@ function initHoverExpand(root){
   const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
   $$('.hec-card',root).forEach(card=>{
     let openTimer=null,closeTimer=null;
-    const track=card.closest('[data-offer-row],[data-peek-row]');
+    const track=card.closest('[data-carousel-row]');
     const open=()=>{
       if(track){$$('.hec-card.is-open',track).forEach(c=>{if(c!==card)closeCard(c)})}
       const baseW=card.getBoundingClientRect().width;
@@ -1605,8 +1593,8 @@ function renderUniverse(slug,params,token){
     // pela plataforma escolhida, se houver chip ativo) — mesmo destino do
     // título, que também vira link.
     const seeAllHref=`#/busca?universo=${slug}`+(platFilter?`&plat=${enc(platFilter)}`:'');
-    const seeAllMarkup=`<div class="universe-offers-head-actions"><a class="universe-see-all" href="${seeAllHref}">Ver todos (${titles.length}) →</a>${offerRowArrowsMarkup('uni-offers')}</div>`;
-    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title"><a class="universe-offers-title-link" href="${seeAllHref}">Encontre o próximo da coleção</a></h2></div>${seeAllMarkup}</div>${platChips}<div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:platChips+emptyCatalog)
+    const seeAllMarkup=`<div class="universe-offers-head-actions"><a class="universe-see-all" href="${seeAllHref}">Ver todos (${titles.length}) →</a></div>`;
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title"><a class="universe-offers-title-link" href="${seeAllHref}">Encontre o próximo da coleção</a></h2></div>${seeAllMarkup}</div>${platChips}<div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div>${carouselEdgesMarkup('uni-offers')}</div></section>`:platChips+emptyCatalog)
     +universeDiscoverMoreSection(u);
   }
   // Cores do universo (fundo/painel/ação) vêm dos tokens globais que
@@ -1629,7 +1617,7 @@ function renderUniverse(slug,params,token){
   // oferta (que vêm depois no DOM) nunca chegavam a ser hidratados.
   hydrateIgdbCovers(main,tab==='tudo'?titles.length+featuredGames.length+4:12);
   if(tab==='tudo'&&featuredGames.length)hydrateUniverseOffers(featuredGames,token);
-  initOfferCarousels(main);
+  initCarouselRows(main);
 }
 
 /* ---------- tema em alta ---------- */
@@ -1715,7 +1703,7 @@ function renderTrendingPage(){
     <div class="trend-actions"><a class="btn btn-primary btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="#/ofertas/${esc(t.slug)}?plat=${enc(cfg.platform)}&cond=digital">Digital / oficial ↗</a></div></article>`}).join('')}</div>`;
   }else{
     pool=destaquesPool(order,new Set());
-    body=`<div class="peek-row-wrap"><div class="peek-grid" data-peek-row="trending-page">${pool.map(posterCard).join('')}</div></div>`;
+    body=`<div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="trending-page">${pool.map(posterCard).join('')}</div>${carouselEdgesMarkup('trending-page')}</div>`;
   }
   main.innerHTML=`<h1 class="page-h">Em alta</h1>
   <p class="lede">Assuntos que puxam a busca agora. Curadoria manual de ${esc(D.trendingUpdated)}, com links oficiais. Quando houver dados próprios, esta lista poderá mostrar o que está em alta no Inventário.</p>
@@ -1727,7 +1715,7 @@ function renderTrendingPage(){
     hydrateIgdbCovers(main,pool.length);
     hydrateHoverExpandPrices(pool);
     initHoverExpand(main);
-    initPeekRows(main);
+    initCarouselRows(main);
   }
   main.addEventListener('click',e=>{
     const btn=e.target.closest('[data-destaques-order]');
@@ -1788,12 +1776,12 @@ function renderGames(params){
     </section>`).join('')}
   </div>
   <section class="lux-section" aria-labelledby="games-trend-title" style="margin-top:48px">
-    <div class="lux-section-head"><div><h2 id="games-trend-title">Em alta no catálogo</h2></div>${offerRowArrowsMarkup('games-trend')}</div>
+    <div class="lux-section-head"><div><h2 id="games-trend-title">Em alta no catálogo</h2></div></div>
     <div class="tabs" role="tablist" style="margin:-6px 0 18px">${filterTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casaFilter}">${esc(l)}</a>`).join('')}</div>
-    <div class="home-offer-grid" data-offer-row="games-trend">${pool.map(p=>homeOfferCard(p)).join('')||'<p class="lede">Nenhum jogo encontrado neste filtro.</p>'}</div>
+    <div class="carousel-row-wrap"><div class="home-offer-grid" data-carousel-row="games-trend">${pool.map(p=>homeOfferCard(p)).join('')||'<p class="lede">Nenhum jogo encontrado neste filtro.</p>'}</div>${carouselEdgesMarkup('games-trend')}</div>
   </section>`;
   hydrateIgdbCovers(main,pool.length+GAMES_HUB_CASAS.length*7);
-  initOfferCarousels(main);
+  initCarouselRows(main);
 }
 
 /* ---------- diretório de universos (#/universos, fase 4) ----------
@@ -1897,7 +1885,7 @@ function renderPlatform(slug,params,token){
       ${top?universeHeroMarkup(top,topTitles,platformsList):`<section class="universe-feature-row"><div class="game-hero universe-hero"><div class="game-hero-copy"><h1>${esc(label)}</h1><p>Catálogo em preenchimento.</p></div></div></section>`}
       <section class="universe-game-shelf" aria-labelledby="plat-offers-title">
         <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
-        <div class="universe-offer-grid" data-offer-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
+        <div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>${carouselEdgesMarkup('plat-offers')}</div>
       </section>
       <div class="platform-cta-row3">
         ${visualMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
@@ -1919,7 +1907,7 @@ function renderPlatform(slug,params,token){
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
   if(top)hydrateUniverseHero($('[data-home-carousel]',main),token);
-  initOfferCarousels(main);
+  initCarouselRows(main);
 }
 
 /* ---------- merch, colecionáveis e fan-made ---------- */
