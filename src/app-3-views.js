@@ -1670,9 +1670,9 @@ function renderTrendingPage(){
   const alternator=destaquesAlternatorMarkup(order,'#/em-alta','ordem');
   let body,pool=null;
   if(order==='em-alta'){
-    body=`<div class="section-gap">${D.trendingNow.map(t=>`<article class="trend-row"><div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{})}</div>
-    <div><span class="chip">${esc(sentence(t.tag))}</span><h2 style="margin-top:6px">${esc(t.title)}</h2><p>${esc(t.copy)}</p></div>
-    <div class="trend-actions"><a class="btn btn-outline btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="${esc(safeUrl(t.digital))}" target="_blank" rel="noopener noreferrer">Digital / oficial ↗</a></div></article>`).join('')}</div>`;
+    body=`<div class="section-gap">${D.trendingNow.map(t=>{const cfg=themeDemoConfig(t);return `<article class="trend-row"><div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{})}</div>
+    <div><h2>${esc(t.title)}</h2><p>${esc(t.copy)}</p></div>
+    <div class="trend-actions"><a class="btn btn-primary btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="#/ofertas/${esc(t.slug)}?plat=${enc(cfg.platform)}&cond=digital">Digital / oficial ↗</a></div></article>`}).join('')}</div>`;
   }else{
     pool=destaquesPool(order,new Set());
     body=`<div class="peek-row-wrap"><div class="peek-grid" data-peek-row="trending-page">${pool.map(posterCard).join('')}</div></div>`;
