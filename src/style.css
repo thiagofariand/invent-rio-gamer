@@ -266,10 +266,11 @@ main:focus-visible{outline:none}
 .modal-close{border:0;background:var(--gray);width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .modal-close:hover{background:#E5E7EB}
 .modal-body{padding:0 22px 20px}
-.otabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
-.otab{border:1px solid var(--line-strong);background:var(--white);border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600;flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
-.otab[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;flex-grow:1.7;border-radius:14px}
-@media(prefers-reduced-motion:reduce){.otab{transition:background-color 150ms ease,color 150ms ease}.otab[aria-pressed="true"]{flex-grow:0;border-radius:999px}}
+.otabs{display:flex;gap:8px;flex-wrap:wrap;width:fit-content;margin:6px 0 14px}
+/* parteB 2: tamanho natural, seleção só por cor — sem o chip crescer */
+.otab{height:34px;display:inline-flex;align-items:center;border:1px solid var(--glass-border,var(--line-strong));background:transparent;border-radius:999px;padding:0 14px;font-size:13.5px;font-weight:600;color:var(--text-2,var(--muted));transition:background-color 150ms ease,color 150ms ease,border-color 150ms ease}
+.otab:hover{background:rgba(255,255,255,.07)}
+.otab[aria-pressed="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
 .othead,.orow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr) auto;gap:16px;align-items:center}
 .othead{font-size:12px;color:var(--muted);padding:0 0 8px;border-bottom:1px solid var(--line-strong);letter-spacing:.06em;text-transform:uppercase}
 .orow{padding:14px 0;border-bottom:1px solid var(--line)}
@@ -2016,11 +2017,11 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 
 /* Pacote único, item 4.3/4.4 */
 .udir-exclusive{margin-left:8px;font-size:11px;font-weight:600;color:var(--text-2);text-transform:none;letter-spacing:0}
-.plat-filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
-.plat-filter-chip{padding:6px 14px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-2);font-size:13px;font-weight:600;text-decoration:none;flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
-.plat-filter-chip:hover{background:rgba(255,255,255,.14);color:var(--text-1)}
-.plat-filter-chip[aria-current="true"]{background:var(--action);border-color:transparent;color:var(--on-action);flex-grow:1.7;border-radius:14px}
-@media(prefers-reduced-motion:reduce){.plat-filter-chip{transition:background-color 150ms ease,color 150ms ease}.plat-filter-chip[aria-current="true"]{flex-grow:0;border-radius:999px}}
+.plat-filter-chips{display:flex;flex-wrap:wrap;width:fit-content;gap:8px;margin:4px 0 14px}
+/* parteB 2: tamanho natural, seleção só por cor — sem o chip crescer */
+.plat-filter-chip{height:34px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:transparent;border:1px solid var(--glass-border);color:var(--text-2);font-size:13px;font-weight:600;text-decoration:none;transition:background-color 150ms ease,color 150ms ease,border-color 150ms ease}
+.plat-filter-chip:hover{background:rgba(255,255,255,.07)}
+.plat-filter-chip[aria-current="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
 
 /* ============================================================
    FASE 5 / RODADA 5 ITEM 6 — PÁGINA DA PLATAFORMA (2 colunas)
@@ -2522,14 +2523,12 @@ html[data-theme="neutral"] body.dark-surface-route{
 .purchase-platform-col{display:flex;flex-direction:column;gap:4px;min-width:0}
 .purchase-platform-col h2{font:500 22px/1.2 var(--font-ui);color:var(--text-1)}
 .purchase-platform-label{font-size:12px;color:var(--text-2);margin-bottom:4px}
-.purchase-platform-col .plat-row{margin-top:6px}
-/* chip selecionado: contorno sem preenchimento (item 2.2b) */
-.purchase-platform-col .plat-btn[aria-pressed="true"]{background:transparent;box-shadow:inset 0 0 0 1.5px var(--action-on-glass);border-color:var(--action-on-glass);color:var(--text-1)}
-/* Pacote2, item 6: grupo de chips (até 5) — o selecionado cresce, os outros
-   cedem espaço; grupos maiores (muitas plataformas) só mudam de cor. */
-.purchase-platform-col .plat-btn{flex-grow:0;transition:flex-grow var(--dur-group) var(--ease-spring),border-radius var(--dur-group) var(--ease-spring),background-color 150ms ease,color 150ms ease}
-.purchase-platform-col .plat-row:has(.plat-btn:nth-child(-n+5):last-child) .plat-btn[aria-pressed="true"]{flex-grow:1.7;border-radius:14px}
-@media(prefers-reduced-motion:reduce){.purchase-platform-col .plat-btn{transition:background-color 150ms ease,color 150ms ease}}
+.purchase-platform-col .plat-row{margin-top:6px;width:fit-content}
+/* parteB 2: tamanho natural, seleção só por cor — substitui o contorno-only
+   do item 2.2b e o crescimento do chip selecionado (Pacote2, item 6). */
+.purchase-platform-col .plat-btn{height:34px;padding:0 14px;border-radius:999px;background:transparent;border:1px solid var(--glass-border);color:var(--text-2);transition:background-color 150ms ease,color 150ms ease,border-color 150ms ease}
+.purchase-platform-col .plat-btn:hover{background:rgba(255,255,255,.07)}
+.purchase-platform-col .plat-btn[aria-pressed="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
 
 .ppanel{display:grid;grid-template-columns:repeat(var(--ppanel-cols,3),1fr);grid-auto-rows:min-content;gap:12px;align-content:start}
 .ppanel-group{
