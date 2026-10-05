@@ -270,8 +270,8 @@ function destaquesPool(order,exclude){
   const rest=pool.filter(p=>!trendTitles.has(p.title)).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0));
   return [...trendGames,...rest].slice(0,12);
 }
-function destaquesAlternatorMarkup(order){
-  return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" href="#/?destaques=${k}" aria-pressed="${k===order}" data-destaques-order="${k}">${esc(l)}</a>`).join('')}</div>`;
+function destaquesAlternatorMarkup(order,hrefBase='#/',paramName='destaques'){
+  return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" href="${hrefBase}?${paramName}=${k}" aria-pressed="${k===order}" data-destaques-order="${k}" data-destaques-param="${paramName}" data-destaques-base="${hrefBase}">${esc(l)}</a>`).join('')}</div>`;
 }
 function destaquesSection(order,heroExclude){
   const pool=destaquesPool(order,heroExclude);
@@ -1636,12 +1636,37 @@ function renderTheme(slug){
 }
 function renderTrendingPage(){
   setTitle('Em alta');
-  main.innerHTML=`<h1 class="page-h">Em alta</h1>
-  <p class="lede">Assuntos que puxam a busca agora. Curadoria manual de ${esc(D.trendingUpdated)}, com links oficiais. Quando houver dados próprios, esta lista poderá mostrar o que está em alta no Inventário.</p>
-  <div class="section-gap">${D.trendingNow.map(t=>`<article class="trend-row"><div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{})}</div>
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const order=DESTAQUES_ORDERS.some(([k])=>k===params.get('ordem'))?params.get('ordem'):'em-alta';
+  const alternator=destaquesAlternatorMarkup(order,'#/em-alta','ordem');
+  let body,pool=null;
+  if(order==='em-alta'){
+    body=`<div class="section-gap">${D.trendingNow.map(t=>`<article class="trend-row"><div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(t.title)}">${coverTile(t.short,{})}</div>
     <div><span class="chip">${esc(sentence(t.tag))}</span><h2 style="margin-top:6px">${esc(t.title)}</h2><p>${esc(t.copy)}</p></div>
     <div class="trend-actions"><a class="btn btn-outline btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="${esc(safeUrl(t.digital))}" target="_blank" rel="noopener noreferrer">Digital / oficial ↗</a></div></article>`).join('')}</div>`;
-  hydrateIgdbCovers(main,8);
+  }else{
+    pool=destaquesPool(order,new Set());
+    body=`<div class="peek-row-wrap"><div class="peek-grid" data-peek-row="trending-page">${pool.map(posterCard).join('')}</div></div>`;
+  }
+  main.innerHTML=`<h1 class="page-h">Em alta</h1>
+  <p class="lede">Assuntos que puxam a busca agora. Curadoria manual de ${esc(D.trendingUpdated)}, com links oficiais. Quando houver dados próprios, esta lista poderá mostrar o que está em alta no Inventário.</p>
+  ${alternator}
+  ${body}`;
+  if(order==='em-alta'){
+    hydrateIgdbCovers(main,8);
+  }else{
+    hydrateIgdbCovers(main,pool.length);
+    hydrateHoverExpandPrices(pool);
+    initHoverExpand(main);
+    initPeekRows(main);
+  }
+  main.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-destaques-order]');
+    if(!btn||!main.contains(btn))return;
+    e.preventDefault();
+    history.replaceState(null,'',btn.dataset.destaquesBase+'?'+btn.dataset.destaquesParam+'='+btn.dataset.destaquesOrder);
+    renderTrendingPage();
+  });
 }
 
 /* ---------- games (hub de plataformas, fase 3) ---------- */
