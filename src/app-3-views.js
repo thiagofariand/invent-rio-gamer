@@ -117,6 +117,7 @@ function homeHeroSlideFromTrend(t,pillLabel){
   return {
     pill:pillLabel,title:t.title,
     igdbTitle:t.title,igdbPlatform:game?.variants?.[0]?.[1]||'',igdbYear:game?.year||'',
+    heroSlug:game?.slug||'',
     href:homeTrendHref(t),ctaHtml,thumbLabel:t.short||t.title
   };
 }
@@ -130,6 +131,7 @@ function homeHeroSlideFromUniverse(slug){
   return {
     pill:'UNIVERSO',title:pal?.nome||u.name,
     igdbTitle:rep?igdbTitleFor(rep,platform):u.name,igdbPlatform:platform,igdbYear:rep?.year||'',
+    heroSlug:rep?.slug||'',
     href:`#/universo/${u.slug}`,
     ctaHtml:`<a class="btn btn-primary" href="#/universo/${u.slug}">Conhecer o universo →</a>`,
     thumbLabel:pal?.nome||u.name
@@ -155,7 +157,7 @@ function homeHeroWideMarkup(slides){
   return `<section class="hhw" aria-roledescription="carrossel" aria-label="Destaques" data-hhw>
     <div class="hhw-track" data-hhw-track>
     ${slides.map((s,i)=>`<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}">
-      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="hhw-copy">
         <span class="hhw-pill">${esc(s.pill)}</span>
         <h1>${esc(s.title)}</h1>
@@ -177,6 +179,10 @@ async function hydrateHomeHeroWide(root){
     if(d?.hero?.url){
       setHeroBackground(art,d.hero.url);
       if(thumbImg)thumbImg.style.backgroundImage=`url("${d.hero.url.replace(/"/g,'%22')}")`;
+      // parteB 6: banner "Conheça o universo" na busca reaproveita esta
+      // mesma arte (sem fetch novo) quando o jogo do hero da home pertence
+      // ao universo buscado — mesmo cache que a página de universo usa.
+      if(art.dataset.hhwSlug)heroImageCache.set(art.dataset.hhwSlug,d.hero.url);
     }else if(d?.cover?.url){
       setHeroBackground(art,d.cover.url,true);
       if(thumbImg)thumbImg.style.backgroundImage=`url("${d.cover.url.replace(/"/g,'%22')}")`;
@@ -598,8 +604,15 @@ function universeSearchHint(raw,matches){
   if(topSlug&&topCount/matches.length>=0.6)return uMap.get(topSlug)||null;
   return null;
 }
+// parteB 6: mesma prioridade do hero da própria página de universo — o
+// jogo do 1º slide (o mais recente, newestUniverseGames) primeiro; sem
+// cache pra ele, o próximo jogo mais recente que já tiver arte em cache
+// (de uma visita anterior à página de universo/jogo ou do hero da home);
+// sem nenhum, cai no fallback (degradê + sigla) — nunca dispara fetch novo.
 function cachedHeroForUniverse(u){
-  for(const p of titlesOf(u.slug)){if(heroImageCache.has(p.slug))return heroImageCache.get(p.slug)}
+  const titles=titlesOf(u.slug);
+  const byYearDesc=newestUniverseGames(titles,titles.length);
+  for(const p of byYearDesc){if(heroImageCache.has(p.slug))return heroImageCache.get(p.slug)}
   return null;
 }
 function universeSearchBanner(u){

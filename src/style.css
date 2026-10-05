@@ -2292,7 +2292,11 @@ body.dark-surface-route .compare-block>h3{color:var(--text-2)}
    de degradê + sigla grande (abaixo). */
 .universe-search-banner.has-image::after{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:var(--usb-img);background-size:cover;background-position:var(--usb-focus,center 30%);
+  /* parteB 6: tom conflitante com a paleta (ex. arte vermelha sobre fundo
+     azul) — camada translúcida com a cor do universo por cima da arte,
+     evitando o roxo sujo da transição do ::before. */
+  background-image:linear-gradient(color-mix(in oklab,color-mix(in oklab,var(--usb-fundo,var(--accent)) 70%,black) 35%,transparent),color-mix(in oklab,color-mix(in oklab,var(--usb-fundo,var(--accent)) 70%,black) 35%,transparent)),var(--usb-img);
+  background-size:cover;background-position:var(--usb-focus,center 30%);
   -webkit-mask-image:
     linear-gradient(90deg,transparent 0%,#000 45%),
     linear-gradient(180deg,transparent 0%,#000 10%,#000 90%,transparent 100%);
