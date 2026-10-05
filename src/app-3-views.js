@@ -1997,6 +1997,22 @@ const SIDEBAR_FEATURED_UNIVERSES=[
   {slug:'god-of-war',nome:'God of War',sigla:'GoW',aliases:['god of war']},
   {slug:'resident-evil',nome:'Resident Evil',sigla:'RE',aliases:['resident evil']}
 ];
+// Parte A, item 6: ícones próprios por plataforma (sidebar) renderizados
+// como máscara CSS (mask-image + background-color:currentColor) — mesma
+// área 20x20, assumindo a cor do estado (neutro/hover/ativo) como o ícone
+// genérico fazia antes. Retrô é um pouco mais largo (24px) porque o
+// símbolo do PNG parece menor que os das outras plataformas na mesma área.
+const SIDEBAR_MASK_ICON={
+  nintendo:{url:'/assets/icon-nintendo.png',width:20},
+  playstation:{url:'/assets/icon-playstation.svg',width:20},
+  xbox:{url:'/assets/icon-xbox.svg',width:20},
+  retro:{url:'/assets/icon-retro.png',width:24}
+};
+function maskIcon(slug){
+  const m=SIDEBAR_MASK_ICON[slug];
+  if(!m)return '';
+  return `<span class="ico ico-mask" style="width:${m.width}px;-webkit-mask-image:url('${m.url}');mask-image:url('${m.url}')" aria-hidden="true"></span>`;
+}
 function sidebarItem(slug,label,icon){
   const href=goNav(slug);
   const active=location.hash===href;
@@ -2007,7 +2023,8 @@ function sidebarItem(slug,label,icon){
   const casa=['nintendo','playstation','xbox'].includes(slug)?slug:null;
   const c=casa?paletteForPlatform(casa)?.acao:null;
   const style=c?` style="--c:${esc(c)}"`:'';
-  return `<a class="sidebar-item${casa?' sidebar-item-casa':''}" href="${href}"${style}${active?' aria-current="page"':''}>${ico(icon,20)}<span>${esc(label)}</span></a>`;
+  const iconHtml=SIDEBAR_MASK_ICON[slug]?maskIcon(slug):ico(icon,20);
+  return `<a class="sidebar-item${casa?' sidebar-item-casa':''}" href="${href}"${style}${active?' aria-current="page"':''}>${iconHtml}<span>${esc(label)}</span></a>`;
 }
 function sidebarUniverseItem(entry){
   const path=`#/universo/${entry.slug}`;
