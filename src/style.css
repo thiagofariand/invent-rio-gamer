@@ -443,6 +443,10 @@ body.universe-hero-route{
   --glass-2:rgba(10,4,8,.40);
   --glass-3:rgba(255,255,255,.06);
   --glass-border:rgba(255,255,255,.10);
+  /* parteB 5: só o cabeçalho (universe/platform/game) fica mais opaco —
+     --glass-1 continua em .55 pros outros painéis de navegação (sidebar,
+     cartões de CTA) que não tinham esse problema de texto vazando atrás. */
+  --header-bg:rgba(10,4,8,.92);
   --glass-blur:blur(18px) saturate(140%);
   /* --action clareado 60% em direção ao branco — usado em linhas finas
      (contorno do "Tenho" marcado, item ativo da barra lateral e do menu do
@@ -1050,7 +1054,7 @@ body{background:var(--store);color:var(--ink)}
 main{max-width:1240px;padding:34px 28px 80px}
 /* Vidro fumê em qualquer largura (não só desktop) — a logo é sempre clara
    agora, então o cabeçalho não pode mais virar claro no mobile. */
-.site-header{background:var(--glass-1);border-color:var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.site-header{background:var(--header-bg);border-color:var(--glass-border);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
 @supports not (backdrop-filter:blur(1px)){
   .site-header{background:rgba(10,4,8,.86)}
 }
@@ -1744,7 +1748,7 @@ html{overflow-x:hidden}
     position:sticky;top:12px;
     max-width:none;width:auto;margin:16px 18px 0;
     border-radius:20px;
-    background:var(--glass-1);
+    background:var(--header-bg);
     border:1px solid var(--glass-border);
     border-top-color:rgba(255,255,255,.16);
     backdrop-filter:var(--glass-blur);
@@ -2328,6 +2332,7 @@ body.dark-surface-route .compare-block>h3{color:var(--text-2)}
 html[data-theme="neutral"]{
   --page-bg:#2a2622;
   --glass-1:#332e29;
+  --header-bg:#332e29;
   --glass-2:#35302b;
   --glass-3:rgba(255,255,255,.07);
   --glass-overlay:#1f1b18;
