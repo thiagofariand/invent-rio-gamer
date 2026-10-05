@@ -1879,8 +1879,13 @@ body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 .sidebar-group{display:flex;flex-direction:column;gap:1px;padding-bottom:10px;border-bottom:1px solid var(--glass-border);position:relative;z-index:1}
 .sidebar-group:last-child{border-bottom:0;padding-bottom:0}
 .sidebar-item{display:flex;align-items:center;gap:12px;height:36px;padding:0 10px;border-radius:10px;color:#fff;text-decoration:none;flex:none;position:relative;z-index:1}
+/* rodada11, item 6: coluna de ícone de largura fixa — o rótulo sempre
+   começa no mesmo x, não importa se o ícone da linha é 20 ou 24px (Retrô,
+   ver SIDEBAR_MASK_ICON em app-3-views.js). Vale também com a barra
+   recolhida (não depende de largura do texto). */
+.sidebar-item-icon{flex:none;width:24px;height:20px;display:flex;align-items:center;justify-content:center}
 .sidebar-item .ico{flex:none;width:20px;height:20px}
-.sidebar-item span{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-item-label{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-item[aria-current="page"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:transparent}
 .sidebar-item:focus-visible{outline:2px solid #fff;outline-offset:2px}
 /* Pacote3, item 4.1: um ÚNICO indicador (.sidebar-indicator, ver JS
@@ -1917,7 +1922,7 @@ body.sidebar-hidden .sidebar-drawer-btn{display:inline-flex}
 .sidebar-footer-info small{font-size:12px;color:rgba(255,255,255,.65)}
 /* Recolhida: só os círculos/ícones ficam visíveis, texto fecha via
    width+overflow (não display:none, senão o hover-expand acima "pula"). */
-body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-item span,
+body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-item-label,
 body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-uni-name,
 body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-footer-info{
   opacity:0;width:0;

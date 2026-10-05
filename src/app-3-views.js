@@ -2052,7 +2052,11 @@ function sidebarItem(slug,label,icon){
   const c=casa?paletteForPlatform(casa)?.acao:null;
   const style=c?` style="--c:${esc(c)}"`:'';
   const iconHtml=SIDEBAR_MASK_ICON[slug]?maskIcon(slug):ico(icon,20);
-  return `<a class="sidebar-item${casa?' sidebar-item-casa':''}" href="${href}"${style}${active?' aria-current="page"':''}>${iconHtml}<span>${esc(label)}</span></a>`;
+  // rodada11, item 6: coluna de ícone de largura fixa (24px, ícone
+  // centralizado) — sem isso o ícone mais largo do Retrô (24px, ver
+  // SIDEBAR_MASK_ICON) empurrava só o rótulo dele ~4px mais à direita que
+  // os outros itens (ícones de 20px).
+  return `<a class="sidebar-item${casa?' sidebar-item-casa':''}" href="${href}"${style}${active?' aria-current="page"':''}><span class="sidebar-item-icon">${iconHtml}</span><span class="sidebar-item-label">${esc(label)}</span></a>`;
 }
 function sidebarUniverseItem(entry){
   const path=`#/universo/${entry.slug}`;
