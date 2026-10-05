@@ -647,7 +647,9 @@ function renderSearch(params,token){
   const uHint=universeSearchHint(raw,matches);
   // parteB 7c: só quando o termo bateu por APELIDO (não nome/sigla/maioria)
   // — nome de exibição vem da paleta (mesmo campo que o banner usa).
-  const aliasNote=uHint?.kind==='alias'?(()=>{
+  // rodada11, item 7: aviso desligado por ALIAS_NOTE — apelido continua
+  // valendo pra busca/autocomplete, só o aviso visual some.
+  const aliasNote=ALIAS_NOTE&&uHint?.kind==='alias'?(()=>{
     const pal=paletteForUniverse(uHint.u);
     return {displayName:pal?.nome||uHint.u.name,alias:uHint.alias};
   })():null;

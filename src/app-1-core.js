@@ -167,6 +167,11 @@ const SHOW_EXCLUSIVE_BADGE=false;
 // Desligado por padrão; precisa ligar aqui E o backend ter SEARCH_MISS_LOG=true
 // (ver api/trending.js) — as duas pontas desligadas por padrão de propósito.
 const SEARCH_MISS_LOG=false;
+// rodada11, item 7: desliga o aviso "Mostrando resultados de X (também
+// conhecido como Y)" na busca — o apelido continua valendo pra busca,
+// autocomplete e banner "Conheça o universo" (que nunca mostrou o aviso,
+// só o nome oficial); código mantido pra religar bastando virar true.
+const ALIAS_NOTE=false;
 // Item 6 (rodada 5) / pacote único, item 6.3: override manual de hero por
 // jogo (src/data/hero-overrides.json). {url} só aceita o CDN oficial da
 // IGDB (images.igdb.com) — qualquer outra origem é rejeitada (e avisada no
