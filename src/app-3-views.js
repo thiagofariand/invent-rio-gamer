@@ -1566,7 +1566,12 @@ function renderUniverse(slug,params,token){
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,12);
-    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title">Encontre o próximo da coleção</h2></div>${offerRowArrowsMarkup('uni-offers')}</div>${platChips}<div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:platChips+emptyCatalog)
+    // parteB 3: "Ver todos" abre a busca já filtrada por este universo (e
+    // pela plataforma escolhida, se houver chip ativo) — mesmo destino do
+    // título, que também vira link.
+    const seeAllHref=`#/busca?universo=${slug}`+(platFilter?`&plat=${enc(platFilter)}`:'');
+    const seeAllMarkup=`<div class="universe-offers-head-actions"><a class="universe-see-all" href="${seeAllHref}">Ver todos (${titles.length}) →</a>${offerRowArrowsMarkup('uni-offers')}</div>`;
+    body=(titles.length?`<section class="universe-game-shelf" aria-labelledby="universe-offers-title"><div class="lux-section-head"><div><h2 id="universe-offers-title"><a class="universe-offers-title-link" href="${seeAllHref}">Encontre o próximo da coleção</a></h2></div>${seeAllMarkup}</div>${platChips}<div class="universe-offer-grid" data-offer-row="uni-offers">${featuredGames.map(universeOfferCard).join('')}</div></section>`:platChips+emptyCatalog)
     +universeDiscoverMoreSection(u);
   }
   // Cores do universo (fundo/painel/ação) vêm dos tokens globais que
