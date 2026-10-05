@@ -1251,19 +1251,25 @@ function dailyUniverseSelection(titles,slug,count=5){
 // card mostra no máximo 2 chips: o físico mais barato (com a condição
 // escrita) e, se existir, o Digital à parte. Digital nunca entra no
 // cálculo do menor preço físico.
+// rodada11, item 3: excluir s.mock aqui era a causa do bug (cards sempre
+// "Ver detalhes") — fetchCond já injeta o preço de exemplo (sampleOfferList,
+// mesma fonte de todo o site) no MESMO cache que summaryOf() lê, com
+// mock:true; universeHeroBestOffer (hero do mesmo universo) nunca excluiu
+// mock e por isso já mostrava preço — os cards é que estavam mais
+// restritivos que o resto do site, não o contrário.
 function universeOfferPhysicalBest(p,platform){
   let best=null;
   for(const cond of ['new','used']){
     if((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false))continue;
     const s=summaryOf(cond,p.title,platform);
-    if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)continue;
+    if(!s||s.status!=='ok'||!s.count||s.min==null)continue;
     if(!best||s.min<best.summary.min)best={cond,summary:s};
   }
   return best;
 }
 function universeOfferDigital(p,platform){
   const s=summaryOf('digital',p.title,platform);
-  if(!s||s.mock||s.status!=='ok'||!s.count||s.min==null)return null;
+  if(!s||s.status!=='ok'||!s.count||s.min==null)return null;
   return s;
 }
 function universeOfferPriceChipsMarkup(p,platform){
@@ -1271,8 +1277,8 @@ function universeOfferPriceChipsMarkup(p,platform){
   const digital=universeOfferDigital(p,platform);
   if(!best&&!digital)return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
   const chips=[];
-  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}</a>`);
-  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}</a>`);
+  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''}</a>`);
+  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}${digital.mock?' '+mockChip():''}</a>`);
   return chips.join('');
 }
 /* ---------- carrossel de ofertas (ajustes fase 1, item B) ----------
