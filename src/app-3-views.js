@@ -1506,17 +1506,19 @@ function universeDiscoverMoreSection(u){
       coverSlot:rep?`<span class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(rep,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep.year||'')}"></span>`:''
     }));
   }
-  if(colecionaveis.length)cards.push(discoverMoreCard({
+  // rodada11, item 4: Colecionáveis e Fan-made aparecem SEMPRE (estado
+  // vazio com "Em breve" em vez de sumir o card) — só Clássicos depende de
+  // o universo ter jogo retrô mesmo.
+  cards.push(discoverMoreCard({
     href:`#/merch?cat=colecionaveis&uni=${u.slug}`,kind:'colecionaveis',
     title:'Colecionáveis e merch',
-    copy:`${colecionaveis.length} ${colecionaveis.length===1?'item':'itens'} de ${u.name} pra coleção e decoração.`
+    copy:colecionaveis.length?`${colecionaveis.length} ${colecionaveis.length===1?'item':'itens'} de ${u.name} pra coleção e decoração.`:`Em breve: itens de ${u.name}.`
   }));
-  if(fanmade.length)cards.push(discoverMoreCard({
+  cards.push(discoverMoreCard({
     href:`#/merch?cat=fanmade&uni=${u.slug}`,kind:'fanmade',
     title:'Fan-made e decoração',
-    copy:`${fanmade.length} ${fanmade.length===1?'peça autoral feita':'peças autorais feitas'} por fãs.`
+    copy:fanmade.length?`${fanmade.length} ${fanmade.length===1?'peça autoral feita':'peças autorais feitas'} por fãs.`:`Em breve: itens de ${u.name}.`
   }));
-  if(!cards.length)return '';
   return `<section class="lux-section universe-discover-more" aria-labelledby="universe-discover-more-title">
     <div class="lux-section-head"><div><h2 id="universe-discover-more-title">Mais para descobrir</h2></div></div>
     <div class="discover-more-grid">${cards.join('')}</div>
