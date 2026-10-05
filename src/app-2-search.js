@@ -1,8 +1,23 @@
 /* ---------- busca no catálogo (local) ---------- */
+// Parte B, item 7e: opcional, atrás da flag SEARCH_MISS_LOG (desligada por
+// padrão) — manda só o termo normalizado quando a busca não acha NADA, pro
+// backend contar no KV (sem IP, sem título cru, sem qualquer identificação).
+// Fire-and-forget: nunca atrasa nem quebra o render da página de busca.
+function logSearchMiss(raw){
+  if(!SEARCH_MISS_LOG)return;
+  const term=normSearch(raw);
+  if(!term)return;
+  try{
+    fetch('/api/trending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term}),keepalive:true}).catch(()=>{});
+  }catch{/* nunca quebra a busca por causa disso */}
+}
 function scoreTitle(p,q,core){
-  const names=[p.title,...p.aliases].map(norm),fr=norm(p.franchise);
+  const names=[p.title,...p.aliases].map(normSearch),fr=normSearch(p.franchise);
   let s=0;
-  if(q===fr||core===fr)s=80;
+  // Parte B, item 7b: apelido de FRANQUIA (src/data/search-aliases.json,
+  // chave = p.universe) conta igual ao nome literal da franquia bater.
+  const franchiseAliases=franchiseAliasIdx.get(p.universe)||[];
+  if(q===fr||core===fr||franchiseAliases.includes(q)||franchiseAliases.includes(core))s=80;
   else{
     if(names.includes(q))s=120;
     if(names.includes(core))s=Math.max(s,110);
@@ -14,7 +29,7 @@ function scoreTitle(p,q,core){
   return s;
 }
 function matchCatalog(raw){
-  const q=norm(raw);
+  const q=normSearch(raw);
   if(!q)return catalog.map(p=>({p,score:1,variants:p.variants,platform:null}));
   const platform=detectPlatform(raw),core=stripPlatform(raw,platform);
   const out=[];
@@ -275,16 +290,18 @@ function merchLinks(term,cat){
 
 /* ---------- autocomplete (local, sem chamar APIs a cada tecla) ---------- */
 function suggestions(raw){
-  const q=norm(raw);
+  const q=normSearch(raw);
   if(q.length<2)return [];
   const tokens=q.split(' ').filter(Boolean);
   const out=[];
-  const uni=universes.find(u=>u.hasCatalog&&norm(u.name).startsWith(q)&&q.length>=3);
+  // Parte B, item 7b: apelido (franquia ou universo) também sugere — a
+  // sugestão sempre mostra o nome OFICIAL (u.name), nunca o apelido digitado.
+  const uni=universes.find(u=>u.hasCatalog&&(normSearch(u.name).startsWith(q)&&q.length>=3||universeAliasMatch(u,q)));
   if(uni)out.push({type:'universe',u:uni,score:200});
   for(const p of catalog){
     const hay=' '+p.searchText;
     if(!tokens.every(t=>hay.includes(' '+t)))continue;
-    const names=[p.title,...p.aliases].map(norm);
+    const names=[p.title,...p.aliases].map(normSearch);
     let s=60;
     if(names.some(n=>n.startsWith(q)))s=100;else if(names.some(n=>(' '+n).includes(' '+q)))s=85;
     out.push({type:'title',p,score:s-Math.min(p.title.length,40)/100});

@@ -574,25 +574,32 @@ function activeChips(F){
 // universo (fallback antigo, mantido). Tudo lido do catálogo/paleta.
 function universeAliasMatch(u,q){
   if(q.length>=3){
-    const n=norm(u.name);
-    if(n===q||n.startsWith(q))return 'name';
+    const n=normSearch(u.name);
+    if(n===q||n.startsWith(q))return {kind:'name'};
     const sideEntry=SIDEBAR_FEATURED_UNIVERSES.find(e=>e.slug===u.slug);
-    if(sideEntry?.aliases?.some(a=>{const na=norm(a);return na===q||na.startsWith(q)}))return 'alias';
+    const found=a=>{const na=normSearch(a);return na===q||na.startsWith(q)};
+    let hit=sideEntry?.aliases?.find(found);
+    if(hit)return {kind:'alias',alias:hit};
     const pal=paletteForUniverse(u);
-    if(pal?.aliases?.some(a=>{const na=norm(a);return na===q||na.startsWith(q)}))return 'alias';
+    hit=pal?.aliases?.find(found);
+    if(hit)return {kind:'alias',alias:hit};
+    // Parte B, item 7b/7d: apelidos de franquia (src/data/search-aliases.json),
+    // independentes da paleta de cor (funciona mesmo sem entrada lá ainda).
+    hit=(SEARCH_ALIASES[u.slug]||[]).find(found);
+    if(hit)return {kind:'alias',alias:hit};
   }
-  if(q.length>=2&&u.sigla&&norm(u.sigla)===q)return 'sigla';
+  if(q.length>=2&&u.sigla&&normSearch(u.sigla)===q)return {kind:'sigla'};
   return null;
 }
 function universeSearchHint(raw,matches){
-  const q=norm(raw);
+  const q=normSearch(raw);
   if(q){
     for(const u of universes){
       if(!u.hasCatalog||!titlesOf(u.slug).length)continue;
-      const kind=universeAliasMatch(u,q);
-      if(!kind)continue;
-      if(kind==='sigla'&&!matches.some(m=>m.p.universe===u.slug))continue;
-      return u;
+      const m=universeAliasMatch(u,q);
+      if(!m)continue;
+      if(m.kind==='sigla'&&!matches.some(x=>x.p.universe===u.slug))continue;
+      return {u,...m};
     }
   }
   // Fallback de 60%: mesma régua mínima de 3 caracteres do nome/alias — uma
@@ -601,7 +608,7 @@ function universeSearchHint(raw,matches){
   const counts=new Map();
   matches.forEach(m=>{if(m.p.universe)counts.set(m.p.universe,(counts.get(m.p.universe)||0)+1)});
   const [topSlug,topCount]=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0]||[];
-  if(topSlug&&topCount/matches.length>=0.6)return uMap.get(topSlug)||null;
+  if(topSlug&&topCount/matches.length>=0.6){const u=uMap.get(topSlug);return u?{u,kind:'majority'}:null}
   return null;
 }
 // parteB 6: mesma prioridade do hero da própria página de universo — o
@@ -653,6 +660,12 @@ function renderSearch(params,token){
   const n=Math.max(12,parseInt(params.get('n')||'12',10)||12);
   const visible=filtered.slice(0,n);
   const uHint=universeSearchHint(raw,matches);
+  // parteB 7c: só quando o termo bateu por APELIDO (não nome/sigla/maioria)
+  // — nome de exibição vem da paleta (mesmo campo que o banner usa).
+  const aliasNote=uHint?.kind==='alias'?(()=>{
+    const pal=paletteForUniverse(uHint.u);
+    return {displayName:pal?.nome||uHint.u.name,alias:uHint.alias};
+  })():null;
   // Pacote único, seção 1: a busca é sempre tema neutral — a cor do
   // universo não sai mais da página inteira, fica só dentro do banner
   // (ver universeSearchBanner acima). Nada de applyUniverseChrome() aqui.
@@ -660,7 +673,8 @@ function renderSearch(params,token){
   const heading=raw?`Resultados para “${esc(raw)}”`:'Todos os jogos';
   let body='';
   if(!rows.length){
-    const knownU=raw&&universes.find(u=>norm(u.name)===norm(raw));
+    logSearchMiss(raw);
+    const knownU=raw&&universes.find(u=>normSearch(u.name)===normSearch(raw));
     body=`<div class="empty"><h2>Ainda não catalogamos “${esc(raw)}”</h2>
       <p>${knownU?`O catálogo de <b>${esc(knownU.name)}</b> está sendo preenchido. `:''}Você já pode procurar direto nas lojas: os links abrem a busca delas.</p>
       ${knownU?`<p style="margin-top:10px"><a class="btn btn-outline btn-sm" href="#/universo/${knownU.slug}">Ver universo ${esc(knownU.name)} →</a></p>`:''}
@@ -672,12 +686,12 @@ function renderSearch(params,token){
   }else if(!filtered.length){
     body=`<div class="empty"><h2>Nenhum resultado com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="clear-filters">Limpar filtros</button></p></div>`;
   }else{
-    body=`${universeSearchBanner(uHint)}
+    body=`${universeSearchBanner(uHint?.u||null)}
       <div id="rowList">${visible.map(r=>rowMarkup(r,F)).join('')}</div>
       ${filtered.length>visible.length?`<div class="results-more"><button class="btn btn-ghost" data-act="more-rows" data-n="${n+12}">Mostrar mais resultados (${filtered.length-visible.length})</button></div>`:''}`;
   }
   main.innerHTML=`
-  <div class="results-head"><div><h1 class="page-h">${heading}</h1><p class="fine" style="margin-top:4px">${filtered.length} ${filtered.length===1?'resultado':'resultados'} · preços sem frete; frete e taxas podem variar</p></div>
+  <div class="results-head"><div><h1 class="page-h">${heading}</h1><p class="fine" style="margin-top:4px">${filtered.length} ${filtered.length===1?'resultado':'resultados'} · preços sem frete; frete e taxas podem variar</p>${aliasNote?`<p class="fine search-alias-note">Mostrando resultados de <b>${esc(aliasNote.displayName)}</b> (também conhecido como ${esc(aliasNote.alias)})</p>`:''}</div>
     <button class="btn btn-ghost filter-btn" data-act="open-filters">${ico('filter',16)} Filtrar${chips.length?` (${chips.length})`:''}</button></div>
   <aside class="filterbar" aria-label="Filtros">${filterBarMarkup(F,platforms)}</aside>
   ${chips.length?`<div class="chips-active">${chips.map(c=>`<button class="chip-x" data-act="rm-filter" data-k="${c[0]}" data-v="${esc(c[1])}" aria-label="Remover filtro ${esc(c[2])}">${esc(c[2])} ${ico('close',14)}</button>`).join('')}<button class="chip-x chip-x-clear" data-act="clear-filters">Limpar tudo</button></div>`:''}

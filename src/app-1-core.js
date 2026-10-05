@@ -13,6 +13,22 @@ const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm=s=>String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['’]/g,'').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
 const slugify=s=>norm(s).replace(/ /g,'-');
+// Parte B, item 7a: só pra busca (nunca pra slug/URL, que tem que continuar
+// estável) — token que é um numeral romano válido (II, VII, XV...) vira o
+// arábico equivalente, nos dois lados (catálogo e termo digitado), pra
+// "Final Fantasy VII" e "final fantasy 7" baterem igual.
+const ROMAN_RE=/^m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$/;
+function romanToArabic(tok){
+  if(!tok||!/^[mdclxvi]+$/.test(tok)||!ROMAN_RE.test(tok))return null;
+  const vals={m:1000,d:500,c:100,l:50,x:10,v:5,i:1};
+  let total=0,prev=0;
+  for(let i=tok.length-1;i>=0;i--){
+    const v=vals[tok[i]];
+    if(v<prev)total-=v;else{total+=v;prev=v}
+  }
+  return total>0?String(total):null;
+}
+const normSearch=s=>norm(s).split(' ').map(t=>romanToArabic(t)||t).join(' ');
 const enc=encodeURIComponent;
 const brl=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const safeUrl=u=>/^https?:\/\//i.test(String(u||''))?String(u):'#';
@@ -145,6 +161,12 @@ const AMBIENT_BG=false;
 // plataforma da aba ativa) atrás de flag — desligado por padrão até
 // aprovação visual.
 const SHOW_EXCLUSIVE_BADGE=false;
+// Parte B, item 7e: busca sem resultado nenhum registra só o termo
+// normalizado + contagem (HINCRBY) no KV já configurado pro Mercado Livre —
+// sem IP nem qualquer identificação, só pra descobrir apelido que falta.
+// Desligado por padrão; precisa ligar aqui E o backend ter SEARCH_MISS_LOG=true
+// (ver api/trending.js) — as duas pontas desligadas por padrão de propósito.
+const SEARCH_MISS_LOG=false;
 // Item 6 (rodada 5) / pacote único, item 6.3: override manual de hero por
 // jogo (src/data/hero-overrides.json). {url} só aceita o CDN oficial da
 // IGDB (images.igdb.com) — qualquer outra origem é rejeitada (e avisada no
@@ -187,7 +209,7 @@ const catalog=D.catalog.map(p=>{
   let slug=c?c.slug:slugify(p.title);
   while(usedSlugs.has(slug))slug+='-2';
   usedSlugs.add(slug);
-  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:norm([p.title,...p.aliases,p.franchise].join(' '))};
+  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:normSearch([p.title,...p.aliases,p.franchise].join(' '))};
 });
 const catalogBySlug=new Map(catalog.map(p=>[p.slug,p]));
 
@@ -228,6 +250,28 @@ const paletaIdx=new Map();
   paletaIdx.set(p.slug,p);
   (p.aliases||[]).forEach(a=>paletaIdx.set(norm(a),p));
   paletaIdx.set(norm(p.nome),p);
+});
+// Parte B, item 7b/7d: apelidos de franquia pra busca — carga síncrona igual
+// aos outros arquivos pequenos acima. Independente da paleta de cor (uma
+// franquia pode ter apelido de busca sem ainda ter cor própria, ex. Donkey
+// Kong) — nunca cria nem altera entrada de paleta-universos.json.
+let SEARCH_ALIASES={};
+try{
+  const xhrAliases=new XMLHttpRequest();
+  xhrAliases.open('GET','/src/data/search-aliases.json?v=Pacote3b',false);
+  xhrAliases.send(null);
+  if(xhrAliases.status===200)SEARCH_ALIASES=JSON.parse(xhrAliases.responseText);
+}catch(e){/* mantém {} — busca cai só nos aliases do próprio jogo/franquia literal */}
+// slug-de-franquia normalizado -> lista de apelidos normalizados (pra
+// comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx
+// faz o caminho inverso (apelido normalizado -> {slug,alias cru}) pra achar
+// o apelido exato que bateu e montar o aviso "também conhecido como".
+const franchiseAliasIdx=new Map(),searchAliasIdx=new Map();
+Object.entries(SEARCH_ALIASES).forEach(([slug,aliases])=>{
+  if(slug.startsWith('_')||!Array.isArray(aliases))return;
+  const norms=aliases.map(a=>normSearch(a));
+  franchiseAliasIdx.set(slug,norms);
+  aliases.forEach((a,i)=>searchAliasIdx.set(norms[i],{slug,alias:a}));
 });
 // Franquia que cruzou o piso de 3 jogos mas ainda não tem entrada na paleta
 // (ex.: Donkey Kong) cai em null — quem chama usa o bloco "padrao" (tokens
@@ -338,7 +382,10 @@ function detectPlatform(q){const n=' '+norm(q)+' ';for(const p of platIdx)for(co
 function stripPlatform(q,platform){
   let n=' '+norm(q)+' ';
   if(platform){const p=platIdx.find(x=>x.platform===platform);for(const a of p.aliases){const pat=' '+a+' ';while(n.includes(pat))n=n.split(pat).join(' ')}}
-  return n.replace(/\s+/g,' ').trim();
+  // normSearch de novo por cima (não dá pra aplicar antes: o pattern-match
+  // acima dos aliases de plataforma usa norm() puro) — garante que o roman
+  // numeral também vire arábico no resultado final de stripPlatform.
+  return normSearch(n.replace(/\s+/g,' ').trim());
 }
 const hasDigital=(p,platform)=>D.digitalPlatforms.includes(platform);
 const isRetro=platform=>D.retroPlatforms.includes(platform);
