@@ -153,6 +153,7 @@ function loadHomeHeroSlides(){
 }
 function homeHeroWideMarkup(slides){
   return `<section class="hhw" aria-roledescription="carrossel" aria-label="Destaques" data-hhw>
+    <div class="hhw-track" data-hhw-track>
     ${slides.map((s,i)=>`<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}">
       <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="hhw-copy">
@@ -161,7 +162,9 @@ function homeHeroWideMarkup(slides){
         <div class="hhw-cta">${s.ctaHtml}</div>
       </div>
     </article>`).join('')}
+    </div>
     <div class="hhw-thumbs" role="group" aria-label="Escolher destaque">${slides.map((s,i)=>`<button type="button" class="hhw-thumb ${i===0?'is-active':''}" data-hhw-thumb="${i}" aria-current="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}" title="${esc(s.thumbLabel)}"><span class="hhw-thumb-img" data-hhw-thumb-img style="--hero-h:${hashStr(s.title)%360}"></span><span class="hhw-thumb-bar"><span class="hhw-thumb-fill" data-hhw-fill></span></span></button>`).join('')}</div>
+    <div class="hhw-dots" role="tablist" aria-label="Selecionar destaque">${slides.map((s,i)=>`<button type="button" class="hhw-dot ${i===0?'is-active':''}" data-hhw-dot="${i}" role="tab" aria-selected="${i===0}" aria-current="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}"></button>`).join('')}</div>
     <button type="button" class="hhw-pause" data-hhw-pause aria-pressed="false" aria-label="Pausar rotação automática">${ico('check',0)}</button>
   </section>`;
 }
@@ -189,16 +192,17 @@ async function hydrateHomeHeroWide(root){
 function initHomeHeroWide(root){
   const PAUSE_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
   const PLAY_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>';
-  const slides=$$('[data-hhw-slide]',root),thumbs=$$('[data-hhw-thumb]',root),pauseBtn=$('[data-hhw-pause]',root);
+  const slides=$$('[data-hhw-slide]',root),thumbs=$$('[data-hhw-thumb]',root),dots=$$('[data-hhw-dot]',root),pauseBtn=$('[data-hhw-pause]',root);
   if(!slides.length)return;
   const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const coarse=matchMedia('(pointer:coarse)').matches;
+  const isMobileLayout=matchMedia('(max-width:899px)').matches;
   // Pacote3, item 4.3: entrada (escala da arte + texto subindo) só no
   // primeiro slide de cada visita — a classe cai sozinha depois de rodar
   // uma vez, pra trocas de slide por rotação/clique nunca repetirem.
   if(!reduced){root.classList.add('is-entering');setTimeout(()=>root.classList.remove('is-entering'),600)}
   const DURATION=7000;
-  let current=0,userDisabled=reduced||coarse,paused=false,intervalId=null;
+  let current=0,userDisabled=reduced||coarse,paused=false,intervalId=null,syncingScroll=false;
   function paint(){
     slides.forEach((sl,idx)=>{const on=idx===current;sl.classList.toggle('is-active',on);sl.setAttribute('aria-hidden',String(!on));$$('a,button',sl).forEach(el=>el.tabIndex=on?0:-1)});
     thumbs.forEach((th,idx)=>{
@@ -212,13 +216,38 @@ function initHomeHeroWide(root){
       fill.style.animation=(on&&!userDisabled)?`hhw-fill ${DURATION}ms linear forwards`:'';
       fill.style.animationPlayState=paused?'paused':'running';
     });
+    dots.forEach((d,idx)=>{const on=idx===current;d.classList.toggle('is-active',on);d.setAttribute('aria-current',String(on));d.setAttribute('aria-selected',String(on))});
   }
   function show(i){current=(i+slides.length)%slides.length;paint()}
   function advance(){if(!paused&&!document.hidden)show(current+1)}
   function startInterval(){clearInterval(intervalId);if(userDisabled)return;intervalId=setInterval(advance,DURATION)}
   function disableAuto(){if(userDisabled)return;userDisabled=true;clearInterval(intervalId);paint()}
+  const track=$('[data-hhw-track]',root);
+  function scrollToSlide(i){
+    const el=slides[i];
+    if(!el||!isMobileLayout||!track)return;
+    syncingScroll=true;
+    el.scrollIntoView({behavior:reduced?'auto':'smooth',inline:'start',block:'nearest'});
+    setTimeout(()=>{syncingScroll=false},reduced?50:500);
+  }
   thumbs.forEach((th,i)=>th.addEventListener('click',()=>{disableAuto();show(i)}));
+  dots.forEach((d,i)=>d.addEventListener('click',()=>{disableAuto();show(i);scrollToSlide(i)}));
   slides.forEach(sl=>$$('a,button',sl).forEach(el=>el.addEventListener('click',disableAuto)));
+  // Indicadores viram bolinhas no mobile (b) e o hero desliza por
+  // scroll-snap nativo (swipe); sincroniza current/dots com o slide que
+  // está realmente visível, sem forçar scroll programático em resposta.
+  if(isMobileLayout&&track&&'IntersectionObserver' in window){
+    const mobileSync=new IntersectionObserver(entries=>{
+      if(syncingScroll)return;
+      entries.forEach(en=>{
+        if(en.isIntersecting&&en.intersectionRatio>0.6){
+          const idx=slides.indexOf(en.target);
+          if(idx>=0&&idx!==current){current=idx;paint()}
+        }
+      });
+    },{root:track,threshold:[0.6]});
+    slides.forEach(sl=>mobileSync.observe(sl));
+  }
   pauseBtn?.addEventListener('click',()=>{
     paused=!paused;
     pauseBtn.setAttribute('aria-pressed',String(paused));

@@ -2611,6 +2611,7 @@ html[data-theme="neutral"] body.dark-surface-route{
    ============================================================ */
 /* 3.1/3.2/3.3: hero largo */
 .hhw{position:relative;width:100%;height:clamp(260px,39vh,300px);border-radius:18px;overflow:hidden;background:#1a1512}
+.hhw-track{position:absolute;inset:0}
 .hhw-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility 0s linear .5s;z-index:1}
 .hhw-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .5s ease,visibility 0s linear;z-index:2}
 .hhw-art{position:absolute;inset:0;background:linear-gradient(135deg,#2a2622,#57433B);background-size:cover;background-position:center}
@@ -2631,11 +2632,21 @@ html[data-theme="neutral"] body.dark-surface-route{
 @keyframes hhw-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .hhw-pause{position:absolute;left:24px;bottom:24px;z-index:6;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hhw-pause:hover{background:rgba(0,0,0,.6)}
+.hhw-dots{display:none}
 @media(max-width:899px){
   .hhw{height:auto;min-height:320px}
+  .hhw-track{position:static;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .hhw-track::-webkit-scrollbar{display:none}
+  .hhw-slide{position:relative;inset:auto;flex:0 0 100%;scroll-snap-align:start;opacity:1;visibility:visible;pointer-events:auto;transition:none}
   .hhw-copy{width:100%;padding:24px 20px 76px}
   .hhw-thumbs{display:none}
-  .hhw-pause{bottom:16px;left:16px}
+  /* rotação automática já fica desligada em pointer:coarse (ver JS) —
+     sem autoplay o botão pausar/retomar perde o sentido; os indicadores
+     (bolinhas) assumem a navegação no lugar das miniaturas. */
+  .hhw-pause{display:none}
+  .hhw-dots{display:flex;gap:8px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
+  .hhw-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
+  .hhw-dot.is-active{background:#fff;width:20px;border-radius:4px}
 }
 @media(prefers-reduced-motion:reduce){
   .hhw-slide{transition:none}
