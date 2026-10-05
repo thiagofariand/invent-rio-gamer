@@ -395,7 +395,10 @@ body{background:var(--store)}
 .site-header{background:rgba(255,255,255,.97);backdrop-filter:blur(12px)}
 .header-inner{max-width:1220px;padding:10px 24px;gap:16px}
 .brand{width:205px;min-width:170px;overflow:hidden}
-.brand-logo{display:block;width:100%;height:46px;object-fit:contain;object-position:left center;image-rendering:auto}
+/* parteB 4: halo era o navegador suavizando o redimensionamento (a arte é
+   pixel art com bordas finas) — nearest-neighbor em vez de auto resolve
+   sem precisar de outro arquivo. */
+.brand-logo{display:block;width:100%;height:46px;object-fit:contain;object-position:left center;image-rendering:crisp-edges;image-rendering:pixelated}
 .search{max-width:540px}
 .search input{
   height:44px;background:#fff;border:1px solid var(--line-strong);border-radius:0;
@@ -1053,7 +1056,7 @@ main{max-width:1240px;padding:34px 28px 80px}
 }
 .header-inner{max-width:1240px;min-height:82px;padding:10px 28px;gap:22px}
 .brand{width:auto;min-width:0;max-width:min(460px,40vw);overflow:visible}
-.brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:auto}
+.brand-logo{width:auto;max-width:100%;height:72px;object-fit:contain;object-position:left center;image-rendering:crisp-edges;image-rendering:pixelated}
 /* Pacote único, item 7.1: duas imagens dentro de .brand (completa +
    compacta sem subtítulo) — só uma aparece por vez. Desktop/tablet mostra
    a completa; a regra que troca pra compacta vive só dentro de
