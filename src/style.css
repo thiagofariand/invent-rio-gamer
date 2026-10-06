@@ -2850,6 +2850,18 @@ html[data-theme="neutral"] body.dark-surface-route{
 .merch-price{color:var(--text-1);font-weight:600;font-size:14px}
 .merch-price-meta{color:var(--text-2);font-size:10.5px}
 .merch-price-cta{color:var(--action-on-glass);font-weight:600;font-size:13px}
+/* Pacote4 4.7: página do item — mesma linguagem visual do card (4.4), em
+   tamanho maior. */
+.merch-item-layout{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:28px;align-items:start;margin-top:18px}
+.merch-item-media{position:relative;aspect-ratio:1/1;border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ms-base,#1f0b14);border:1px solid rgba(255,255,255,.14)}
+.merch-item-media.has-art::before{content:"";position:absolute;inset:-10%;background-image:var(--ms-img);background-size:cover;background-position:center;filter:blur(16px) saturate(1.1);transform:scale(1.3)}
+.merch-item-media::after{content:"";position:absolute;inset:0;background:color-mix(in oklab,var(--page-bg,#17090e) 45%,transparent)}
+.merch-item-media .merch-cat-icon{position:relative;z-index:1;color:#fff;opacity:.9}
+.merch-item-media .merch-square-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.merch-item-price{margin-top:14px;font-size:20px}
+.merch-item-price .merch-price b{font-size:22px}
+.merch-item-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+@media(max-width:760px){.merch-item-layout{grid-template-columns:1fr}.merch-item-media{max-width:320px;margin:0 auto}}
 
 /* 3.12: ritmo vertical compacto da home — dobra cabe hero + Destaques sem
    rolar em 1440x770 (critério de aceite do pacote3). Só aqui: o resto do

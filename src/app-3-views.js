@@ -2235,6 +2235,41 @@ function renderMerch(params){
   ${filtered.length?`<div class="merch-square-grid">${filtered.map(merchSquareCard).join('')}</div>`:`<div class="empty"><h2>Nenhum item com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="merch-clear-filters">Limpar filtros</button></p></div>`}
   <p class="fine" style="margin-top:12px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>`;
 }
+// Pacote4 4.7: página do item (#/item/{id}) — nunca link direto a partir
+// de card/lista (regra fixa do pacote); o card inteiro (4.4) abre aqui, e
+// só aqui tem o botão de verdade pra loja.
+function renderMerchItem(id,token){
+  const it=MERCH_ITEMS.find(x=>x.id===id&&(!x.exemplo||mockOn()));
+  if(!it)return renderNotFound();
+  const u=it.universo?uMap.get(it.universo):null;
+  const pal=u?paletteForUniverse(u):null;
+  const base=pal?.fundo||'#1f0b14';
+  const art=it.universo?heroImageCache.get(it.universo):null;
+  const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
+  const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
+  const media=hasPhoto
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    :`<svg class="merch-cat-icon" width="96" height="96" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
+  const{fresh}=merchPriceState(it);
+  setTitle(it.titulo);
+  main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/merch">Colecionáveis e merch</a> › <span>${esc(it.titulo)}</span></nav>
+  <div class="merch-item-layout">
+    <div class="merch-item-media ${hasPhoto?'has-photo':(art?'has-art':'')}" style="${style}">${media}</div>
+    <div class="merch-item-body">
+      <div class="merch-square-chips" style="position:static;margin-bottom:10px"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.exemplo?mockChip():''}</div>
+      <h1 class="page-h" style="font-size:28px">${esc(it.titulo)}</h1>
+      ${u?`<p class="lede">${esc(pal?.nome||u.name)}</p>`:''}
+      <div class="merch-item-price">${merchPriceLine(it)}</div>
+      <p class="fine" style="margin-top:4px">Preço do produto; frete e impostos calculados na loja pelo seu CEP.</p>
+      ${it.origem==='importado'?'<p class="fine">Compra internacional: pode haver ICMS e prazo maior.</p>':''}
+      <p class="fine" style="margin-top:10px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>
+      <div class="merch-item-actions">
+        <a class="btn btn-primary" href="${esc(safeUrl(it.url))}" target="_blank" rel="sponsored noopener">Ver na ${esc(it.loja)} ↗</a>
+        <a class="btn btn-ghost btn-sm" href="#/contato?assunto=remocao">Pedir remoção de conteúdo</a>
+      </div>
+    </div>
+  </div>`;
+}
 
 /* ---------- Meu Inventário ---------- */
 function monthYear(iso){try{return new Date(iso).toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).replace('.','')}catch{return ''}}
