@@ -59,9 +59,19 @@ const SAMPLE_OFFER_SOURCES=['Marketplace exemplo','Loja parceira exemplo','Vende
 function sampleOffers(gameId,meta){
   meta=meta||{};
   const title=meta.title||gameId;
-  const year=meta.year!=null?meta.year:catalog.find(p=>p.title===title)?.year;
+  const cat=catalog.find(p=>p.title===title);
+  const year=meta.year!=null?meta.year:cat?.year;
+  // Pacote4 2.3: jogo semDisco (ver 2.1) nunca gera oferta Usado — o código
+  // de ativação é de uso único, não revende. "both"/"used" caem pra "new"
+  // (se o bucket não tiver Novo, vira "none" — sem oferta nenhuma, nunca
+  // Usado escondido atrás de outro rótulo).
+  const semDisco=meta.semDisco!=null?meta.semDisco:!!cat?.semDisco;
   const bucketRoll=hashStr(gameId+'|pacote3-bucket')%100;
-  const bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
+  let bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
+  if(semDisco){
+    if(bucket==='both')bucket='new';
+    else if(bucket==='used')bucket='none';
+  }
   const isRetro=year!=null&&Number(year)<=2012;
   let newBase=189+(hashStr(gameId+'|pacote3-base')%172); // 189..360
   if(isRetro)newBase=Math.round(newBase*0.6);

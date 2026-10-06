@@ -917,12 +917,25 @@ function productHeroPillsMarkup(p,u){
   return pills.length?`<div class="hero-pills-row">${pills.join('')}</div>`:'';
 }
 
+// Pacote4 2.2: selo de formato físico — "Disco" por padrão, ou "Físico ·
+// código de download" (+ nota) nos jogos semDisco (ver pacote4 2.1). Nunca
+// chamar de "físico" uma oferta sem disco sem esse selo.
+function formatBadgeMarkup(p){
+  return p.semDisco
+    ?'<span class="format-chip format-chip-code">Físico · código de download</span>'
+    :'<span class="format-chip">Disco</span>';
+}
 // Pacote 2, item 2.2: painel de preços em 3 colunas (Novo/Usado/Download),
 // agrupadas por rótulo fino (FÍSICO cobre Novo+Usado; DIGITAL é só
 // Download). Cada coluna é um bloco inteiro clicável (abre a comparadora
 // na aba da condição); sem oferta carregada ainda, esmaece e tira a seta.
 function purchasePriceColMarkup(cond,p,platform){
   const label=cond==='new'?'Novo':cond==='used'?'Usado':'Download';
+  // Pacote4 2.2/2.3: jogo semDisco nunca revende Usado (código de uso
+  // único) — nem chega a consultar oferta, fica sempre neste estado fixo.
+  if(cond==='used'&&p.semDisco){
+    return `<div class="ppanel-col is-empty ppanel-no-resale"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">Sem revenda (código de uso único)</span></span></div>`;
+  }
   if(cond==='digital'){
     return `<a class="ppanel-col" href="${offerPageHref(p,platform,'digital')}">
       <span class="ppanel-cond">${label}</span>
@@ -930,26 +943,27 @@ function purchasePriceColMarkup(cond,p,platform){
       <span class="ppanel-arrow">→</span>
     </a>`;
   }
+  const formatNote=cond==='new'?`${formatBadgeMarkup(p)}${p.semDisco?'<span class="ppanel-format-note">Caixa com código de download, sem disco</span>':''}`:'';
   const s=summaryOf(cond,p.title,platform);
   if(s&&s.status==='ok'&&s.count){
     return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-      <span class="ppanel-cond">${label}</span>
+      <span class="ppanel-cond">${label}</span>${formatNote}
       <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}</span>
       <span class="ppanel-arrow">→</span>
     </a>`;
   }
   if(s&&s.status==='ok'&&!s.count){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
   }
   // Pacote3, item 2.1: ainda carregando ou sem fonte real — preço único de
   // sampleOffers(p.title). Se o bucket do jogo não tem essa condição, vira
   // "sem ofertas" de verdade (não inventa mais um preço pra toda condição).
-  const demo=sampleOffers(p.title,{year:p.year})[cond];
+  const demo=sampleOffers(p.title,{year:p.year,semDisco:p.semDisco})[cond];
   if(!demo){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
   }
   return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-    <span class="ppanel-cond">${label}</span>
+    <span class="ppanel-cond">${label}</span>${formatNote}
     <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demo.display)}</strong>${mockChip()}</span>
     <span class="ppanel-arrow">→</span>
   </a>`;
@@ -959,7 +973,7 @@ function purchasePricePanelMarkup(p,platform){
   const digital=p.digital===true||hasDigital(p,platform);
   const cols=[];
   if(p.new!==false)cols.push(['new']);
-  if(p.used!==false)cols.push(['used']);
+  if(p.used!==false||p.semDisco)cols.push(['used']);
   if(digital)cols.push(['digital']);
   if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
   const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
@@ -1133,10 +1147,12 @@ async function renderOfferComparison(slug,params,token){
     const stores=digitalAvailable?digitalStores(p,platform):[];
     if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
     const loading='<div class="compare-loading"><span></span><span></span><span></span></div>';
-    offers.innerHTML=`<section class="compare-block"><h3>Novo</h3><div class="compare-offers" id="cmp-new">${loading}</div></section>
-      <section class="compare-block"><h3>Usado</h3><div class="compare-offers" id="cmp-used">${loading}</div></section>
+    // Pacote4 2.2: jogo semDisco nunca revende Usado — a aba "Todos" mostra
+    // o bloco fixo em vez de buscar ofertas que não podem existir.
+    offers.innerHTML=`<section class="compare-block"><h3>Novo ${formatBadgeMarkup(p)}</h3>${p.semDisco?'<p class="fine">Caixa com código de download, sem disco.</p>':''}<div class="compare-offers" id="cmp-new">${loading}</div></section>
+      <section class="compare-block"><h3>Usado</h3>${p.semDisco?'<div class="empty compact"><p>Sem revenda (código de uso único).</p></div>':`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
       ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
-    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),fetchCond(p.title,platform,'used')]);
+    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),p.semDisco?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
     if(token!==viewToken)return;
     const fill=(id,res)=>{
       const list=res.offers||[];
@@ -1144,7 +1160,7 @@ async function renderOfferComparison(slug,params,token){
       if(box)box.innerHTML=list.length?list.map(comparisonOfferCard).join(''):`<div class="empty compact"><p>Sem oferta validada agora. Procure direto: <span class="shortcut-links">${physicalLinks(p.title+' '+platform)}</span></p></div>`;
       return list.length;
     };
-    const total=fill('cmp-new',resNew)+fill('cmp-used',resUsed);
+    const total=fill('cmp-new',resNew)+(p.semDisco?0:fill('cmp-used',resUsed));
     const demo=resNew.mock||resUsed.mock;
     status.textContent=`${total?`${total} ${total===1?'oferta':'ofertas'} de preço`:'Nenhuma oferta de preço agora'}${stores.length?` · ${stores.length} ${stores.length===1?'loja digital':'lojas digitais'}`:''}${demo?' · demonstração':''}`;
     comparisonSpinnerOff();
@@ -1157,6 +1173,14 @@ async function renderOfferComparison(slug,params,token){
     status.textContent=stores.length?`${stores.length} ${stores.length===1?'loja':'lojas'} · preço e disponibilidade na própria loja`:'Consulte as lojas';
     comparisonSpinnerOff();
     offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    return;
+  }
+  // Pacote4 2.2: aba Usado isolada num jogo semDisco — nem consulta fonte
+  // nenhuma, o código de ativação não revende.
+  if(cond==='used'&&p.semDisco){
+    status.textContent='Sem revenda nesta edição';
+    comparisonSpinnerOff();
+    offers.innerHTML=`<div class="empty"><h2>Sem revenda (código de uso único)</h2><p>Esta edição vem em caixa física com código de ativação — não há disco físico pra revender.</p></div>`;
     return;
   }
   const res=await fetchCond(p.title,platform,cond);
