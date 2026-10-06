@@ -199,6 +199,13 @@ try{
 }catch(e){/* mantém {} */}
 const genreLabel=k=>(GENRES.find(g=>g.slug===k)||{}).label||k;
 const mockChip=()=>'<span class="mock-chip">EXEMPLO</span>';
+// Pacote4 1.1: botão de preço do hero (home/universo). Duas versões de texto
+// na mesma marcação — a curta (sem "a partir de") entra quando o bloco de
+// texto do hero fica estreito (<340px), via container query em CSS; nenhum
+// JS decide isso em runtime, então não quebra em 3 linhas nem precisa medir.
+function heroPriceCtaText(label,value,mockHtml){
+  return `<span class="hpc-full">${label} a partir de ${value}</span><span class="hpc-short">${label} ${value}</span>${mockHtml||''}`;
+}
 // Selo de tipo de loja. "Oficial" só existe com prova real (loja da própria
 // plataforma); marketplace e revenda, mesmo grandes e confiáveis, são "Varejo/revenda".
 const retailChip=kind=>kind==='oficial'?'<span class="retail-chip oficial">Loja oficial</span>'

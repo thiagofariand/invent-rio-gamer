@@ -110,7 +110,7 @@ function homeHeroSlideFromTrend(t,pillLabel){
   let ctaHtml;
   if(game){
     const platform=game.variants?.[0]?.[1]||'';
-    ctaHtml=`<a class="btn btn-primary" href="${bestOfferHrefFor(game,platform)}">${posterPriceChipText(game,platform)}</a>`;
+    ctaHtml=`<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(game,platform)}">${posterPriceChipText(game,platform)}</a>`;
   }else{
     ctaHtml=`<a class="btn btn-primary" href="${esc(homeTrendHref(t))}">Ver detalhes</a>`;
   }
@@ -286,7 +286,7 @@ function posterPriceChipText(p,platform){
   const label=cached?'Usado':demo?.label;
   const value=cached?.minDisplay||demo?.display;
   // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
-  return value?`${label} a partir de ${esc(value)}${!cached?' '+mockChip():''}`:'Ver detalhes';
+  return value?heroPriceCtaText(esc(label),esc(value),!cached?mockChip():''):'Ver detalhes';
 }
 const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço']];
 function destaquesPool(order,exclude){
@@ -1156,7 +1156,7 @@ function universeHeroBestOffer(p,platform){
 function universeHeroCtaMarkup(p,platform){
   const best=universeHeroBestOffer(p,platform);
   if(!best)return `<a class="btn btn-primary" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
-  return `<a class="btn btn-primary" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} a partir de ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''} →</a>`;
+  return `<a class="btn btn-primary hero-price-btn" href="${comparisonHref(p,platform,best.cond)}">${heroPriceCtaText(esc(COND_LABEL[best.cond]),esc(best.summary.minDisplay),best.summary.mock?mockChip():'')}<span class="hpc-arrow">→</span></a>`;
 }
 // preferredPlatforms (item 6, rodada 5): na página de plataforma, cada
 // slide deve mostrar a variante do jogo QUE PERTENCE à plataforma atual —
