@@ -1253,19 +1253,23 @@ function hydrateUniverseHero(root,token){
     const eager=el.dataset.igdbEager==='true';
     // Item 6 (rodada 5) / pacote único item 6.3: override manual por jogo
     // quando a arte da IGDB é só wordmark/logo (sem cena) —
-    // src/data/hero-overrides.json, chave = slug do jogo. {url} (só CDN da
-    // IGDB, já filtrado no load) troca a arte; {fallback:true} força o
-    // degradê + sigla sem nem consultar a IGDB. {artworkIndex} pediria a
-    // lista completa de artworks do jogo, que a API hoje não devolve (só a
+    // src/data/hero-overrides.json, chave = slug do jogo. {url} troca a
+    // arte; {fallback:true} PULA só a artwork/hero (nunca usa wordmark/logo
+    // esticado), mas pacote4 1B.4: ainda busca a capa pra aplicar o mesmo
+    // tratamento ampliado/desfocado de qualquer hero sem artwork — antes
+    // retornava cedo aqui e ficava "quase preto" (só a sigla fantasma sobre
+    // a cor base). Sem capa também, cai no degradê da paleta já no HTML
+    // (--hero-base), nunca preto liso. {artworkIndex} pediria a lista
+    // completa de artworks do jogo, que a API hoje não devolve (só a
     // escolhida pelo back-end) — listado como pendência.
     const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
-    if(override?.fallback)return;
+    const forceFallback=override?.fallback===true;
     const heroW=el.getBoundingClientRect().width;
-    const d=override?.url?null:await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW);
+    const d=(override?.url&&!forceFallback)?null:await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW);
     if(token!==viewToken||!el.isConnected)return;
     // Pacote 2, item 1.3/1.4: (a) artwork horizontal; (b) sem ela, a capa
     // ampliada e desfocada; (c) sem nenhuma, fica no fallback já no HTML.
-    const src=override?.url||d?.hero?.url;
+    const src=!forceFallback&&(override?.url||d?.hero?.url);
     const coverSrc=!src&&d?.cover?.url;
     if(!src&&!coverSrc)return;
     if(src&&el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
