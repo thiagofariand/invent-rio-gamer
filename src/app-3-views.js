@@ -297,9 +297,13 @@ function posterPriceChipText(p,platform){
   // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
   return value?heroPriceCtaText(esc(label),esc(value),!cached?mockChip():''):'Ver detalhes';
 }
-const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço']];
+// Pacote4 2.5: "Pré-venda" no alternador — joga pro topo (e só mostra) os
+// jogos em pré-venda de verdade (releaseState 'pre-venda'; "Em breve"/
+// anunciado fica de fora, o rótulo é específico pra pré-venda aberta).
+const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço'],['pre-venda','Pré-venda']];
 function destaquesPool(order,exclude){
   const pool=catalog.filter(p=>!exclude.has(p.title));
+  if(order==='pre-venda')return pool.filter(p=>releaseState(p)==='pre-venda').sort((a,b)=>(a.releaseDate||'').localeCompare(b.releaseDate||'')).slice(0,12);
   if(order==='novos')return pool.filter(p=>p.year).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)).slice(0,12);
   if(order==='menor-preco'){
     return pool.map(p=>{
@@ -520,6 +524,14 @@ function sortBarMarkup(sortKey){
   const current=opts.find(([k])=>k===sortKey)||opts[0];
   return fdrop('sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${opts.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===sortKey}">${esc(l)}</a>`).join('')}</div>`);
 }
+// Pacote4 2.5: filtro "Lançamento" na busca (Todos | Lançados | Pré-venda
+// | Em breve) — single-select como Ordenar por, não checkbox múltiplo.
+const LANC_OPTS=[['','Todos'],['lancado','Lançados'],['pre-venda','Pré-venda'],['anunciado','Em breve']];
+function lancBarMarkup(lanc){
+  const hrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key)p.set('lanc',key);else p.delete('lanc');return '#/busca?'+p.toString()};
+  const current=LANC_OPTS.find(([k])=>k===lanc)||LANC_OPTS[0];
+  return fdrop('lanc','Lançamento: '+current[1],lanc?1:0,`<div class="fdrop-options">${LANC_OPTS.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===lanc}">${esc(l)}</a>`).join('')}</div>`);
+}
 function filterBarMarkup(F,platforms){
   const genreItems=GENRES.map(g=>[g.slug,g.label]);
   const platItems=platforms.map(p=>[p,p]);
@@ -528,6 +540,7 @@ function filterBarMarkup(F,platforms){
     ${fdrop('cat','Categoria',F.cats.size,fdropCheckList('cat',CATS,v=>F.cats.has(v),CATS.length>8))}
     ${fdrop('genre','Gênero',F.genres.size,fdropCheckList('genre',genreItems,v=>F.genres.has(v),genreItems.length>8))}
     ${fdrop('cond','Condição',F.conds.size,fdropCheckList('cond',[['usado','Usado'],['novo','Novo'],['digital','Digital']],v=>F.conds.has(URL_COND[v]),false))}
+    ${lancBarMarkup(F.lanc)}
     ${fdrop('price','Preço',(F.min!=null||F.max!=null)?1:0,`<div class="price-inputs">
       <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-price="min" value="${F.min??''}">
       <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-price="max" value="${F.max??''}"></div>
@@ -971,9 +984,12 @@ function purchasePriceColMarkup(cond,p,platform){
 function purchasePricePanelMarkup(p,platform){
   const physical=p.physical!==false;
   const digital=p.digital===true||hasDigital(p,platform);
+  // Pacote4 2.5: jogo ainda não lançado não tem coluna Usado nenhuma (nem
+  // o bloco "sem revenda" do semDisco — não existe o que revender ainda).
+  const notLaunched=releaseState(p)!=='lancado';
   const cols=[];
   if(p.new!==false)cols.push(['new']);
-  if(p.used!==false||p.semDisco)cols.push(['used']);
+  if(!notLaunched&&(p.used!==false||p.semDisco))cols.push(['used']);
   if(digital)cols.push(['digital']);
   if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
   const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
@@ -1150,12 +1166,16 @@ async function renderOfferComparison(slug,params,token){
     const stores=digitalAvailable?digitalStores(p,platform):[];
     if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
     const loading='<div class="compare-loading"><span></span><span></span><span></span></div>';
-    // Pacote4 2.2: jogo semDisco nunca revende Usado — a aba "Todos" mostra
-    // o bloco fixo em vez de buscar ofertas que não podem existir.
+    // Pacote4 2.2/2.5: jogo semDisco nunca revende Usado, e jogo ainda não
+    // lançado não tem mercado de Usado nenhum — a aba "Todos" mostra o
+    // bloco fixo certo em vez de buscar ofertas que não podem existir.
+    const notLaunched=releaseState(p)!=='lancado';
+    const noUsedMarket=p.semDisco||notLaunched;
+    const usedMsg=notLaunched?'Ainda não lançado.':'Sem revenda (código de uso único).';
     offers.innerHTML=`<section class="compare-block"><h3>Novo ${formatBadgeMarkup(p)}</h3>${p.semDisco?'<p class="fine">Caixa com código de download, sem disco.</p>':''}<div class="compare-offers" id="cmp-new">${loading}</div></section>
-      <section class="compare-block"><h3>Usado</h3>${p.semDisco?'<div class="empty compact"><p>Sem revenda (código de uso único).</p></div>':`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
+      <section class="compare-block"><h3>Usado</h3>${noUsedMarket?`<div class="empty compact"><p>${esc(usedMsg)}</p></div>`:`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
       ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
-    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),p.semDisco?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
+    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),noUsedMarket?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
     if(token!==viewToken)return;
     const fill=(id,res)=>{
       const list=res.offers||[];
@@ -1163,7 +1183,7 @@ async function renderOfferComparison(slug,params,token){
       if(box)box.innerHTML=list.length?list.map(comparisonOfferCard).join(''):`<div class="empty compact"><p>Sem oferta validada agora. Procure direto: <span class="shortcut-links">${physicalLinks(p.title+' '+platform)}</span></p></div>`;
       return list.length;
     };
-    const total=fill('cmp-new',resNew)+(p.semDisco?0:fill('cmp-used',resUsed));
+    const total=fill('cmp-new',resNew)+(noUsedMarket?0:fill('cmp-used',resUsed));
     const demo=resNew.mock||resUsed.mock;
     status.textContent=`${total?`${total} ${total===1?'oferta':'ofertas'} de preço`:'Nenhuma oferta de preço agora'}${stores.length?` · ${stores.length} ${stores.length===1?'loja digital':'lojas digitais'}`:''}${demo?' · demonstração':''}`;
     comparisonSpinnerOff();
@@ -1178,8 +1198,15 @@ async function renderOfferComparison(slug,params,token){
     offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
     return;
   }
-  // Pacote4 2.2: aba Usado isolada num jogo semDisco — nem consulta fonte
-  // nenhuma, o código de ativação não revende.
+  // Pacote4 2.2/2.5: aba Usado isolada num jogo semDisco (não consulta
+  // fonte nenhuma, código de ativação não revende) ou ainda não lançado
+  // (não existe o que revender ainda).
+  if(cond==='used'&&releaseState(p)!=='lancado'){
+    status.textContent='Ainda não lançado';
+    comparisonSpinnerOff();
+    offers.innerHTML=`<div class="empty"><h2>Ainda não lançado</h2><p>${esc(releaseDateDisplay(p)||'Sem data de lançamento confirmada.')} Volte quando o jogo sair pra ver ofertas de Usado.</p></div>`;
+    return;
+  }
   if(cond==='used'&&p.semDisco){
     status.textContent='Sem revenda nesta edição';
     comparisonSpinnerOff();
@@ -1481,6 +1508,8 @@ function expandPriceLineMarkup(label,cond,p,platform){
     if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
     return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><em>consultar nas lojas</em></a>`;
   }
+  // Pacote4 2.5: jogo ainda não lançado não tem mercado de Usado.
+  if(cond==='used'&&releaseState(p)!=='lancado')return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>em breve</em></span>`;
   if((cond==='new'&&p.new===false)||(cond==='used'&&p.used===false))return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
   const s=summaryOf(cond,p.title,platform);
   if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
@@ -1504,11 +1533,17 @@ function bestOfferHrefFor(p,platform){
 // 5) pra ser reaproveitado pelo poster-card novo da home (3.5) sem duplicar.
 function hecPanelMarkup(p,platform){
   const ref=gameRef(p),on=invGet(ref.id)?.status==='owned';
+  // Pacote4 2.5: jogo ainda não lançado não tem o que "ter" — o botão
+  // Tenho vira texto estático "Em breve" (sem ação).
+  const notLaunched=releaseState(p)!=='lancado';
+  const ownBtn=notLaunched
+    ?`<span class="btn btn-sm hec-own-btn is-disabled" aria-disabled="true">Em breve</span>`
+    :`<button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>`;
   return `<h3 class="hec-title">${esc(p.title)}</h3>
     <p class="hec-meta">${esc(platform)}${p.year?` · ${p.year}`:''}</p>
     <div class="hec-prices" data-hec-prices="${esc(p.slug)}">${hecExpandedPricesMarkup(p,platform)}</div>
     <div class="hec-actions">
-      <button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>
+      ${ownBtn}
       <a class="btn btn-primary btn-sm" href="${bestOfferHrefFor(p,platform)}">Ver ofertas</a>
     </div>`;
 }
@@ -1533,11 +1568,23 @@ function posterPriceChip(p,platform){
 // largura original fixa quando o card expande, só o painel lateral some no
 // espaço novo — ver initHoverExpand/.hec-fixed no CSS, "nunca esticar a
 // capa" valendo tanto aqui quanto no card antigo).
+// Pacote4 2.5: selo pequeno de PRÉ-VENDA/EM BREVE no canto superior
+// esquerdo do pôster — em wrapper à parte (.hec-cover-wrap), nunca dentro
+// de [data-igdb-cover] (hydrateIgdbCovers() troca o innerHTML daquele
+// elemento quando acha capa; mesmo cuidado do fix do item 1.7/1B.2).
+function posterReleaseBadgeMarkup(p){
+  const state=releaseState(p);
+  if(state==='lancado')return '';
+  return `<span class="corner-mock">${state==='pre-venda'?'PRÉ-VENDA':'EM BREVE'}</span>`;
+}
 function posterCard(p){
   const platform=p.variants?.[0]?.[1]||'';
   return `<article class="hec-card poster-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
     <div class="hec-fixed">
-      <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+      <div class="hec-cover-wrap">
+        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+        ${posterReleaseBadgeMarkup(p)}
+      </div>
       <div class="poster-info">
         <a class="poster-title" href="#/jogo/${p.slug}">${esc(p.title)}</a>
         <p class="poster-meta">${esc(platShort(p))}${p.year?` · ${p.year}`:''}</p>
@@ -1839,7 +1886,7 @@ function renderTrendingPage(){
     <div class="trend-actions"><a class="btn btn-primary btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="#/ofertas/${esc(t.slug)}?plat=${enc(cfg.platform)}&cond=digital">Digital / oficial ↗</a></div></article>`}).join('')}</div>`;
   }else{
     pool=destaquesPool(order,new Set());
-    body=`<div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="trending-page">${pool.map(posterCard).join('')}</div>${carouselEdgesMarkup('trending-page')}</div>`;
+    body=pool.length?`<div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="trending-page">${pool.map(posterCard).join('')}</div>${carouselEdgesMarkup('trending-page')}</div>`:'<p class="lede">Nenhum jogo encontrado neste filtro.</p>';
   }
   main.innerHTML=`<h1 class="page-h">Em alta</h1>
   <p class="lede">Assuntos que puxam a busca agora. Curadoria manual de ${esc(D.trendingUpdated)}, com links oficiais. Quando houver dados próprios, esta lista poderá mostrar o que está em alta no Inventário.</p>

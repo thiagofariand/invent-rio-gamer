@@ -61,14 +61,16 @@ function sampleOffers(gameId,meta){
   const title=meta.title||gameId;
   const cat=catalog.find(p=>p.title===title);
   const year=meta.year!=null?meta.year:cat?.year;
-  // Pacote4 2.3: jogo semDisco (ver 2.1) nunca gera oferta Usado — o código
-  // de ativação é de uso único, não revende. "both"/"used" caem pra "new"
-  // (se o bucket não tiver Novo, vira "none" — sem oferta nenhuma, nunca
-  // Usado escondido atrás de outro rótulo).
+  // Pacote4 2.3/2.5: jogo semDisco (2.1) nunca gera oferta Usado — o código
+  // de ativação é de uso único, não revende; jogo ainda não lançado também
+  // não tem mercado de Usado (não existe o que revender). Em qualquer dos
+  // dois casos, "both"/"used" caem pra "new" (sem Novo no bucket, vira
+  // "none" — nunca Usado escondido atrás de outro rótulo).
   const semDisco=meta.semDisco!=null?meta.semDisco:!!cat?.semDisco;
+  const notLaunched=cat?releaseState(cat)!=='lancado':false;
   const bucketRoll=hashStr(gameId+'|pacote3-bucket')%100;
   let bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
-  if(semDisco){
+  if(semDisco||notLaunched){
     if(bucket==='both')bucket='new';
     else if(bucket==='used')bucket='none';
   }

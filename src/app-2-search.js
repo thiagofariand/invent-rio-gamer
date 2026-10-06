@@ -82,7 +82,9 @@ function readFilters(params){
     // Pacote2, item 4.1: #/busca?universo={slug}&retro=1 — link do card
     // "Clássicos" da página de universo, escopando a busca pra franquia.
     universo:params.get('universo')||'',
-    sort:params.get('sort')||'relevancia'
+    sort:params.get('sort')||'relevancia',
+    // Pacote4 2.5: filtro de estado de lançamento ('' = Todos).
+    lanc:['lancado','pre-venda','anunciado'].includes(params.get('lanc'))?params.get('lanc'):''
   };
 }
 const rowCat=r=>r.kind==='game'?'games':r.item.cat;
@@ -99,6 +101,7 @@ function applyFilters(rows,F){
       if(F.conds.size&&!r.conds.some(c=>F.conds.has(c)))return false;
       if(F.plats.size&&!F.plats.has(r.platform))return false;
       if(F.retro&&!isRetro(r.platform))return false;
+      if(F.lanc&&releaseState(r.p)!==F.lanc)return false;
       if(F.genres&&F.genres.size&&!(r.p.genres||[]).some(g=>F.genres.has(g)))return false;
       if(F.min!=null||F.max!=null){
         const conds=visibleConds(r,F).filter(c=>c!=='digital');
@@ -110,7 +113,7 @@ function applyFilters(rows,F){
       }
     }else{
       if(F.universo&&r.item.universe!==F.universo)return false;
-      if(F.conds.size||F.plats.size||F.retro||(F.genres&&F.genres.size))return false;
+      if(F.conds.size||F.plats.size||F.retro||F.lanc||(F.genres&&F.genres.size))return false;
       if(F.min!=null&&r.item.price<F.min)return false;
       if(F.max!=null&&r.item.price>F.max)return false;
     }

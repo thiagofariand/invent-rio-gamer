@@ -2007,6 +2007,7 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
    liga a interação (ver initHoverExpand); no toque, o card é um link normal. */
 .hec-card{position:relative;display:block;border-radius:12px;overflow:hidden;background:none;cursor:pointer}
 .hec-card .cover{width:100%}
+.hec-cover-wrap{position:relative}
 .hec-cover{display:block}
 .hec-footer-chip{position:absolute;left:8px;right:8px;bottom:8px;pointer-events:none;transition:opacity 150ms ease}
 .hec-footer-chip span{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(10,8,6,.55);color:#fff;font-size:12px;font-weight:600;padding:4px 8px;border-radius:999px}
