@@ -459,8 +459,8 @@ function homeMerchSection(){
     return `<section class="merch-home-stage" aria-labelledby="home-merch-title" data-lazy-section>
       <div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
       <div class="merch-home-grid">
-        <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
-        <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
+        <a class="merch-home-card" href="#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
+        <a class="merch-home-card" href="#/merch?tipo=fan-made"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
       </div>
     </section>`;
   }
@@ -1117,8 +1117,8 @@ function renderProduct(slug,params,token){
   ${purchaseModuleHorizontalMarkup(p,platform)}
   <p class="fine purchase-module-note">Preços de exemplo até a conexão das fontes oficiais.</p>
   <div class="collectible-row-grid">
-    ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
-    ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?cat=fanmade&uni=${p.universe}`})}
+    ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?universo=${p.universe}&tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?universo=${p.universe}&tipo=fan-made`})}
   </div>`;
   hydrateIgdbVisuals({
     title:igdbTitleFor(p,platform),
@@ -1718,9 +1718,12 @@ function discoverMoreCard({href,title,copy,count,kind,coverSlot=''}){
 function universeDiscoverMoreSection(u){
   const allTitles=titlesOf(u.slug);
   const retroGames=allTitles.filter(p=>p.variants.some(v=>isRetro(v[1])));
-  const merchByCat=cat=>mockMerch()?M.items.filter(i=>i.universe===u.slug&&(cat==='merch'?(i.cat==='merch'||i.cat==='acessorios'):i.cat===cat)):[];
-  const colecionaveis=[...merchByCat('colecionaveis'),...merchByCat('merch')];
-  const fanmade=merchByCat('fanmade');
+  // Pacote4 4.8: conta e abre os itens de src/data/merch.json do universo
+  // — "Colecionáveis e merch" é tudo que NÃO é tipo fan-made; "Fan-made e
+  // decoração" é só tipo fan-made.
+  const uMerch=merchItemsVisible().filter(i=>i.universo===u.slug);
+  const colecionaveis=uMerch.filter(i=>i.tipo!=='fan-made');
+  const fanmade=uMerch.filter(i=>i.tipo==='fan-made');
   const cards=[];
   if(retroGames.length){
     const rep=representativeFranchiseGame(retroGames),platform=rep?.variants?.[0]?.[1]||'';
@@ -1735,12 +1738,12 @@ function universeDiscoverMoreSection(u){
   // vazio com "Em breve" em vez de sumir o card) — só Clássicos depende de
   // o universo ter jogo retrô mesmo.
   cards.push(discoverMoreCard({
-    href:`#/merch?cat=colecionaveis&uni=${u.slug}`,kind:'colecionaveis',
+    href:`#/merch?universo=${u.slug}&tipo=${enc('oficial,licenciado,nao-confirmado')}`,kind:'colecionaveis',
     title:'Colecionáveis e merch',
     copy:colecionaveis.length?`${colecionaveis.length} ${colecionaveis.length===1?'item':'itens'} de ${u.name} pra coleção e decoração.`:`Em breve: itens de ${u.name}.`
   }));
   cards.push(discoverMoreCard({
-    href:`#/merch?cat=fanmade&uni=${u.slug}`,kind:'fanmade',
+    href:`#/merch?universo=${u.slug}&tipo=fan-made`,kind:'fanmade',
     title:'Fan-made e decoração',
     copy:fanmade.length?`${fanmade.length} ${fanmade.length===1?'peça autoral feita':'peças autorais feitas'} por fãs.`:`Em breve: itens de ${u.name}.`
   }));
@@ -1806,7 +1809,16 @@ function renderUniverse(slug,params,token){
   const platFilter=['nintendo','playstation','xbox'].includes(params.get('plat'))&&u.plataformas.includes(params.get('plat'))?params.get('plat'):'';
   const titles=platFilterGames(titlesOf(slug),platFilter);
   const tabs=[['tudo','Tudo'],['games','Games'],['digital','Digital'],['colecionaveis','Colecionáveis'],['merch','Merch'],['fanmade','Fan-made']];
-  const items=cat=>mockMerch()?M.items.filter(i=>i.universe===slug&&(!cat||i.cat===cat||(cat==='merch'&&(i.cat==='merch'||i.cat==='acessorios')))):[];
+  // Pacote4 4.8: abas Colecionáveis/Merch/Fan-made da página de universo
+  // também passam a ler merch.json (fonte única) em vez de M.items.
+  const MERCH_DECOR_CATS=['decoracao','casa','iluminacao','vestuario','livros-arte'];
+  const items=cat=>{
+    const uMerch=merchItemsVisible().filter(i=>i.universo===slug);
+    if(cat==='fanmade')return uMerch.filter(i=>i.tipo==='fan-made');
+    if(cat==='colecionaveis')return uMerch.filter(i=>i.categoria==='colecionaveis'&&i.tipo!=='fan-made');
+    if(cat==='merch')return uMerch.filter(i=>MERCH_DECOR_CATS.includes(i.categoria)&&i.tipo!=='fan-made');
+    return uMerch;
+  };
   setTitle(`Universo ${u.name}`);
   const mine=invList().filter(i=>i.universe===slug);
   const owned=mine.filter(i=>i.status==='owned').length,want=mine.filter(i=>i.status==='wanted'||i.status==='saved').length;
@@ -1822,7 +1834,7 @@ function renderUniverse(slug,params,token){
   }else if(tab==='colecionaveis'||tab==='merch'||tab==='fanmade'){
     const list=items(tab);
     const c=D.merchCategories.find(x=>x.key===tab);
-    body=(list.length?originLegend()+`<div class="cards4">${list.map(merchCard).join('')}</div>`:'<div class="empty"><p>Ainda não temos itens desta categoria para este universo.</p></div>')
+    body=(list.length?`<div class="merch-square-grid">${list.map(merchSquareCard).join('')}</div>`:'<div class="empty"><p>Ainda não temos itens desta categoria para este universo.</p></div>')
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,12);
@@ -1918,8 +1930,8 @@ function renderTheme(slug){
         <p class="purchase-demo-note">Quando os dados reais entrarem, o bloco mantém o mesmo desenho e apenas substitui preço, disponibilidade e lojas.</p>
       </div>
     </article>
-    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Itens oficiais e colecionáveis relacionados a este jogo ou universo.',kind:'collectibles',image:merchImage,href:u?`#/merch?cat=colecionaveis&uni=${u.slug}`:'#/merch?cat=colecionaveis'})}
-    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Criações de fãs, decoração e peças artesanais relacionadas ao universo.',kind:'fanmade',image:fanImage,href:u?`#/merch?cat=fanmade&uni=${u.slug}`:'#/merch?cat=fanmade'})}
+    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Itens oficiais e colecionáveis relacionados a este jogo ou universo.',kind:'collectibles',image:merchImage,href:u?`#/merch?universo=${u.slug}&tipo=${enc('oficial,licenciado,nao-confirmado')}`:`#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Criações de fãs, decoração e peças artesanais relacionadas ao universo.',kind:'fanmade',image:fanImage,href:u?`#/merch?universo=${u.slug}&tipo=fan-made`:'#/merch?tipo=fan-made'})}
   </div>`;
   hydrateIgdbVisuals({
     title:t.title,
@@ -2138,8 +2150,8 @@ function renderPlatform(slug,params,token){
   </div>
   <div class="platform-cta-row3">
     ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
-    ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
-    ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
+    ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:`#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?tipo=fan-made'})}
   </div>
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
