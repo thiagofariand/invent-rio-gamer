@@ -322,6 +322,26 @@ try{
   xhrAliases.send(null);
   if(xhrAliases.status===200)SEARCH_ALIASES=JSON.parse(xhrAliases.responseText);
 }catch(e){/* mantém {} — busca cai só nos aliases do próprio jogo/franquia literal */}
+// Pacote4 4.1: fonte única de merch (colecionáveis, decoração, casa,
+// iluminação, vestuário, livros e arte) — ver 0.A: lib/shopee-manual-
+// offers.js é só de JOGOS (preço, chaveado por título), estrutura
+// incompatível com item de merch (categoria/origem/tipo/imagem), por isso
+// este arquivo é uma fonte separada, não uma extensão daquele. Migra os
+// 25 itens de demonstração que existiam em mock-data.js (M.items) — 1
+// item ("Controle edição temática") ficou de fora porque é acessório
+// (fora do escopo desta seção; ver backlog item 7). exemplo:true em
+// todos por enquanto; merchItemsVisible() já filtra pelo modo
+// demonstração (mockOn()), como o M.items antigo fazia via mockMerch().
+let MERCH_ITEMS=[];
+try{
+  const xhrMerch=new XMLHttpRequest();
+  xhrMerch.open('GET','/src/data/merch.json?v=Pacote4',false);
+  xhrMerch.send(null);
+  if(xhrMerch.status===200){const parsed=JSON.parse(xhrMerch.responseText);if(Array.isArray(parsed))MERCH_ITEMS=parsed}
+}catch(e){/* mantém [] — telas de merch caem no estado "sem itens" */}
+function merchItemsVisible(){
+  return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
+}
 // slug-de-franquia normalizado -> lista de apelidos normalizados (pra
 // comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx
 // faz o caminho inverso (apelido normalizado -> {slug,alias cru}) pra achar
