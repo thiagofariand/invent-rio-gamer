@@ -444,7 +444,7 @@ function merchSquareCard(it){
   return `<a class="merch-square-card" href="#/item/${esc(it.id)}" style="${style}">
     <div class="merch-square-media ${hasPhoto?'has-photo':(art?'has-art':'')}">
       ${media}
-      <span class="merch-square-chips"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span></span>
+      <span class="merch-square-chips"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.exemplo?'<span class="chip-glass">EXEMPLO</span>':''}</span>
     </div>
     <div class="merch-square-body">
       <b class="merch-square-title">${esc(it.titulo)}</b>
@@ -453,6 +453,10 @@ function merchSquareCard(it){
     </div>
   </a>`;
 }
+// Pacote4 4.9: a fileira aparece com item real (exemplo:false, sempre
+// visível) OU de demonstração (só com o modo demonstração ligado);
+// merchItemsVisible() (4.1) já aplica exatamente essa regra — sem item
+// nenhum dos dois tipos, cai no fallback "Além dos jogos".
 function homeMerchSection(){
   const items=merchItemsVisible().slice(0,12);
   if(!items.length){
