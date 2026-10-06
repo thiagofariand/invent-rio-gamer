@@ -147,8 +147,9 @@ function route(){
   else if(path==='/games')renderGames(params);
   else if(path==='/universos')renderUniverses(params);
   else if(path==='/merch')renderMerch(params);
+  else if(path.startsWith('/item/'))renderMerchItem(path.slice(6),token);
   else if(path==='/inventario')renderInventory(params);
-  else if(SIMPLE_PAGES[path.slice(1)])renderSimplePage(path.slice(1));
+  else if(SIMPLE_PAGES[path.slice(1)])renderSimplePage(path.slice(1),params);
   else renderNotFound();
   main.focus({preventScroll:true});
   window.scrollTo(0,0);
@@ -354,6 +355,23 @@ function collectFilterParams(scope){
 }
 function applyParams(params){params.delete('n');location.hash='#/busca?'+params.toString()}
 
+// Pacote4 4.6: filtros da página de merch — mesmo padrão de collectFilterParams/
+// applyParams acima, mas com data-mfilter/data-mprice (nunca data-filter/
+// data-price, pra não disparar o listener da busca, que redireciona pra
+// #/busca) e indo pra #/merch.
+function collectMerchFilterParams(scope){
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  ['universo','categoria','origem','tipo'].forEach(name=>{
+    const vals=$$(`${scope} [data-mfilter="${name}"]:checked`).map(i=>i.dataset.value);
+    if(vals.length)params.set(name,vals.join(','));else params.delete(name);
+  });
+  const min=$(`${scope} [data-mprice="min"]`),max=$(`${scope} [data-mprice="max"]`);
+  if(min&&min.value)params.set('min',min.value);else params.delete('min');
+  if(max&&max.value)params.set('max',max.value);else params.delete('max');
+  return params;
+}
+function applyMerchParams(params){location.hash='#/merch?'+params.toString()}
+
 /* ---------- item 7 (rodada 5): dropdowns da barra de filtros (desktop) ---------- */
 function closeAllFdrops(){
   $$('.fdrop.is-open').forEach(d=>{d.classList.remove('is-open');d.querySelector('.fdrop-btn')?.setAttribute('aria-expanded','false')});
@@ -436,6 +454,18 @@ document.addEventListener('click',e=>{
   }
   if(act==='open-filters'){openFiltersDrawer();return}
   if(act==='apply-pricebar'){applyParams(collectFilterParams('.filterbar'));return}
+  if(act==='merch-apply-pricebar'){applyMerchParams(collectMerchFilterParams('.merch-filterbar'));return}
+  if(act==='merch-clear-filters'){location.hash='#/merch';return}
+  if(act==='merch-rm-filter'){
+    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const k=btn.dataset.k;
+    if(k==='preco'){p.delete('min');p.delete('max')}
+    else if(k==='universo'||k==='categoria'||k==='origem'||k==='tipo'){
+      const vals=(p.get(k)||'').split(',').filter(v=>v&&v!==btn.dataset.v);
+      if(vals.length)p.set(k,vals.join(','));else p.delete(k);
+    }else p.delete(k);
+    applyMerchParams(p);return;
+  }
   if(act==='clear-inventory'){
     if(!invList().length)return;
     if(confirm('Limpar todo o seu Inventário deste aparelho? Essa ação não pode ser desfeita.')){inv.items={};saveInv();route();toast('Inventário limpo.')}
@@ -481,11 +511,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   if(e.target.matches('[data-filter]'))applyParams(collectFilterParams('.filterbar'));
-  if(e.target.matches('[data-act="pick-uni"]')){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
-    if(e.target.value)p.set('uni',e.target.value);else p.delete('uni');
-    location.hash='#/merch?'+p.toString();
-  }
+  if(e.target.matches('[data-mfilter]'))applyMerchParams(collectMerchFilterParams('.merch-filterbar'));
 });
 $('#filterApply').addEventListener('click',()=>{applyParams(collectFilterParams('#filterBody'));closeOverlay('filterOverlay')});
 

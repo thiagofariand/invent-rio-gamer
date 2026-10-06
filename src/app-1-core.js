@@ -59,9 +59,21 @@ const SAMPLE_OFFER_SOURCES=['Marketplace exemplo','Loja parceira exemplo','Vende
 function sampleOffers(gameId,meta){
   meta=meta||{};
   const title=meta.title||gameId;
-  const year=meta.year!=null?meta.year:catalog.find(p=>p.title===title)?.year;
+  const cat=catalog.find(p=>p.title===title);
+  const year=meta.year!=null?meta.year:cat?.year;
+  // Pacote4 2.3/2.5: jogo semDisco (2.1) nunca gera oferta Usado — o código
+  // de ativação é de uso único, não revende; jogo ainda não lançado também
+  // não tem mercado de Usado (não existe o que revender). Em qualquer dos
+  // dois casos, "both"/"used" caem pra "new" (sem Novo no bucket, vira
+  // "none" — nunca Usado escondido atrás de outro rótulo).
+  const semDisco=meta.semDisco!=null?meta.semDisco:!!cat?.semDisco;
+  const notLaunched=cat?releaseState(cat)!=='lancado':false;
   const bucketRoll=hashStr(gameId+'|pacote3-bucket')%100;
-  const bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
+  let bucket=bucketRoll<35?'used':bucketRoll<60?'new':bucketRoll<85?'both':bucketRoll<95?'digital':'none';
+  if(semDisco||notLaunched){
+    if(bucket==='both')bucket='new';
+    else if(bucket==='used')bucket='none';
+  }
   const isRetro=year!=null&&Number(year)<=2012;
   let newBase=189+(hashStr(gameId+'|pacote3-base')%172); // 189..360
   if(isRetro)newBase=Math.round(newBase*0.6);
@@ -172,6 +184,11 @@ const SEARCH_MISS_LOG=false;
 // autocomplete e banner "Conheça o universo" (que nunca mostrou o aviso,
 // só o nome oficial); código mantido pra religar bastando virar true.
 const ALIAS_NOTE=false;
+// Pacote4 3.4: tenta a versão pt-br dos links diretos da PlayStation Store
+// (troca o segmento de locale da URL) — desligado por padrão; sem rede
+// neste ambiente pra validar contra a Store de verdade (ver app-2-search.js
+// psStoreLocaleBR). Ligar só depois de confirmar no preview.
+const STORE_LOCALE_BR=false;
 // Item 6 (rodada 5) / pacote único, item 6.3: override manual de hero por
 // jogo (src/data/hero-overrides.json). {url} só aceita o CDN oficial da
 // IGDB (images.igdb.com) — qualquer outra origem é rejeitada (e avisada no
@@ -212,16 +229,47 @@ const retailChip=kind=>kind==='oficial'?'<span class="retail-chip oficial">Loja 
   :kind==='autorizado'?'<span class="retail-chip">Varejo autorizado</span>'
   :kind==='varejo'?'<span class="retail-chip">Varejo/revenda</span>':'';
 
+// Pacote4 3.2: campo manual `lojas` no catálogo — [{loja,url}], loja em
+// STORE_NAMES (mesmos nomes do mapeamento da IGDB em lib/igdb.js, pra UI
+// não ter que conhecer dois vocabulários) — tem PRIORIDADE sobre o link
+// que a IGDB (3.1) devolver pro mesmo jogo, pra corrigir manualmente os
+// títulos principais (sobretudo PlayStation/Xbox/Nintendo, cujo código de
+// categoria a IGDB não confirma de forma estável). Nenhuma URL é inventada
+// aqui — fica vazio até o dono confirmar e preencher no catalog-data.js.
+const STORE_NAMES=new Set(['Steam','GOG','Epic Games','Xbox','PlayStation','Nintendo','itch.io']);
+function catalogStoreLinks(p){
+  if(!Array.isArray(p?.lojas))return [];
+  return p.lojas.filter(l=>l&&STORE_NAMES.has(l.loja)&&/^https?:\/\//i.test(String(l.url||'')));
+}
+
 /* ---------- catálogo: slugs, universos, plataformas ---------- */
 const collectionsByTitle=new Map();
 Object.values(D.collections).forEach(c=>c.items.forEach(i=>{if(!collectionsByTitle.has(i.title))collectionsByTitle.set(i.title,i)}));
 const usedSlugs=new Set();
+// Pacote4 2.1: Sony anunciou (1º/07/2026) que, a partir de jan/2028, jogos
+// novos de PlayStation vêm só digital ou em caixa física COM CÓDIGO (sem
+// disco). semDisco é manual por título (campo no catalog-data.js, ex.: GTA
+// VI, cuja edição física já nasce sem disco antes da regra geral) OU
+// automático: jogo de PlayStation com lançamento >= 2028-01-01. formato
+// deriva de semDisco quando não vier explícito no catálogo.
+const PS_NO_DISC_FROM='2028-01-01';
+function computeSemDisco(p){
+  if(typeof p.semDisco==='boolean')return p.semDisco;
+  const isPlayStation=(p.variants||[]).some(v=>v[0]==='PlayStation');
+  return !!(isPlayStation&&p.releaseDate&&p.releaseDate>=PS_NO_DISC_FROM);
+}
+function computeFormato(p,semDisco){
+  if(p.formato)return p.formato;
+  if(p.new===false&&p.used===false)return 'digital';
+  return semDisco?'fisico-codigo':'fisico-disco';
+}
 const catalog=D.catalog.map(p=>{
   const c=collectionsByTitle.get(p.title);
   let slug=c?c.slug:slugify(p.title);
   while(usedSlugs.has(slug))slug+='-2';
   usedSlugs.add(slug);
-  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:normSearch([p.title,...p.aliases,p.franchise].join(' '))};
+  const semDisco=computeSemDisco(p);
+  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:normSearch([p.title,...p.aliases,p.franchise].join(' ')),semDisco,formato:computeFormato(p,semDisco)};
 });
 const catalogBySlug=new Map(catalog.map(p=>[p.slug,p]));
 
@@ -274,6 +322,26 @@ try{
   xhrAliases.send(null);
   if(xhrAliases.status===200)SEARCH_ALIASES=JSON.parse(xhrAliases.responseText);
 }catch(e){/* mantém {} — busca cai só nos aliases do próprio jogo/franquia literal */}
+// Pacote4 4.1: fonte única de merch (colecionáveis, decoração, casa,
+// iluminação, vestuário, livros e arte) — ver 0.A: lib/shopee-manual-
+// offers.js é só de JOGOS (preço, chaveado por título), estrutura
+// incompatível com item de merch (categoria/origem/tipo/imagem), por isso
+// este arquivo é uma fonte separada, não uma extensão daquele. Migra os
+// 25 itens de demonstração que existiam em mock-data.js (M.items) — 1
+// item ("Controle edição temática") ficou de fora porque é acessório
+// (fora do escopo desta seção; ver backlog item 7). exemplo:true em
+// todos por enquanto; merchItemsVisible() já filtra pelo modo
+// demonstração (mockOn()), como o M.items antigo fazia via mockMerch().
+let MERCH_ITEMS=[];
+try{
+  const xhrMerch=new XMLHttpRequest();
+  xhrMerch.open('GET','/src/data/merch.json?v=Pacote4',false);
+  xhrMerch.send(null);
+  if(xhrMerch.status===200){const parsed=JSON.parse(xhrMerch.responseText);if(Array.isArray(parsed))MERCH_ITEMS=parsed}
+}catch(e){/* mantém [] — telas de merch caem no estado "sem itens" */}
+function merchItemsVisible(){
+  return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
+}
 // slug-de-franquia normalizado -> lista de apelidos normalizados (pra
 // comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx
 // faz o caminho inverso (apelido normalizado -> {slug,alias cru}) pra achar
@@ -292,10 +360,31 @@ function paletteForUniverse(u){
   if(!u)return null;
   return paletaIdx.get(u.slug)||paletaIdx.get(norm(u.name))||null;
 }
+// Pacote4 2.4: estado de lançamento — "lancamento" é o par releaseDate
+// (ISO, campo já existente no catálogo, reaproveitado como a "data") +
+// preVenda (boolean, novo; "fonte" já existe como catalogSources). Estado
+// derivado: data futura + preVenda => 'pre-venda'; data futura sem
+// preVenda => 'anunciado'; data passada ou ausente => 'lancado'. A virada
+// é à meia-noite em America/Sao_Paulo (não no fuso de quem está vendo),
+// por isso compara datas (YYYY-MM-DD) em vez de diffDays com Date local.
+const saoPauloDateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'});
+function todaySaoPaulo(){return saoPauloDateFmt.format(new Date())}
+function releaseState(p){
+  if(!p||!p.releaseDate)return 'lancado';
+  if(p.releaseDate<=todaySaoPaulo())return 'lancado';
+  return p.preVenda?'pre-venda':'anunciado';
+}
+function releaseDateDisplay(p){
+  if(!p||!p.releaseDate)return '';
+  const [y,m,d]=p.releaseDate.split('-');
+  return `Lançamento previsto: ${d}/${m}/${y}`;
+}
 function releaseBadge(p){
+  const state=releaseState(p);
+  if(state==='pre-venda')return 'PRÉ-VENDA';
+  if(state==='anunciado')return 'EM BREVE';
   if(!p||!p.releaseDate)return null;
   const rd=new Date(p.releaseDate+'T00:00:00'),diffDays=(rd-new Date())/86400000;
-  if(diffDays>0)return 'PRÉ-VENDA';
   if(diffDays>-10)return 'LANÇAMENTO';
   return null;
 }

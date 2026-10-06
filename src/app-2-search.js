@@ -82,7 +82,9 @@ function readFilters(params){
     // Pacote2, item 4.1: #/busca?universo={slug}&retro=1 — link do card
     // "Clássicos" da página de universo, escopando a busca pra franquia.
     universo:params.get('universo')||'',
-    sort:params.get('sort')||'relevancia'
+    sort:params.get('sort')||'relevancia',
+    // Pacote4 2.5: filtro de estado de lançamento ('' = Todos).
+    lanc:['lancado','pre-venda','anunciado'].includes(params.get('lanc'))?params.get('lanc'):''
   };
 }
 const rowCat=r=>r.kind==='game'?'games':r.item.cat;
@@ -99,6 +101,7 @@ function applyFilters(rows,F){
       if(F.conds.size&&!r.conds.some(c=>F.conds.has(c)))return false;
       if(F.plats.size&&!F.plats.has(r.platform))return false;
       if(F.retro&&!isRetro(r.platform))return false;
+      if(F.lanc&&releaseState(r.p)!==F.lanc)return false;
       if(F.genres&&F.genres.size&&!(r.p.genres||[]).some(g=>F.genres.has(g)))return false;
       if(F.min!=null||F.max!=null){
         const conds=visibleConds(r,F).filter(c=>c!=='digital');
@@ -110,7 +113,7 @@ function applyFilters(rows,F){
       }
     }else{
       if(F.universo&&r.item.universe!==F.universo)return false;
-      if(F.conds.size||F.plats.size||F.retro||(F.genres&&F.genres.size))return false;
+      if(F.conds.size||F.plats.size||F.retro||F.lanc||(F.genres&&F.genres.size))return false;
       if(F.min!=null&&r.item.price<F.min)return false;
       if(F.max!=null&&r.item.price>F.max)return false;
     }
@@ -256,16 +259,50 @@ async function autoloadPrices(rows,token,F){
 }
 
 /* ---------- lojas digitais e atalhos externos (links de busca reais) ---------- */
+// Pacote4 3.1/3.2/3.3: cada entrada tem `direto` (true = página do jogo na
+// própria loja, false = busca da loja) e, quando faz sentido comparar com
+// um link direto que a IGDB/catálogo possam fornecer pro mesmo nome de
+// loja, `storeKey` (vocabulário de STORE_NAMES em app-1-core.js) — ver
+// applyDirectStoreLinks(), chamada depois de fetchIgdbVisual() resolver.
 function digitalStores(p,platform){
   const out=[];
-  if(platform==='Switch'||platform==='Switch 2')out.push({kind:'oficial',name:'Nintendo Store',url:`https://www.nintendo.com/pt-br/search/#q=${enc(p.title)}`});
-  if(platform==='PS4'||platform==='PS5')out.push({kind:'oficial',name:'PlayStation Store',url:`https://store.playstation.com/pt-br/search/${enc(p.title)}`});
+  if(platform==='Switch'||platform==='Switch 2')out.push({kind:'oficial',name:'Nintendo Store',storeKey:'Nintendo',url:`https://www.nintendo.com/pt-br/search/#q=${enc(p.title)}`,direto:false});
+  if(platform==='PS4'||platform==='PS5')out.push({kind:'oficial',name:'PlayStation Store',storeKey:'PlayStation',url:`https://store.playstation.com/pt-br/search/${enc(p.title)}`,direto:false});
   const u=p.universe?uMap.get(p.universe):null;
-  if(u&&u.eco==='Multi')out.push({kind:'oficial',name:'Steam',url:`https://store.steampowered.com/search/?term=${enc(p.title)}`});
+  if(u&&u.eco==='Multi')out.push({kind:'oficial',name:'Steam',storeKey:'Steam',url:`https://store.steampowered.com/search/?term=${enc(p.title)}`,direto:false});
   const d=D.digitalCatalog[p.title];
-  if(d)out.push({kind:'autorizado',name:'Nuuvem',url:d.url,note:d.platform});
-  if(!out.length)out.push({kind:'autorizado',name:'Nuuvem',url:`https://www.nuuvem.com/br-pt/catalog/page/1/search/${enc(p.title)}`});
+  // d.url já é um link verificado à mão (ver CLAUDE.md) — direto de verdade.
+  if(d)out.push({kind:'autorizado',name:'Nuuvem',url:d.url,note:d.platform,direto:true});
+  if(!out.length)out.push({kind:'autorizado',name:'Nuuvem',url:`https://www.nuuvem.com/br-pt/catalog/page/1/search/${enc(p.title)}`,direto:false});
   return out;
+}
+// Pacote4 3.3: troca o link de busca pelo link direto (catálogo manual ou
+// IGDB, catálogo com prioridade) quando o nome da loja bate — mantém a
+// busca como estava pra qualquer loja sem link direto confirmado.
+function applyDirectStoreLinks(stores,directLinks){
+  if(!directLinks||!directLinks.length)return stores;
+  const byKey=new Map();
+  // directLinks já chega ordenado por prioridade (catálogo antes da IGDB);
+  // a primeira ocorrência de cada loja fica, as próximas são ignoradas.
+  directLinks.forEach(l=>{if(!byKey.has(l.loja))byKey.set(l.loja,l)});
+  return stores.map(s=>{
+    const match=s.storeKey&&byKey.get(s.storeKey);
+    return match?{...s,url:match.url,direto:true}:s;
+  });
+}
+// Pacote4 3.4: tenta a versão pt-br do link da PlayStation Store — best
+// effort (troca o segmento de locale da URL), atrás da flag
+// STORE_LOCALE_BR (desligada por padrão). Sem rede neste ambiente pra
+// validar contra a Store de verdade; documentado no resumo que o teste
+// real depende do preview.
+function psStoreLocaleBR(url){
+  if(!STORE_LOCALE_BR)return url;
+  try{
+    const u=new URL(url);
+    if(!/playstation\.com$/i.test(u.hostname.replace(/^store\./,'')))return url;
+    u.pathname=u.pathname.replace(/^\/[a-z]{2}-[a-z]{2}\//i,'/pt-br/');
+    return u.toString();
+  }catch{return url}
 }
 const ext={
   ml:q=>`https://lista.mercadolivre.com.br/${enc(q)}`,

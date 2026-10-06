@@ -46,12 +46,21 @@ function homeOfferCard(p,label){
   const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
   const condLabel=cached?'Usado':demo?.label;
   const value=cached?.minDisplay||demo?.display;
+  const isMock=!!(value&&!cached);
   // Item 2 (rodada 5): sem sobretítulo — o rótulo era o único lugar da
   // condição, então o preço nunca aparece sem ela ("Usado R$ X").
+  // Pacote4 1B.2: o selo EXEMPLO saiu de dentro do <strong> (cortava em
+  // cards estreitos) e virou um selo de canto sobre a capa — mas a capa é o
+  // próprio alvo de hydrateIgdbCovers() (data-igdb-cover faz
+  // el.innerHTML=coverTile(...)), então o selo fica num wrapper à parte
+  // (.lux-product-media), nunca dentro do elemento que a IGDB substitui.
   return `<article class="lux-product-card">
-    <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
+    <div class="lux-product-media">
+      <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
+      <span class="corner-mock"${isMock?'':' hidden'}>EXEMPLO</span>
+    </div>
     <div class="lux-product-body"><h3><a href="#/jogo/${p.slug}">${esc(p.title)}</a></h3><p>${esc(platform)}${p.year?` · ${p.year}`:''}</p>
-    ${value?`<strong>${esc(condLabel)} ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
+    ${value?`<strong>${esc(condLabel)} ${esc(value)}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
   </article>`;
 }
 let homeRenderId=0;
@@ -288,9 +297,13 @@ function posterPriceChipText(p,platform){
   // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
   return value?heroPriceCtaText(esc(label),esc(value),!cached?mockChip():''):'Ver detalhes';
 }
-const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço']];
+// Pacote4 2.5: "Pré-venda" no alternador — joga pro topo (e só mostra) os
+// jogos em pré-venda de verdade (releaseState 'pre-venda'; "Em breve"/
+// anunciado fica de fora, o rótulo é específico pra pré-venda aberta).
+const DESTAQUES_ORDERS=[['em-alta','Em alta'],['novos','Mais novos'],['menor-preco','Menor preço'],['pre-venda','Pré-venda']];
 function destaquesPool(order,exclude){
   const pool=catalog.filter(p=>!exclude.has(p.title));
+  if(order==='pre-venda')return pool.filter(p=>releaseState(p)==='pre-venda').sort((a,b)=>(a.releaseDate||'').localeCompare(b.releaseDate||'')).slice(0,12);
   if(order==='novos')return pool.filter(p=>p.year).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)).slice(0,12);
   if(order==='menor-preco'){
     return pool.map(p=>{
@@ -397,29 +410,67 @@ function retroSection(exclude){
   </section>`;
 }
 
-/* ---- 3.8: Colecionáveis e merch (quadrados) ou fallback "Além dos jogos" ---- */
-function homeMerchSquareCard(it){
-  const cta=it.unique
-    ?`<button type="button" class="btn btn-ghost btn-sm" data-act="mock-item" data-id="${esc(it.id)}">Ver item →</button>`
-    :`<button type="button" class="btn btn-ghost btn-sm" data-act="open-merch-offers" data-id="${esc(it.id)}">Ver oferta →</button>`;
-  return `<article class="merch-square-card">${coverTile(it.title,{size:'wide',mock:true})}
-    <div class="merch-square-body"><b>${esc(it.title)}</b><small>${esc(ORIGIN_LABEL[it.origin]||'')}</small><span class="merch-square-price">${brl(it.price)}</span>${cta}</div>
-  </article>`;
+/* ---- 3.8 / pacote4 4.2-4.4: card de merch (quadrado, sem foto por padrão) ---- */
+const MERCH_ORIGEM_LABEL={nacional:'Nacional',importado:'Importado'};
+const MERCH_TIPO_LABEL={oficial:'Oficial',licenciado:'Licenciado','fan-made':'Fan-made','nao-confirmado':'Não confirmado'};
+// Pacote4 4.3: "a partir de R$X · loja · atualizado há N dias" só com
+// precoAtualizadoEm de até 14 dias; passado isso (ou preco nulo), "Ver
+// preço na {loja}" sem número — nunca finge um preço "ao vivo" que não é.
+function merchPriceState(it){
+  if(it.preco==null||!it.precoAtualizadoEm)return{fresh:false,days:null};
+  const days=Math.floor((Date.now()-new Date(it.precoAtualizadoEm+'T00:00:00').getTime())/86400000);
+  return{fresh:days>=0&&days<=14,days};
 }
+function merchPriceLine(it){
+  const{fresh,days}=merchPriceState(it);
+  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}</b></span><span class="merch-price-meta">${esc(it.loja)} · atualizado ${days===0?'hoje':`há ${days} dia${days===1?'':'s'}`}</span>`;
+  return `<span class="merch-price-cta">Ver preço na ${esc(it.loja)}</span>`;
+}
+// Pacote4 4.2: só renderiza foto com imagem+imagemAutorizada===true (nunca
+// hospedamos/copiamos foto de terceiro por conta própria); sem isso, cai
+// no ícone da categoria (card "estilo C", 4.4) — fundo = arte do universo
+// JÁ EM CACHE (heroImageCache, mesma do hero; sem pedido novo) ampliada e
+// desfocada, ou o degradê da paleta sem arte nenhuma.
+function merchSquareCard(it){
+  const u=it.universo?uMap.get(it.universo):null;
+  const pal=u?paletteForUniverse(u):null;
+  const base=pal?.fundo||'#1f0b14';
+  const art=it.universo?heroImageCache.get(it.universo):null;
+  const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
+  const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
+  const media=hasPhoto
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    :`<svg class="merch-cat-icon" width="66" height="66" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
+  return `<a class="merch-square-card" href="#/item/${esc(it.id)}" style="${style}">
+    <div class="merch-square-media ${hasPhoto?'has-photo':(art?'has-art':'')}">
+      ${media}
+      <span class="merch-square-chips"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.exemplo?'<span class="chip-glass">EXEMPLO</span>':''}</span>
+    </div>
+    <div class="merch-square-body">
+      <b class="merch-square-title">${esc(it.titulo)}</b>
+      <div class="merch-square-price">${merchPriceLine(it)}</div>
+      <small class="merch-square-store">${esc(it.loja)}</small>
+    </div>
+  </a>`;
+}
+// Pacote4 4.9: a fileira aparece com item real (exemplo:false, sempre
+// visível) OU de demonstração (só com o modo demonstração ligado);
+// merchItemsVisible() (4.1) já aplica exatamente essa regra — sem item
+// nenhum dos dois tipos, cai no fallback "Além dos jogos".
 function homeMerchSection(){
-  const items=mockMerch()?M.items.slice(0,12):[];
+  const items=merchItemsVisible().slice(0,12);
   if(!items.length){
     return `<section class="merch-home-stage" aria-labelledby="home-merch-title" data-lazy-section>
       <div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
       <div class="merch-home-grid">
-        <a class="merch-home-card" href="#/merch?cat=colecionaveis"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
-        <a class="merch-home-card" href="#/merch?cat=fanmade"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
+        <a class="merch-home-card" href="#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
+        <a class="merch-home-card" href="#/merch?tipo=fan-made"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
       </div>
     </section>`;
   }
   return `<section class="lux-section home-merch-squares" aria-labelledby="home-merch-title" data-lazy-section>
     <div class="lux-section-head"><div>${rowTitleLink('home-merch-title','Colecionáveis e merch','#/merch')}</div></div>
-    <div class="merch-square-grid">${items.map(homeMerchSquareCard).join('')}</div>
+    <div class="merch-square-grid">${items.map(merchSquareCard).join('')}</div>
   </section>`;
 }
 
@@ -511,6 +562,14 @@ function sortBarMarkup(sortKey){
   const current=opts.find(([k])=>k===sortKey)||opts[0];
   return fdrop('sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${opts.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===sortKey}">${esc(l)}</a>`).join('')}</div>`);
 }
+// Pacote4 2.5: filtro "Lançamento" na busca (Todos | Lançados | Pré-venda
+// | Em breve) — single-select como Ordenar por, não checkbox múltiplo.
+const LANC_OPTS=[['','Todos'],['lancado','Lançados'],['pre-venda','Pré-venda'],['anunciado','Em breve']];
+function lancBarMarkup(lanc){
+  const hrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key)p.set('lanc',key);else p.delete('lanc');return '#/busca?'+p.toString()};
+  const current=LANC_OPTS.find(([k])=>k===lanc)||LANC_OPTS[0];
+  return fdrop('lanc','Lançamento: '+current[1],lanc?1:0,`<div class="fdrop-options">${LANC_OPTS.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===lanc}">${esc(l)}</a>`).join('')}</div>`);
+}
 function filterBarMarkup(F,platforms){
   const genreItems=GENRES.map(g=>[g.slug,g.label]);
   const platItems=platforms.map(p=>[p,p]);
@@ -519,6 +578,7 @@ function filterBarMarkup(F,platforms){
     ${fdrop('cat','Categoria',F.cats.size,fdropCheckList('cat',CATS,v=>F.cats.has(v),CATS.length>8))}
     ${fdrop('genre','Gênero',F.genres.size,fdropCheckList('genre',genreItems,v=>F.genres.has(v),genreItems.length>8))}
     ${fdrop('cond','Condição',F.conds.size,fdropCheckList('cond',[['usado','Usado'],['novo','Novo'],['digital','Digital']],v=>F.conds.has(URL_COND[v]),false))}
+    ${lancBarMarkup(F.lanc)}
     ${fdrop('price','Preço',(F.min!=null||F.max!=null)?1:0,`<div class="price-inputs">
       <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-price="min" value="${F.min??''}">
       <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-price="max" value="${F.max??''}"></div>
@@ -908,12 +968,25 @@ function productHeroPillsMarkup(p,u){
   return pills.length?`<div class="hero-pills-row">${pills.join('')}</div>`:'';
 }
 
+// Pacote4 2.2: selo de formato físico — "Disco" por padrão, ou "Físico ·
+// código de download" (+ nota) nos jogos semDisco (ver pacote4 2.1). Nunca
+// chamar de "físico" uma oferta sem disco sem esse selo.
+function formatBadgeMarkup(p){
+  return p.semDisco
+    ?'<span class="format-chip format-chip-code">Físico · código de download</span>'
+    :'<span class="format-chip">Disco</span>';
+}
 // Pacote 2, item 2.2: painel de preços em 3 colunas (Novo/Usado/Download),
 // agrupadas por rótulo fino (FÍSICO cobre Novo+Usado; DIGITAL é só
 // Download). Cada coluna é um bloco inteiro clicável (abre a comparadora
 // na aba da condição); sem oferta carregada ainda, esmaece e tira a seta.
 function purchasePriceColMarkup(cond,p,platform){
   const label=cond==='new'?'Novo':cond==='used'?'Usado':'Download';
+  // Pacote4 2.2/2.3: jogo semDisco nunca revende Usado (código de uso
+  // único) — nem chega a consultar oferta, fica sempre neste estado fixo.
+  if(cond==='used'&&p.semDisco){
+    return `<div class="ppanel-col is-empty ppanel-no-resale"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">Sem revenda (código de uso único)</span></span></div>`;
+  }
   if(cond==='digital'){
     return `<a class="ppanel-col" href="${offerPageHref(p,platform,'digital')}">
       <span class="ppanel-cond">${label}</span>
@@ -921,26 +994,27 @@ function purchasePriceColMarkup(cond,p,platform){
       <span class="ppanel-arrow">→</span>
     </a>`;
   }
+  const formatNote=cond==='new'?`${formatBadgeMarkup(p)}${p.semDisco?'<span class="ppanel-format-note">Caixa com código de download, sem disco</span>':''}`:'';
   const s=summaryOf(cond,p.title,platform);
   if(s&&s.status==='ok'&&s.count){
     return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-      <span class="ppanel-cond">${label}</span>
+      <span class="ppanel-cond">${label}</span>${formatNote}
       <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}</span>
       <span class="ppanel-arrow">→</span>
     </a>`;
   }
   if(s&&s.status==='ok'&&!s.count){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
   }
   // Pacote3, item 2.1: ainda carregando ou sem fonte real — preço único de
   // sampleOffers(p.title). Se o bucket do jogo não tem essa condição, vira
   // "sem ofertas" de verdade (não inventa mais um preço pra toda condição).
-  const demo=sampleOffers(p.title,{year:p.year})[cond];
+  const demo=sampleOffers(p.title,{year:p.year,semDisco:p.semDisco})[cond];
   if(!demo){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
+    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
   }
   return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-    <span class="ppanel-cond">${label}</span>
+    <span class="ppanel-cond">${label}</span>${formatNote}
     <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demo.display)}</strong>${mockChip()}</span>
     <span class="ppanel-arrow">→</span>
   </a>`;
@@ -948,9 +1022,12 @@ function purchasePriceColMarkup(cond,p,platform){
 function purchasePricePanelMarkup(p,platform){
   const physical=p.physical!==false;
   const digital=p.digital===true||hasDigital(p,platform);
+  // Pacote4 2.5: jogo ainda não lançado não tem coluna Usado nenhuma (nem
+  // o bloco "sem revenda" do semDisco — não existe o que revender ainda).
+  const notLaunched=releaseState(p)!=='lancado';
   const cols=[];
   if(p.new!==false)cols.push(['new']);
-  if(p.used!==false)cols.push(['used']);
+  if(!notLaunched&&(p.used!==false||p.semDisco))cols.push(['used']);
   if(digital)cols.push(['digital']);
   if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
   const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
@@ -1034,15 +1111,18 @@ function renderProduct(slug,params,token){
   // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
   // título continua trazendo esse contexto em texto corrido (não é mais
   // pílula), e o kicker vira as novas pílulas (disponibilidade + PRÉ-VENDA).
-  const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
+  // Pacote4 2.4: jogo ainda não lançado troca o ano (que nem existe —
+  // collections só tem jogo já saído) pela data prevista.
+  const releaseCopy=releaseState(p)!=='lancado'?releaseDateDisplay(p):'';
+  const heroCopy=[p.franchise,platform,releaseCopy||p.year].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
   ${gameHeroMarkup({title:p.title,pillsHtml:productHeroPillsMarkup(p,u),copy:heroCopy,image:heroImage,actions:heroActions,heroClass:'product-hero'})}
   ${purchaseModuleHorizontalMarkup(p,platform)}
   <p class="fine purchase-module-note">Preços de exemplo até a conexão das fontes oficiais.</p>
   <div class="collectible-row-grid">
-    ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?cat=colecionaveis&uni=${p.universe}`})}
-    ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?cat=fanmade&uni=${p.universe}`})}
+    ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?universo=${p.universe}&tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?universo=${p.universe}&tipo=fan-made`})}
   </div>`;
   hydrateIgdbVisuals({
     title:igdbTitleFor(p,platform),
@@ -1061,8 +1141,26 @@ function renderProduct(slug,params,token){
 }
 
 /* ---------- comparação de ofertas em página completa ---------- */
+// Pacote4 3.3: com link direto (página do jogo na própria loja) o rótulo é
+// "Ver na {loja} ↗"; sem link direto (cai na busca da loja), "Buscar na
+// {loja} ↗" — pro visitante nunca achar que uma busca é a ficha do jogo.
 function digitalOfferCards(p,platform,stores){
-  return stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join('');
+  return stores.map(s=>{
+    const url=s.direto&&s.storeKey==='PlayStation'?psStoreLocaleBR(s.url):s.url;
+    const label=`${s.direto?'Ver na':'Buscar na'} ${s.name} ↗`;
+    return `<article class="compare-offer-card digital" data-store-card="${esc(s.storeKey||s.name)}"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>${s.direto?'Abre a página do jogo na loja.':'Preço e disponibilidade exibidos na loja.'}</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(url))}" target="_blank" rel="noopener noreferrer">${esc(label)}</a></article>`;
+  }).join('');
+}
+// Pacote4 3.3: troca o link de busca pelo direto assim que a IGDB (3.1)
+// responder — mesma chamada/cache de fetchIgdbVisual que o resto da ficha
+// já usa (nenhum pedido novo). Catálogo manual (3.2) já venceu no render
+// síncrono; aqui só a IGDB pode ainda melhorar o link.
+async function hydrateDigitalStoreLinks(p,platform,selector,stores,token){
+  const d=await fetchIgdbVisual(igdbTitleFor(p,platform),platform,p.year||'');
+  if(token!==viewToken||!d?.lojas?.length)return;
+  const merged=applyDirectStoreLinks(stores,[...catalogStoreLinks(p),...d.lojas]);
+  const el=$(selector);
+  if(el)el.innerHTML=digitalOfferCards(p,platform,merged);
 }
 function comparisonSpinnerOff(){const el=document.querySelector('.compare-spinner');if(el)el.style.display='none'}
 function comparisonHref(p,platform,cond){
@@ -1121,13 +1219,20 @@ async function renderOfferComparison(slug,params,token){
   hydrateComparisonDetails(p,platform);
   const offers=$('#comparisonOffers'),status=$('#compareStatus');
   if(cond==='all'){
-    const stores=digitalAvailable?digitalStores(p,platform):[];
-    if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
+    const stores=digitalAvailable?applyDirectStoreLinks(digitalStores(p,platform),catalogStoreLinks(p)):[];
+    if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl,direto:true});
     const loading='<div class="compare-loading"><span></span><span></span><span></span></div>';
-    offers.innerHTML=`<section class="compare-block"><h3>Novo</h3><div class="compare-offers" id="cmp-new">${loading}</div></section>
-      <section class="compare-block"><h3>Usado</h3><div class="compare-offers" id="cmp-used">${loading}</div></section>
-      ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
-    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),fetchCond(p.title,platform,'used')]);
+    // Pacote4 2.2/2.5: jogo semDisco nunca revende Usado, e jogo ainda não
+    // lançado não tem mercado de Usado nenhum — a aba "Todos" mostra o
+    // bloco fixo certo em vez de buscar ofertas que não podem existir.
+    const notLaunched=releaseState(p)!=='lancado';
+    const noUsedMarket=p.semDisco||notLaunched;
+    const usedMsg=notLaunched?'Ainda não lançado.':'Sem revenda (código de uso único).';
+    offers.innerHTML=`<section class="compare-block"><h3>Novo ${formatBadgeMarkup(p)}</h3>${p.semDisco?'<p class="fine">Caixa com código de download, sem disco.</p>':''}<div class="compare-offers" id="cmp-new">${loading}</div></section>
+      <section class="compare-block"><h3>Usado</h3>${noUsedMarket?`<div class="empty compact"><p>${esc(usedMsg)}</p></div>`:`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
+      ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers" id="cmp-digital">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
+    if(stores.length)hydrateDigitalStoreLinks(p,platform,'#cmp-digital',stores,token);
+    const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),noUsedMarket?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
     if(token!==viewToken)return;
     const fill=(id,res)=>{
       const list=res.offers||[];
@@ -1135,19 +1240,35 @@ async function renderOfferComparison(slug,params,token){
       if(box)box.innerHTML=list.length?list.map(comparisonOfferCard).join(''):`<div class="empty compact"><p>Sem oferta validada agora. Procure direto: <span class="shortcut-links">${physicalLinks(p.title+' '+platform)}</span></p></div>`;
       return list.length;
     };
-    const total=fill('cmp-new',resNew)+fill('cmp-used',resUsed);
+    const total=fill('cmp-new',resNew)+(noUsedMarket?0:fill('cmp-used',resUsed));
     const demo=resNew.mock||resUsed.mock;
     status.textContent=`${total?`${total} ${total===1?'oferta':'ofertas'} de preço`:'Nenhuma oferta de preço agora'}${stores.length?` · ${stores.length} ${stores.length===1?'loja digital':'lojas digitais'}`:''}${demo?' · demonstração':''}`;
     comparisonSpinnerOff();
     return;
   }
   if(cond==='digital'){
-    const stores=digitalStores(p,platform);
-    if(!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
+    const stores=applyDirectStoreLinks(digitalStores(p,platform),catalogStoreLinks(p));
+    if(!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl,direto:true});
     if(token!==viewToken)return;
     status.textContent=stores.length?`${stores.length} ${stores.length===1?'loja':'lojas'} · preço e disponibilidade na própria loja`:'Consulte as lojas';
     comparisonSpinnerOff();
-    offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    offers.innerHTML=stores.length?digitalOfferCards(p,platform,stores):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    if(stores.length)hydrateDigitalStoreLinks(p,platform,'#comparisonOffers',stores,token);
+    return;
+  }
+  // Pacote4 2.2/2.5: aba Usado isolada num jogo semDisco (não consulta
+  // fonte nenhuma, código de ativação não revende) ou ainda não lançado
+  // (não existe o que revender ainda).
+  if(cond==='used'&&releaseState(p)!=='lancado'){
+    status.textContent='Ainda não lançado';
+    comparisonSpinnerOff();
+    offers.innerHTML=`<div class="empty"><h2>Ainda não lançado</h2><p>${esc(releaseDateDisplay(p)||'Sem data de lançamento confirmada.')} Volte quando o jogo sair pra ver ofertas de Usado.</p></div>`;
+    return;
+  }
+  if(cond==='used'&&p.semDisco){
+    status.textContent='Sem revenda nesta edição';
+    comparisonSpinnerOff();
+    offers.innerHTML=`<div class="empty"><h2>Sem revenda (código de uso único)</h2><p>Esta edição vem em caixa física com código de ativação — não há disco físico pra revender.</p></div>`;
     return;
   }
   const res=await fetchCond(p.title,platform,cond);
@@ -1244,19 +1365,23 @@ function hydrateUniverseHero(root,token){
     const eager=el.dataset.igdbEager==='true';
     // Item 6 (rodada 5) / pacote único item 6.3: override manual por jogo
     // quando a arte da IGDB é só wordmark/logo (sem cena) —
-    // src/data/hero-overrides.json, chave = slug do jogo. {url} (só CDN da
-    // IGDB, já filtrado no load) troca a arte; {fallback:true} força o
-    // degradê + sigla sem nem consultar a IGDB. {artworkIndex} pediria a
-    // lista completa de artworks do jogo, que a API hoje não devolve (só a
+    // src/data/hero-overrides.json, chave = slug do jogo. {url} troca a
+    // arte; {fallback:true} PULA só a artwork/hero (nunca usa wordmark/logo
+    // esticado), mas pacote4 1B.4: ainda busca a capa pra aplicar o mesmo
+    // tratamento ampliado/desfocado de qualquer hero sem artwork — antes
+    // retornava cedo aqui e ficava "quase preto" (só a sigla fantasma sobre
+    // a cor base). Sem capa também, cai no degradê da paleta já no HTML
+    // (--hero-base), nunca preto liso. {artworkIndex} pediria a lista
+    // completa de artworks do jogo, que a API hoje não devolve (só a
     // escolhida pelo back-end) — listado como pendência.
     const override=HERO_OVERRIDES[el.dataset.igdbSlug||''];
-    if(override?.fallback)return;
+    const forceFallback=override?.fallback===true;
     const heroW=el.getBoundingClientRect().width;
-    const d=override?.url?null:await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW);
+    const d=(override?.url&&!forceFallback)?null:await fetchIgdbVisual(el.dataset.igdbTitle||'',el.dataset.igdbPlatform||'',el.dataset.igdbYear||'',UNIVERSE_HERO_RATIO,heroW);
     if(token!==viewToken||!el.isConnected)return;
     // Pacote 2, item 1.3/1.4: (a) artwork horizontal; (b) sem ela, a capa
     // ampliada e desfocada; (c) sem nenhuma, fica no fallback já no HTML.
-    const src=override?.url||d?.hero?.url;
+    const src=!forceFallback&&(override?.url||d?.hero?.url);
     const coverSrc=!src&&d?.cover?.url;
     if(!src&&!coverSrc)return;
     if(src&&el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
@@ -1326,6 +1451,20 @@ function universeOfferDigital(p,platform){
 // passar por sampleOffers(), a ÚNICA fonte de preço de exemplo do site (ver
 // comentário em app-1-core.js). Agora, com o modo demonstração ligado, usa o
 // mesmo preço de exemplo que o hero/home já mostram pro mesmo jogo.
+// Pacote4 1B.2: o selo EXEMPLO morava DENTRO do chip ("Usado R$ 227,90
+// EXEMPLO"), que cortava em cards estreitos (ex.: Xbox "Ofertas em
+// destaque"). Agora o chip some só com o preço — o selo vira um selo de
+// canto na capa (ver .uoc-mock-badge), controlado por esta função auxiliar.
+function universeOfferIsMock(p,platform){
+  const best=universeOfferPhysicalBest(p,platform);
+  const digital=universeOfferDigital(p,platform);
+  if(!best&&!digital){
+    if(!mockOn())return false;
+    const demo=sampleOffers(p.title,{year:p.year});
+    return !!(demo.used||demo.new);
+  }
+  return !!(best?.summary?.mock||digital?.mock);
+}
 function universeOfferPriceChipsMarkup(p,platform){
   const best=universeOfferPhysicalBest(p,platform);
   const digital=universeOfferDigital(p,platform);
@@ -1333,16 +1472,16 @@ function universeOfferPriceChipsMarkup(p,platform){
     if(mockOn()){
       const demo=sampleOffers(p.title,{year:p.year});
       const chips=[];
-      if(demo.used)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'used')}">Usado ${esc(demo.used.display)} ${mockChip()}</a>`);
-      else if(demo.new)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'new')}">Novo ${esc(demo.new.display)} ${mockChip()}</a>`);
+      if(demo.used)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'used')}">Usado ${esc(demo.used.display)}</a>`);
+      else if(demo.new)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'new')}">Novo ${esc(demo.new.display)}</a>`);
       if(demo.digital?.consult)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital — consultar</a>`);
       if(chips.length)return chips.join('');
     }
     return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
   }
   const chips=[];
-  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''}</a>`);
-  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}${digital.mock?' '+mockChip():''}</a>`);
+  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}</a>`);
+  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}</a>`);
   return chips.join('');
 }
 /* ---------- carrossel de cards (rodada11, item 5) ----------
@@ -1392,8 +1531,10 @@ function universeOfferCard(p){
   // Card inteiro abre na aba do chip principal (o físico mais barato, ou
   // o digital se só ele existir; sem nenhuma oferta, vai pra ficha do jogo).
   const mainHref=best?comparisonHref(p,platform,best.cond):digital?comparisonHref(p,platform,'digital'):`#/jogo/${p.slug}?plat=${enc(platform)}`;
+  const isMock=universeOfferIsMock(p,platform);
   return `<article class="universe-offer-card">
     <a class="uoc-cover igdb-cover-slot" href="${mainHref}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false})}</a>
+    <span class="corner-mock" data-uoc-mock="${esc(p.slug)}"${isMock?'':' hidden'}>EXEMPLO</span>
     ${saveButton(gameRef(p))}
     <div class="uoc-overlay">
       <h3 class="uoc-title">${esc(p.title)}</h3>
@@ -1408,8 +1549,9 @@ async function hydrateUniverseOffers(games,token){
     await Promise.all(conds.map(cond=>fetchCond(p.title,platform,cond)));
     if(token!==viewToken)return;
     const slot=main.querySelector(`[data-universe-offer-price="${p.slug}"]`);
-    if(!slot)return;
-    slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
+    if(slot)slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
+    const badge=main.querySelector(`[data-uoc-mock="${p.slug}"]`);
+    if(badge)badge.hidden=!universeOfferIsMock(p,platform);
   });
 }
 // Pacote2, item 5: card com "hover-expand" (ver initHoverExpand) pras
@@ -1424,6 +1566,8 @@ function expandPriceLineMarkup(label,cond,p,platform){
     if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
     return `<a class="hec-price-line" href="${comparisonHref(p,platform,'digital')}"><span class="hec-price-label">${label}</span><em>consultar nas lojas</em></a>`;
   }
+  // Pacote4 2.5: jogo ainda não lançado não tem mercado de Usado.
+  if(cond==='used'&&releaseState(p)!=='lancado')return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>em breve</em></span>`;
   if((cond==='new'&&p.new===false)||(cond==='used'&&p.used===false))return `<span class="hec-price-line is-off"><span class="hec-price-label">${label}</span><em>sem ofertas</em></span>`;
   const s=summaryOf(cond,p.title,platform);
   if(s&&s.status==='ok'&&s.count&&s.min!=null)return `<a class="hec-price-line" href="${comparisonHref(p,platform,cond)}"><span class="hec-price-label">${label}</span><b>${esc(s.minDisplay)}</b>${s.mock?mockChip():''}</a>`;
@@ -1447,11 +1591,17 @@ function bestOfferHrefFor(p,platform){
 // 5) pra ser reaproveitado pelo poster-card novo da home (3.5) sem duplicar.
 function hecPanelMarkup(p,platform){
   const ref=gameRef(p),on=invGet(ref.id)?.status==='owned';
+  // Pacote4 2.5: jogo ainda não lançado não tem o que "ter" — o botão
+  // Tenho vira texto estático "Em breve" (sem ação).
+  const notLaunched=releaseState(p)!=='lancado';
+  const ownBtn=notLaunched
+    ?`<span class="btn btn-sm hec-own-btn is-disabled" aria-disabled="true">Em breve</span>`
+    :`<button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>`;
   return `<h3 class="hec-title">${esc(p.title)}</h3>
     <p class="hec-meta">${esc(platform)}${p.year?` · ${p.year}`:''}</p>
     <div class="hec-prices" data-hec-prices="${esc(p.slug)}">${hecExpandedPricesMarkup(p,platform)}</div>
     <div class="hec-actions">
-      <button type="button" class="btn btn-sm hec-own-btn ${on?'is-on':''}" data-act="toggle-owned" data-id="${esc(ref.id)}" aria-pressed="${on}">${on?'✓ Na coleção':'♡ Tenho'}</button>
+      ${ownBtn}
       <a class="btn btn-primary btn-sm" href="${bestOfferHrefFor(p,platform)}">Ver ofertas</a>
     </div>`;
 }
@@ -1476,11 +1626,23 @@ function posterPriceChip(p,platform){
 // largura original fixa quando o card expande, só o painel lateral some no
 // espaço novo — ver initHoverExpand/.hec-fixed no CSS, "nunca esticar a
 // capa" valendo tanto aqui quanto no card antigo).
+// Pacote4 2.5: selo pequeno de PRÉ-VENDA/EM BREVE no canto superior
+// esquerdo do pôster — em wrapper à parte (.hec-cover-wrap), nunca dentro
+// de [data-igdb-cover] (hydrateIgdbCovers() troca o innerHTML daquele
+// elemento quando acha capa; mesmo cuidado do fix do item 1.7/1B.2).
+function posterReleaseBadgeMarkup(p){
+  const state=releaseState(p);
+  if(state==='lancado')return '';
+  return `<span class="corner-mock">${state==='pre-venda'?'PRÉ-VENDA':'EM BREVE'}</span>`;
+}
 function posterCard(p){
   const platform=p.variants?.[0]?.[1]||'';
   return `<article class="hec-card poster-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
     <div class="hec-fixed">
-      <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+      <div class="hec-cover-wrap">
+        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+        ${posterReleaseBadgeMarkup(p)}
+      </div>
       <div class="poster-info">
         <a class="poster-title" href="#/jogo/${p.slug}">${esc(p.title)}</a>
         <p class="poster-meta">${esc(platShort(p))}${p.year?` · ${p.year}`:''}</p>
@@ -1560,9 +1722,12 @@ function discoverMoreCard({href,title,copy,count,kind,coverSlot=''}){
 function universeDiscoverMoreSection(u){
   const allTitles=titlesOf(u.slug);
   const retroGames=allTitles.filter(p=>p.variants.some(v=>isRetro(v[1])));
-  const merchByCat=cat=>mockMerch()?M.items.filter(i=>i.universe===u.slug&&(cat==='merch'?(i.cat==='merch'||i.cat==='acessorios'):i.cat===cat)):[];
-  const colecionaveis=[...merchByCat('colecionaveis'),...merchByCat('merch')];
-  const fanmade=merchByCat('fanmade');
+  // Pacote4 4.8: conta e abre os itens de src/data/merch.json do universo
+  // — "Colecionáveis e merch" é tudo que NÃO é tipo fan-made; "Fan-made e
+  // decoração" é só tipo fan-made.
+  const uMerch=merchItemsVisible().filter(i=>i.universo===u.slug);
+  const colecionaveis=uMerch.filter(i=>i.tipo!=='fan-made');
+  const fanmade=uMerch.filter(i=>i.tipo==='fan-made');
   const cards=[];
   if(retroGames.length){
     const rep=representativeFranchiseGame(retroGames),platform=rep?.variants?.[0]?.[1]||'';
@@ -1577,12 +1742,12 @@ function universeDiscoverMoreSection(u){
   // vazio com "Em breve" em vez de sumir o card) — só Clássicos depende de
   // o universo ter jogo retrô mesmo.
   cards.push(discoverMoreCard({
-    href:`#/merch?cat=colecionaveis&uni=${u.slug}`,kind:'colecionaveis',
+    href:`#/merch?universo=${u.slug}&tipo=${enc('oficial,licenciado,nao-confirmado')}`,kind:'colecionaveis',
     title:'Colecionáveis e merch',
     copy:colecionaveis.length?`${colecionaveis.length} ${colecionaveis.length===1?'item':'itens'} de ${u.name} pra coleção e decoração.`:`Em breve: itens de ${u.name}.`
   }));
   cards.push(discoverMoreCard({
-    href:`#/merch?cat=fanmade&uni=${u.slug}`,kind:'fanmade',
+    href:`#/merch?universo=${u.slug}&tipo=fan-made`,kind:'fanmade',
     title:'Fan-made e decoração',
     copy:fanmade.length?`${fanmade.length} ${fanmade.length===1?'peça autoral feita':'peças autorais feitas'} por fãs.`:`Em breve: itens de ${u.name}.`
   }));
@@ -1648,7 +1813,16 @@ function renderUniverse(slug,params,token){
   const platFilter=['nintendo','playstation','xbox'].includes(params.get('plat'))&&u.plataformas.includes(params.get('plat'))?params.get('plat'):'';
   const titles=platFilterGames(titlesOf(slug),platFilter);
   const tabs=[['tudo','Tudo'],['games','Games'],['digital','Digital'],['colecionaveis','Colecionáveis'],['merch','Merch'],['fanmade','Fan-made']];
-  const items=cat=>mockMerch()?M.items.filter(i=>i.universe===slug&&(!cat||i.cat===cat||(cat==='merch'&&(i.cat==='merch'||i.cat==='acessorios')))):[];
+  // Pacote4 4.8: abas Colecionáveis/Merch/Fan-made da página de universo
+  // também passam a ler merch.json (fonte única) em vez de M.items.
+  const MERCH_DECOR_CATS=['decoracao','casa','iluminacao','vestuario','livros-arte'];
+  const items=cat=>{
+    const uMerch=merchItemsVisible().filter(i=>i.universo===slug);
+    if(cat==='fanmade')return uMerch.filter(i=>i.tipo==='fan-made');
+    if(cat==='colecionaveis')return uMerch.filter(i=>i.categoria==='colecionaveis'&&i.tipo!=='fan-made');
+    if(cat==='merch')return uMerch.filter(i=>MERCH_DECOR_CATS.includes(i.categoria)&&i.tipo!=='fan-made');
+    return uMerch;
+  };
   setTitle(`Universo ${u.name}`);
   const mine=invList().filter(i=>i.universe===slug);
   const owned=mine.filter(i=>i.status==='owned').length,want=mine.filter(i=>i.status==='wanted'||i.status==='saved').length;
@@ -1664,7 +1838,7 @@ function renderUniverse(slug,params,token){
   }else if(tab==='colecionaveis'||tab==='merch'||tab==='fanmade'){
     const list=items(tab);
     const c=D.merchCategories.find(x=>x.key===tab);
-    body=(list.length?originLegend()+`<div class="cards4">${list.map(merchCard).join('')}</div>`:'<div class="empty"><p>Ainda não temos itens desta categoria para este universo.</p></div>')
+    body=(list.length?`<div class="merch-square-grid">${list.map(merchSquareCard).join('')}</div>`:'<div class="empty"><p>Ainda não temos itens desta categoria para este universo.</p></div>')
       +`<div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">${esc(c?c.hint:'')}. Sem integração ainda: os links abrem a busca de cada loja.</p><div class="shortcut-links" style="margin-top:12px">${merchLinks(u.name+' '+(tab==='fanmade'?'artesanal':tab==='colecionaveis'?'colecionável':'decoração'),tab)}</div></div>`;
   }else{
     featuredGames=dailyUniverseSelection(titles,slug,12);
@@ -1760,8 +1934,8 @@ function renderTheme(slug){
         <p class="purchase-demo-note">Quando os dados reais entrarem, o bloco mantém o mesmo desenho e apenas substitui preço, disponibilidade e lojas.</p>
       </div>
     </article>
-    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Itens oficiais e colecionáveis relacionados a este jogo ou universo.',kind:'collectibles',image:merchImage,href:u?`#/merch?cat=colecionaveis&uni=${u.slug}`:'#/merch?cat=colecionaveis'})}
-    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Criações de fãs, decoração e peças artesanais relacionadas ao universo.',kind:'fanmade',image:fanImage,href:u?`#/merch?cat=fanmade&uni=${u.slug}`:'#/merch?cat=fanmade'})}
+    ${visualMenuCard({title:'Colecionáveis e merch',copy:'Itens oficiais e colecionáveis relacionados a este jogo ou universo.',kind:'collectibles',image:merchImage,href:u?`#/merch?universo=${u.slug}&tipo=${enc('oficial,licenciado,nao-confirmado')}`:`#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${visualMenuCard({title:'Fan-made e artesanais',copy:'Criações de fãs, decoração e peças artesanais relacionadas ao universo.',kind:'fanmade',image:fanImage,href:u?`#/merch?universo=${u.slug}&tipo=fan-made`:'#/merch?tipo=fan-made'})}
   </div>`;
   hydrateIgdbVisuals({
     title:t.title,
@@ -1782,7 +1956,7 @@ function renderTrendingPage(){
     <div class="trend-actions"><a class="btn btn-primary btn-sm" href="#/tema/${t.slug}">Ver mais →</a><a class="btn btn-ghost btn-sm" href="#/ofertas/${esc(t.slug)}?plat=${enc(cfg.platform)}&cond=digital">Digital / oficial ↗</a></div></article>`}).join('')}</div>`;
   }else{
     pool=destaquesPool(order,new Set());
-    body=`<div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="trending-page">${pool.map(posterCard).join('')}</div>${carouselEdgesMarkup('trending-page')}</div>`;
+    body=pool.length?`<div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="trending-page">${pool.map(posterCard).join('')}</div>${carouselEdgesMarkup('trending-page')}</div>`:'<p class="lede">Nenhum jogo encontrado neste filtro.</p>';
   }
   main.innerHTML=`<h1 class="page-h">Em alta</h1>
   <p class="lede">Assuntos que puxam a busca agora. Curadoria manual de ${esc(D.trendingUpdated)}, com links oficiais. Quando houver dados próprios, esta lista poderá mostrar o que está em alta no Inventário.</p>
@@ -1966,11 +2140,6 @@ function renderPlatform(slug,params,token){
         <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
         <div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>${carouselEdgesMarkup('plat-offers')}</div>
       </section>
-      <div class="platform-cta-row3">
-        ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
-        ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
-        ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
-      </div>
     </div>
     <aside class="platform-side-col">
       <div class="platform-brand-panel" aria-label="${esc(label)}">
@@ -1983,31 +2152,139 @@ function renderPlatform(slug,params,token){
       </div>`:''}
     </aside>
   </div>
+  <div class="platform-cta-row3">
+    ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
+    ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:`#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
+    ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?tipo=fan-made'})}
+  </div>
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
   if(top){hydrateUniverseHero($('[data-home-carousel]',main),token);hydrateUniverseHeroPrices(main,token)}
   initCarouselRows(main);
 }
 
-/* ---------- merch, colecionáveis e fan-made ---------- */
+/* ---------- pacote4 4.6: merch, colecionáveis e fan-made ---------- */
+const MERCH_CATEGORIA_LABEL={colecionaveis:'Colecionáveis',decoracao:'Decoração',casa:'Casa',iluminacao:'Iluminação',vestuario:'Vestuário','livros-arte':'Livros e arte'};
+const MERCH_CATEGORIA_ORDER=['colecionaveis','decoracao','casa','iluminacao','vestuario','livros-arte'];
+function readMerchFilters(params){
+  const list=k=>(params.get(k)||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const num=k=>{const v=parseFloat(String(params.get(k)||'').replace(',','.'));return Number.isFinite(v)?v:null};
+  return {
+    universo:new Set(list('universo')),
+    categoria:new Set(list('categoria')),
+    origem:new Set(list('origem')),
+    tipo:new Set(list('tipo')),
+    min:num('min'),max:num('max'),
+    sort:params.get('sort')||'relevancia'
+  };
+}
+function applyMerchFilters(items,F){
+  return items.filter(it=>{
+    if(F.universo.size&&!F.universo.has(it.universo||''))return false;
+    if(F.categoria.size&&!F.categoria.has(it.categoria))return false;
+    if(F.origem.size&&!F.origem.has(it.origem))return false;
+    if(F.tipo.size&&!F.tipo.has(it.tipo))return false;
+    if(F.min!=null||F.max!=null){
+      if(it.preco==null)return false;
+      if(F.min!=null&&it.preco<F.min)return false;
+      if(F.max!=null&&it.preco>F.max)return false;
+    }
+    return true;
+  });
+}
+function sortMerchItems(items,sort){
+  if(sort==='menor-preco')return [...items].sort((a,b)=>(a.preco??Infinity)-(b.preco??Infinity));
+  if(sort==='atualizados')return [...items].sort((a,b)=>String(b.precoAtualizadoEm||'').localeCompare(String(a.precoAtualizadoEm||'')));
+  return items;
+}
+function merchActiveChips(F){
+  const chips=[];
+  F.universo.forEach(v=>chips.push(['universo',v,uMap.get(v)?.name||v]));
+  F.categoria.forEach(v=>chips.push(['categoria',v,MERCH_CATEGORIA_LABEL[v]||v]));
+  F.origem.forEach(v=>chips.push(['origem',v,MERCH_ORIGEM_LABEL[v]||v]));
+  F.tipo.forEach(v=>chips.push(['tipo',v,MERCH_TIPO_LABEL[v]||v]));
+  if(F.min!=null||F.max!=null)chips.push(['preco','','Preço: '+(F.min!=null?brl(F.min):'R$0')+' – '+(F.max!=null?brl(F.max):'∞')]);
+  return chips;
+}
+// Mesma estrutura visual de fdropCheckList (busca), mas com data-mfilter
+// em vez de data-filter — os dois nomes nunca podem colidir, senão o
+// listener genérico de filtro da busca (escopo .filterbar, redireciona
+// pra #/busca) dispararia nesta página também.
+function mdropCheckList(name,items,isOn){
+  return `<div class="fdrop-options">${items.map(([val,label])=>`<label><input type="checkbox" data-mfilter="${name}" data-value="${esc(val)}" ${isOn(val)?'checked':''}> <span>${esc(label)}</span></label>`).join('')}</div>`;
+}
+function merchFilterBarMarkup(F,all){
+  const universosComItem=[...new Set(all.map(it=>it.universo).filter(Boolean))].map(slug=>[slug,uMap.get(slug)?.name||slug]).sort((a,b)=>a[1].localeCompare(b[1]));
+  // "cada categoria sem item fica oculta nos filtros" — mesma regra pra
+  // universo/origem/tipo, calculada sobre o conjunto completo (não o já
+  // filtrado pelos outros filtros, senão a lista encolheria sozinha).
+  const categoriasComItem=MERCH_CATEGORIA_ORDER.filter(c=>all.some(it=>it.categoria===c));
+  const origensComItem=['nacional','importado'].filter(o=>all.some(it=>it.origem===o));
+  const tiposComItem=['oficial','licenciado','fan-made','nao-confirmado'].filter(t=>all.some(it=>it.tipo===t));
+  const sortOpts=[['relevancia','Relevância'],['menor-preco','Menor preço'],['atualizados','Atualizados recentemente']];
+  const sortHrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/merch?'+p.toString()};
+  const current=sortOpts.find(([k])=>k===F.sort)||sortOpts[0];
+  return `<div class="filterbar-row merch-filterbar">
+    ${fdrop('m-universo','Universo',F.universo.size,universosComItem.length?mdropCheckList('universo',universosComItem,v=>F.universo.has(v)):'<p class="fine">Nenhum item com universo catalogado.</p>')}
+    ${fdrop('m-categoria','Categoria',F.categoria.size,mdropCheckList('categoria',categoriasComItem.map(c=>[c,MERCH_CATEGORIA_LABEL[c]]),v=>F.categoria.has(v)))}
+    ${fdrop('m-origem','Origem',F.origem.size,mdropCheckList('origem',origensComItem.map(o=>[o,MERCH_ORIGEM_LABEL[o]]),v=>F.origem.has(v)))}
+    ${fdrop('m-tipo','Tipo',F.tipo.size,mdropCheckList('tipo',tiposComItem.map(t=>[t,MERCH_TIPO_LABEL[t]]),v=>F.tipo.has(v)))}
+    ${fdrop('m-preco','Preço',(F.min!=null||F.max!=null)?1:0,`<div class="price-inputs">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-mprice="min" value="${F.min??''}">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-mprice="max" value="${F.max??''}"></div>
+      <button type="button" class="btn btn-primary btn-sm btn-block" data-act="merch-apply-pricebar" style="margin-top:10px">Aplicar</button>`)}
+    <div class="filterbar-spacer"></div>
+    ${fdrop('m-sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${sortOpts.map(([k,l])=>`<a class="fdrop-link" href="${sortHrefFor(k)}" aria-current="${k===F.sort}">${esc(l)}</a>`).join('')}</div>`)}
+  </div>`;
+}
 function renderMerch(params){
-  const cat=params.get('cat')||'',tipo=params.get('tipo')||'',uni=params.get('uni')||'';
-  const tabs=[['','Todos'],...D.merchCategories.map(c=>[c.key,c.label])];
-  const c=D.merchCategories.find(x=>x.key===cat);
-  const list=mockMerch()?M.items.filter(it=>(!cat||it.cat===cat)&&(!tipo||it.type===tipo)&&(!uni||it.universe===uni)):[];
-  const uName=uni&&uMap.get(uni)?uMap.get(uni).name:'';
-  const types=Object.entries(D.merchTypes).filter(([k,t])=>(!cat||t.cat===cat)&&(!tipo||k===tipo));
-  const q=new URLSearchParams(params);
-  const tabHref=k=>{const p=new URLSearchParams();if(k)p.set('cat',k);if(uni)p.set('uni',uni);const s=p.toString();return '#/merch'+(s?'?'+s:'')};
-  setTitle(c?c.label:'Merch, colecionáveis e fan-made');
-  main.innerHTML=`<h1 class="page-h">${esc(c?c.label:'Merch, colecionáveis e fan-made')}</h1>
-  <p class="lede">${esc(c?c.hint+'.':'Acessórios, colecionáveis, decoração e criações de fãs.')} Itens oficiais podem ter várias ofertas; peças fan-made e artesanais costumam ser anúncios únicos.</p>
-  <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="${tabHref(k)}" aria-current="${k===cat}">${esc(l)}</a>`).join('')}</div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><label for="uniSel" class="fine">Universo</label>
-    <select id="uniSel" class="select" data-act="pick-uni"><option value="">Todos os universos</option>${universes.map(u=>`<option value="${u.slug}" ${u.slug===uni?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
-  ${list.length?originLegend()+`<div class="cards4">${list.map(merchCard).join('')}</div>`:(mockMerch()?'<div class="empty"><p>Nenhum item de exemplo para este filtro.</p></div>':'<div class="empty"><h2>Merch e fan-made ainda não têm integração</h2><p>Use os atalhos abaixo: eles abrem a busca direto nas lojas.</p></div>')}
-  <div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">Sem integração ainda: os links abrem a busca de cada loja${uName?` por ${esc(uName)}`:''}.</p>
-    <div class="shortcut-groups">${types.map(([k,t])=>`<div class="shortcut-group"><h3>${esc(t.label)}</h3><div class="shortcut-links">${merchLinks(t.term+(uName?' '+uName:''),t.cat)}</div></div>`).join('')}</div></div>`;
+  const F=readMerchFilters(params);
+  const all=merchItemsVisible();
+  const filtered=sortMerchItems(applyMerchFilters(all,F),F.sort);
+  const chips=merchActiveChips(F);
+  setTitle('Colecionáveis e merch');
+  main.innerHTML=`<h1 class="page-h">Colecionáveis e merch</h1>
+  <p class="lede">Itens curados à mão — oficiais, licenciados, não confirmados e fan-made. Preço do produto; frete e impostos são calculados na loja pelo seu CEP.</p>
+  <aside class="filterbar" aria-label="Filtros">${merchFilterBarMarkup(F,all)}</aside>
+  ${chips.length?`<div class="chips-active">${chips.map(c=>`<button class="chip-x" data-act="merch-rm-filter" data-k="${c[0]}" data-v="${esc(c[1])}" aria-label="Remover filtro ${esc(c[2])}">${esc(c[2])} ${ico('close',14)}</button>`).join('')}<button class="chip-x chip-x-clear" data-act="merch-clear-filters">Limpar tudo</button></div>`:''}
+  <p class="fine" style="margin:4px 0 14px">${filtered.length} ${filtered.length===1?'item':'itens'}</p>
+  ${filtered.length?`<div class="merch-square-grid">${filtered.map(merchSquareCard).join('')}</div>`:`<div class="empty"><h2>Nenhum item com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="merch-clear-filters">Limpar filtros</button></p></div>`}
+  <p class="fine" style="margin-top:12px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>`;
+}
+// Pacote4 4.7: página do item (#/item/{id}) — nunca link direto a partir
+// de card/lista (regra fixa do pacote); o card inteiro (4.4) abre aqui, e
+// só aqui tem o botão de verdade pra loja.
+function renderMerchItem(id,token){
+  const it=MERCH_ITEMS.find(x=>x.id===id&&(!x.exemplo||mockOn()));
+  if(!it)return renderNotFound();
+  const u=it.universo?uMap.get(it.universo):null;
+  const pal=u?paletteForUniverse(u):null;
+  const base=pal?.fundo||'#1f0b14';
+  const art=it.universo?heroImageCache.get(it.universo):null;
+  const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
+  const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
+  const media=hasPhoto
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    :`<svg class="merch-cat-icon" width="96" height="96" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
+  const{fresh}=merchPriceState(it);
+  setTitle(it.titulo);
+  main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/merch">Colecionáveis e merch</a> › <span>${esc(it.titulo)}</span></nav>
+  <div class="merch-item-layout">
+    <div class="merch-item-media ${hasPhoto?'has-photo':(art?'has-art':'')}" style="${style}">${media}</div>
+    <div class="merch-item-body">
+      <div class="merch-square-chips" style="position:static;margin-bottom:10px"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.exemplo?mockChip():''}</div>
+      <h1 class="page-h" style="font-size:28px">${esc(it.titulo)}</h1>
+      ${u?`<p class="lede">${esc(pal?.nome||u.name)}</p>`:''}
+      <div class="merch-item-price">${merchPriceLine(it)}</div>
+      <p class="fine" style="margin-top:4px">Preço do produto; frete e impostos calculados na loja pelo seu CEP.</p>
+      ${it.origem==='importado'?'<p class="fine">Compra internacional: pode haver ICMS e prazo maior.</p>':''}
+      <p class="fine" style="margin-top:10px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>
+      <div class="merch-item-actions">
+        <a class="btn btn-primary" href="${esc(safeUrl(it.url))}" target="_blank" rel="sponsored noopener">Ver na ${esc(it.loja)} ↗</a>
+        <a class="btn btn-ghost btn-sm" href="#/contato?assunto=remocao">Pedir remoção de conteúdo</a>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* ---------- Meu Inventário ---------- */
@@ -2056,15 +2333,20 @@ function renderNotFound(){
 const SIMPLE_PAGES={
   sobre:'Sobre',contato:'Contato',privacidade:'Privacidade',termos:'Termos de uso','aviso-afiliado':'Aviso de afiliado'
 };
-function renderSimplePage(slug){
+// Pacote4 5.2: #/contato?assunto=remocao (link do rodapé) pré-seleciona o
+// assunto na página de Contato — texto jurídico de verdade continua por
+// conta do dono, isto só mostra qual assunto trouxe a visita.
+const CONTATO_ASSUNTOS={remocao:'Remoção de conteúdo'};
+function renderSimplePage(slug,params){
   const title=SIMPLE_PAGES[slug];
   if(!title)return renderNotFound();
   setTitle(title);
+  const assunto=slug==='contato'?CONTATO_ASSUNTOS[params?.get('assunto')||'']:null;
   // Nota: rota hash de SPA — <meta name="robots"> inserido via innerHTML não
   // tem efeito real de indexação (precisaria estar no <head> estático ou
   // num cabeçalho HTTP); como são só placeholders "em elaboração", motor de
   // busca não tem conteúdo relevante pra indexar de qualquer forma.
-  main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">${esc(title)}</h1><p>Conteúdo em elaboração.</p><p style="margin-top:12px"><a class="btn btn-outline btn-sm" href="#/">Voltar ao início</a></p></div>`;
+  main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">${esc(title)}</h1>${assunto?`<p class="fine">Assunto: <b>${esc(assunto)}</b></p>`:''}<p>Conteúdo em elaboração.</p><p style="margin-top:12px"><a class="btn btn-outline btn-sm" href="#/">Voltar ao início</a></p></div>`;
 }
 
 
