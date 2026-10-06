@@ -5,6 +5,10 @@
   --teal:#0D9488;--teal-ink:#0F766E;--teal-tint:#E6F6F4;
   --radius:8px;--shadow-pop:0 10px 30px rgba(31,41,55,.18);
   --header-h:72px;
+  /* Pacote4 1.8: título de seção único pro site inteiro (home, universo,
+     plataforma, busca, diretório) — era clamp(30px,4vw,45px)/600, ficava
+     ~48px em telas largas; a vistoria (rodada 12) pediu 32px/500 fixo. */
+  --fs-section:32px;--lh-section:38px;
   /* Pacote2, item 6: tokens de movimento "expressivo" — nunca mais que
      400ms, só transform/opacity/border-radius/background-color (ver regra
      geral no fim do arquivo), prefers-reduced-motion desliga tudo. */
@@ -1130,8 +1134,9 @@ main{max-width:1240px;padding:34px 28px 80px}
 .universe-hero-route{--text-1:#fff;--text-2:rgba(255,255,255,.68)}
 h1,h2,h3{color:var(--text-1)}
 .page-h,.home-feature h1,.compare-heading h1{font-family:var(--font-ui);font-weight:700;letter-spacing:-.02em;line-height:1.05}
-.lux-section-head h2{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em}
+.lux-section-head h2{font-family:var(--font-ui);font-weight:500;letter-spacing:-.02em}
 .lux-section-head p,.lux-section-head>a{color:var(--text-2)}
+.lux-section-head p{font-size:13px}
 .lux-section-head>a{font-weight:700;text-decoration:none;white-space:nowrap}
 .lux-section-head>a:hover{color:var(--text-1)}
 .eyebrow{display:block;color:var(--red-ink);font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
@@ -1186,7 +1191,7 @@ h1,h2,h3{color:var(--text-1)}
 .round-arrow{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);text-decoration:none;background:#F4EFE7;color:var(--ink)}
 .lux-section{margin-top:72px}
 .lux-section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
-.lux-section-head h2{font-size:clamp(30px,4vw,45px);line-height:1;margin-top:5px}
+.lux-section-head h2{font-size:var(--fs-section);line-height:var(--lh-section);margin-top:5px}
 .lux-section-head p{margin-top:8px}
 .home-offer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
 .lux-product-card{overflow:hidden;border-radius:17px;background:#FAF8F3;border:1px solid var(--line);box-shadow:0 1px 0 rgba(43,36,28,.02)}
@@ -1302,7 +1307,7 @@ h1,h2,h3{color:var(--text-1)}
   body{padding-bottom:64px}.header-inner{min-height:0;padding:8px 12px;display:grid;grid-template-columns:1fr auto;grid-template-areas:"brand inv" "search search";gap:8px 12px}.brand{grid-area:brand;width:174px;min-width:0}.brand-logo{height:48px}.search{grid-area:search}.main-nav{display:none}.inv-link{grid-area:inv}.inv-link>span:nth-child(2){display:none}
   main{padding:20px 12px 82px}
   .home-feature{min-height:480px;border-radius:19px}.home-feature-art{min-height:100%}.home-feature-art.has-image{background-image:linear-gradient(0deg,rgba(20,18,16,.96) 0%,rgba(20,18,16,.50) 55%,rgba(20,18,16,.08) 100%),var(--hero-img);background-position:center}.home-feature-copy{width:100%;min-height:480px;padding:190px 22px 86px;justify-content:flex-end}.home-feature h1{font-size:42px}.home-feature-copy p{font-size:14px}.home-trending-cards{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:-58px 12px 0;padding:0 2px 18px}.home-trend-card{min-width:292px;scroll-snap-align:start}
-  .lux-section{margin-top:48px}.lux-section-head{align-items:flex-start}.lux-section-head h2{font-size:34px}.lux-section-head>a{font-size:12px}.home-offer-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}.lux-product-card{min-width:245px;scroll-snap-align:start}
+  .lux-section{margin-top:48px}.lux-section-head{align-items:flex-start}.lux-section-head>a{font-size:12px}.home-offer-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}.lux-product-card{min-width:245px;scroll-snap-align:start}
   .merch-home-stage{grid-template-columns:1fr;margin-top:48px;padding:28px 20px;border-radius:19px}.merch-home-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 16px}.merch-home-card{min-width:226px;scroll-snap-align:start}
   
   .game-hero{min-height:460px;border-radius:19px}.game-hero-art{position:absolute;grid-row:auto;min-height:100%}.game-hero-art.has-image{background-image:linear-gradient(0deg,rgba(20,18,16,.97) 0%,rgba(20,18,16,.58) 55%,rgba(20,18,16,.08) 100%),var(--hero-img)}.game-hero-art::before,.game-hero-art.has-image::before{background:linear-gradient(0deg,rgba(20,18,16,.92),transparent 72%)}.game-hero-copy{grid-row:auto;width:100%;min-height:460px;padding:205px 22px 28px;justify-content:flex-end}.game-hero h1{font-size:39px}.game-commerce-grid{grid-template-columns:1fr}.purchase-module{grid-template-columns:104px minmax(0,1fr);padding:12px}.visual-menu-card{display:grid;grid-template-columns:124px minmax(0,1fr);border-radius:15px}.visual-menu-art{min-height:160px}
@@ -1462,7 +1467,6 @@ html{overflow-x:hidden}
 }
 .universe-game-shelf{margin-top:var(--space-hero-section)}
 .universe-game-shelf .lux-section-head,.universe-related .lux-section-head{margin-bottom:var(--space-title-cards)}
-.universe-game-shelf .lux-section-head h2{font-size:32px}
 /* parteB 3: "Ver todos" — pílula de vidro à esquerda das setas; título
    clicável pro mesmo destino (#/busca?universo=...). */
 .universe-offers-title-link{color:inherit;text-decoration:none}
@@ -1519,7 +1523,6 @@ body.dark-surface-route .universe-offer-card .save-btn{background:rgba(10,4,8,.5
   .home-feature-controls{left:22px;bottom:72px}
   .ecosystem-visual{min-height:112px}.ecosystem-visual>.ico{width:58px;height:58px}
   .ecosystem-links{gap:5px;margin-top:14px}.ecosystem-links a{padding:5px 7px;font-size:10px}
-  .universe-game-shelf .lux-section-head h2{font-size:30px}
 }
 @media(prefers-reduced-motion:reduce){
   .home-feature-slide{transition:none}
@@ -2068,7 +2071,6 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
    ficam esticados num grid fixo de 3 colunas com um terço vazio. Título no
    mesmo estilo padronizado dos demais títulos de seção (ver 1.8). */
 .discover-more-grid{display:grid;grid-template-columns:repeat(var(--dmc-count,3),minmax(0,1fr));gap:16px}
-.universe-discover-more .lux-section-head h2{font-size:32px;font-weight:500;line-height:38px}
 .discover-more-card{display:flex;align-items:stretch;gap:0;min-height:112px;border-radius:16px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border);text-decoration:none;transition:border-color .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04)}
 .discover-more-card:hover{border-color:rgba(255,255,255,.28)}
 .dmc-media{flex:0 0 38%;position:relative;overflow:hidden;background:linear-gradient(150deg,var(--panel-base),var(--page-bg));display:flex;align-items:center;justify-content:center;color:var(--text-2)}
