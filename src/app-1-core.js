@@ -184,6 +184,11 @@ const SEARCH_MISS_LOG=false;
 // autocomplete e banner "Conheça o universo" (que nunca mostrou o aviso,
 // só o nome oficial); código mantido pra religar bastando virar true.
 const ALIAS_NOTE=false;
+// Pacote4 3.4: tenta a versão pt-br dos links diretos da PlayStation Store
+// (troca o segmento de locale da URL) — desligado por padrão; sem rede
+// neste ambiente pra validar contra a Store de verdade (ver app-2-search.js
+// psStoreLocaleBR). Ligar só depois de confirmar no preview.
+const STORE_LOCALE_BR=false;
 // Item 6 (rodada 5) / pacote único, item 6.3: override manual de hero por
 // jogo (src/data/hero-overrides.json). {url} só aceita o CDN oficial da
 // IGDB (images.igdb.com) — qualquer outra origem é rejeitada (e avisada no

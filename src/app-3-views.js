@@ -1103,8 +1103,26 @@ function renderProduct(slug,params,token){
 }
 
 /* ---------- comparação de ofertas em página completa ---------- */
+// Pacote4 3.3: com link direto (página do jogo na própria loja) o rótulo é
+// "Ver na {loja} ↗"; sem link direto (cai na busca da loja), "Buscar na
+// {loja} ↗" — pro visitante nunca achar que uma busca é a ficha do jogo.
 function digitalOfferCards(p,platform,stores){
-  return stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join('');
+  return stores.map(s=>{
+    const url=s.direto&&s.storeKey==='PlayStation'?psStoreLocaleBR(s.url):s.url;
+    const label=`${s.direto?'Ver na':'Buscar na'} ${s.name} ↗`;
+    return `<article class="compare-offer-card digital" data-store-card="${esc(s.storeKey||s.name)}"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>${s.direto?'Abre a página do jogo na loja.':'Preço e disponibilidade exibidos na loja.'}</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(url))}" target="_blank" rel="noopener noreferrer">${esc(label)}</a></article>`;
+  }).join('');
+}
+// Pacote4 3.3: troca o link de busca pelo direto assim que a IGDB (3.1)
+// responder — mesma chamada/cache de fetchIgdbVisual que o resto da ficha
+// já usa (nenhum pedido novo). Catálogo manual (3.2) já venceu no render
+// síncrono; aqui só a IGDB pode ainda melhorar o link.
+async function hydrateDigitalStoreLinks(p,platform,selector,stores,token){
+  const d=await fetchIgdbVisual(igdbTitleFor(p,platform),platform,p.year||'');
+  if(token!==viewToken||!d?.lojas?.length)return;
+  const merged=applyDirectStoreLinks(stores,[...catalogStoreLinks(p),...d.lojas]);
+  const el=$(selector);
+  if(el)el.innerHTML=digitalOfferCards(p,platform,merged);
 }
 function comparisonSpinnerOff(){const el=document.querySelector('.compare-spinner');if(el)el.style.display='none'}
 function comparisonHref(p,platform,cond){
@@ -1163,8 +1181,8 @@ async function renderOfferComparison(slug,params,token){
   hydrateComparisonDetails(p,platform);
   const offers=$('#comparisonOffers'),status=$('#compareStatus');
   if(cond==='all'){
-    const stores=digitalAvailable?digitalStores(p,platform):[];
-    if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
+    const stores=digitalAvailable?applyDirectStoreLinks(digitalStores(p,platform),catalogStoreLinks(p)):[];
+    if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl,direto:true});
     const loading='<div class="compare-loading"><span></span><span></span><span></span></div>';
     // Pacote4 2.2/2.5: jogo semDisco nunca revende Usado, e jogo ainda não
     // lançado não tem mercado de Usado nenhum — a aba "Todos" mostra o
@@ -1174,7 +1192,8 @@ async function renderOfferComparison(slug,params,token){
     const usedMsg=notLaunched?'Ainda não lançado.':'Sem revenda (código de uso único).';
     offers.innerHTML=`<section class="compare-block"><h3>Novo ${formatBadgeMarkup(p)}</h3>${p.semDisco?'<p class="fine">Caixa com código de download, sem disco.</p>':''}<div class="compare-offers" id="cmp-new">${loading}</div></section>
       <section class="compare-block"><h3>Usado</h3>${noUsedMarket?`<div class="empty compact"><p>${esc(usedMsg)}</p></div>`:`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
-      ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
+      ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers" id="cmp-digital">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
+    if(stores.length)hydrateDigitalStoreLinks(p,platform,'#cmp-digital',stores,token);
     const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),noUsedMarket?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
     if(token!==viewToken)return;
     const fill=(id,res)=>{
@@ -1190,12 +1209,13 @@ async function renderOfferComparison(slug,params,token){
     return;
   }
   if(cond==='digital'){
-    const stores=digitalStores(p,platform);
-    if(!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl});
+    const stores=applyDirectStoreLinks(digitalStores(p,platform),catalogStoreLinks(p));
+    if(!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl,direto:true});
     if(token!==viewToken)return;
     status.textContent=stores.length?`${stores.length} ${stores.length===1?'loja':'lojas'} · preço e disponibilidade na própria loja`:'Consulte as lojas';
     comparisonSpinnerOff();
-    offers.innerHTML=stores.length?stores.map(s=>`<article class="compare-offer-card digital"><div class="compare-source"><b>${esc(s.name)}</b>${retailChip(s.kind)}<span>Mídia digital</span></div><div class="compare-listing"><span class="compare-thumb-empty">${ico('gamepad',20)}</span><div><strong>${esc(p.title)} · ${esc(platform)}</strong><small>Preço e disponibilidade exibidos na loja.</small></div></div><div class="compare-price"><span>Preço</span><b>Consultar</b></div><a class="btn btn-primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Ver no site →</a></article>`).join(''):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    offers.innerHTML=stores.length?digitalOfferCards(p,platform,stores):`<div class="empty"><p>Nenhuma loja digital oficial catalogada para esta versão.</p></div>`;
+    if(stores.length)hydrateDigitalStoreLinks(p,platform,'#comparisonOffers',stores,token);
     return;
   }
   // Pacote4 2.2/2.5: aba Usado isolada num jogo semDisco (não consulta
