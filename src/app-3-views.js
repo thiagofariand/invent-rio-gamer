@@ -410,17 +410,51 @@ function retroSection(exclude){
   </section>`;
 }
 
-/* ---- 3.8: Colecionáveis e merch (quadrados) ou fallback "Além dos jogos" ---- */
-function homeMerchSquareCard(it){
-  const cta=it.unique
-    ?`<button type="button" class="btn btn-ghost btn-sm" data-act="mock-item" data-id="${esc(it.id)}">Ver item →</button>`
-    :`<button type="button" class="btn btn-ghost btn-sm" data-act="open-merch-offers" data-id="${esc(it.id)}">Ver oferta →</button>`;
-  return `<article class="merch-square-card">${coverTile(it.title,{size:'wide',mock:true})}
-    <div class="merch-square-body"><b>${esc(it.title)}</b><small>${esc(ORIGIN_LABEL[it.origin]||'')}</small><span class="merch-square-price">${brl(it.price)}</span>${cta}</div>
-  </article>`;
+/* ---- 3.8 / pacote4 4.2-4.4: card de merch (quadrado, sem foto por padrão) ---- */
+const MERCH_ORIGEM_LABEL={nacional:'Nacional',importado:'Importado'};
+const MERCH_TIPO_LABEL={oficial:'Oficial',licenciado:'Licenciado','fan-made':'Fan-made','nao-confirmado':'Não confirmado'};
+// Pacote4 4.3: "a partir de R$X · loja · atualizado há N dias" só com
+// precoAtualizadoEm de até 14 dias; passado isso (ou preco nulo), "Ver
+// preço na {loja}" sem número — nunca finge um preço "ao vivo" que não é.
+function merchPriceState(it){
+  if(it.preco==null||!it.precoAtualizadoEm)return{fresh:false,days:null};
+  const days=Math.floor((Date.now()-new Date(it.precoAtualizadoEm+'T00:00:00').getTime())/86400000);
+  return{fresh:days>=0&&days<=14,days};
+}
+function merchPriceLine(it){
+  const{fresh,days}=merchPriceState(it);
+  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}</b></span><span class="merch-price-meta">${esc(it.loja)} · atualizado ${days===0?'hoje':`há ${days} dia${days===1?'':'s'}`}</span>`;
+  return `<span class="merch-price-cta">Ver preço na ${esc(it.loja)}</span>`;
+}
+// Pacote4 4.2: só renderiza foto com imagem+imagemAutorizada===true (nunca
+// hospedamos/copiamos foto de terceiro por conta própria); sem isso, cai
+// no ícone da categoria (card "estilo C", 4.4) — fundo = arte do universo
+// JÁ EM CACHE (heroImageCache, mesma do hero; sem pedido novo) ampliada e
+// desfocada, ou o degradê da paleta sem arte nenhuma.
+function merchSquareCard(it){
+  const u=it.universo?uMap.get(it.universo):null;
+  const pal=u?paletteForUniverse(u):null;
+  const base=pal?.fundo||'#1f0b14';
+  const art=it.universo?heroImageCache.get(it.universo):null;
+  const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
+  const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
+  const media=hasPhoto
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    :`<svg class="merch-cat-icon" width="66" height="66" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
+  return `<a class="merch-square-card" href="#/item/${esc(it.id)}" style="${style}">
+    <div class="merch-square-media ${hasPhoto?'has-photo':(art?'has-art':'')}">
+      ${media}
+      <span class="merch-square-chips"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span></span>
+    </div>
+    <div class="merch-square-body">
+      <b class="merch-square-title">${esc(it.titulo)}</b>
+      <div class="merch-square-price">${merchPriceLine(it)}</div>
+      <small class="merch-square-store">${esc(it.loja)}</small>
+    </div>
+  </a>`;
 }
 function homeMerchSection(){
-  const items=mockMerch()?M.items.slice(0,12):[];
+  const items=merchItemsVisible().slice(0,12);
   if(!items.length){
     return `<section class="merch-home-stage" aria-labelledby="home-merch-title" data-lazy-section>
       <div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
@@ -432,7 +466,7 @@ function homeMerchSection(){
   }
   return `<section class="lux-section home-merch-squares" aria-labelledby="home-merch-title" data-lazy-section>
     <div class="lux-section-head"><div>${rowTitleLink('home-merch-title','Colecionáveis e merch','#/merch')}</div></div>
-    <div class="merch-square-grid">${items.map(homeMerchSquareCard).join('')}</div>
+    <div class="merch-square-grid">${items.map(merchSquareCard).join('')}</div>
   </section>`;
 }
 
