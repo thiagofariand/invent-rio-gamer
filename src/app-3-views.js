@@ -1177,7 +1177,7 @@ function universeHeroMarkup(u,titles,preferredPlatforms){
           <div class="universe-hero-legibility" aria-hidden="true"></div>
           <div class="game-hero-copy">
             ${badge?`<span class="game-hero-kicker">${esc(badge)}</span>`:''}
-            <h1>${esc(p?p.title:'Universo '+u.name)}</h1>
+            <h1${(p?p.title:'Universo '+u.name).length>32?' class="is-long-title"':''}>${esc(p?p.title:'Universo '+u.name)}</h1>
             <p>${p?`${esc(platform)}${p.year?` · ${esc(p.year)}`:''}`:(titles.length?`${titles.length} jogos catalogados.`:'Catálogo em preenchimento.')}</p>
             ${p?`<div class="game-hero-actions">${universeHeroCtaMarkup(p,platform)}</div>`:''}
           </div>
