@@ -216,12 +216,30 @@ const retailChip=kind=>kind==='oficial'?'<span class="retail-chip oficial">Loja 
 const collectionsByTitle=new Map();
 Object.values(D.collections).forEach(c=>c.items.forEach(i=>{if(!collectionsByTitle.has(i.title))collectionsByTitle.set(i.title,i)}));
 const usedSlugs=new Set();
+// Pacote4 2.1: Sony anunciou (1º/07/2026) que, a partir de jan/2028, jogos
+// novos de PlayStation vêm só digital ou em caixa física COM CÓDIGO (sem
+// disco). semDisco é manual por título (campo no catalog-data.js, ex.: GTA
+// VI, cuja edição física já nasce sem disco antes da regra geral) OU
+// automático: jogo de PlayStation com lançamento >= 2028-01-01. formato
+// deriva de semDisco quando não vier explícito no catálogo.
+const PS_NO_DISC_FROM='2028-01-01';
+function computeSemDisco(p){
+  if(typeof p.semDisco==='boolean')return p.semDisco;
+  const isPlayStation=(p.variants||[]).some(v=>v[0]==='PlayStation');
+  return !!(isPlayStation&&p.releaseDate&&p.releaseDate>=PS_NO_DISC_FROM);
+}
+function computeFormato(p,semDisco){
+  if(p.formato)return p.formato;
+  if(p.new===false&&p.used===false)return 'digital';
+  return semDisco?'fisico-codigo':'fisico-disco';
+}
 const catalog=D.catalog.map(p=>{
   const c=collectionsByTitle.get(p.title);
   let slug=c?c.slug:slugify(p.title);
   while(usedSlugs.has(slug))slug+='-2';
   usedSlugs.add(slug);
-  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:normSearch([p.title,...p.aliases,p.franchise].join(' '))};
+  const semDisco=computeSemDisco(p);
+  return {...p,slug,year:c?c.year:null,universe:slugify(p.franchise),searchText:normSearch([p.title,...p.aliases,p.franchise].join(' ')),semDisco,formato:computeFormato(p,semDisco)};
 });
 const catalogBySlug=new Map(catalog.map(p=>[p.slug,p]));
 
