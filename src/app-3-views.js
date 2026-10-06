@@ -46,12 +46,21 @@ function homeOfferCard(p,label){
   const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
   const condLabel=cached?'Usado':demo?.label;
   const value=cached?.minDisplay||demo?.display;
+  const isMock=!!(value&&!cached);
   // Item 2 (rodada 5): sem sobretítulo — o rótulo era o único lugar da
   // condição, então o preço nunca aparece sem ela ("Usado R$ X").
+  // Pacote4 1B.2: o selo EXEMPLO saiu de dentro do <strong> (cortava em
+  // cards estreitos) e virou um selo de canto sobre a capa — mas a capa é o
+  // próprio alvo de hydrateIgdbCovers() (data-igdb-cover faz
+  // el.innerHTML=coverTile(...)), então o selo fica num wrapper à parte
+  // (.lux-product-media), nunca dentro do elemento que a IGDB substitui.
   return `<article class="lux-product-card">
-    <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
+    <div class="lux-product-media">
+      <a class="lux-product-image igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{size:'wide',note:false})}</a>
+      <span class="corner-mock"${isMock?'':' hidden'}>EXEMPLO</span>
+    </div>
     <div class="lux-product-body"><h3><a href="#/jogo/${p.slug}">${esc(p.title)}</a></h3><p>${esc(platform)}${p.year?` · ${p.year}`:''}</p>
-    ${value?`<strong>${esc(condLabel)} ${esc(value)}${!cached?' '+mockChip():''}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
+    ${value?`<strong>${esc(condLabel)} ${esc(value)}</strong>`:'<span class="quiet-link">Ver opções →</span>'}</div>
   </article>`;
 }
 let homeRenderId=0;
@@ -1326,6 +1335,20 @@ function universeOfferDigital(p,platform){
 // passar por sampleOffers(), a ÚNICA fonte de preço de exemplo do site (ver
 // comentário em app-1-core.js). Agora, com o modo demonstração ligado, usa o
 // mesmo preço de exemplo que o hero/home já mostram pro mesmo jogo.
+// Pacote4 1B.2: o selo EXEMPLO morava DENTRO do chip ("Usado R$ 227,90
+// EXEMPLO"), que cortava em cards estreitos (ex.: Xbox "Ofertas em
+// destaque"). Agora o chip some só com o preço — o selo vira um selo de
+// canto na capa (ver .uoc-mock-badge), controlado por esta função auxiliar.
+function universeOfferIsMock(p,platform){
+  const best=universeOfferPhysicalBest(p,platform);
+  const digital=universeOfferDigital(p,platform);
+  if(!best&&!digital){
+    if(!mockOn())return false;
+    const demo=sampleOffers(p.title,{year:p.year});
+    return !!(demo.used||demo.new);
+  }
+  return !!(best?.summary?.mock||digital?.mock);
+}
 function universeOfferPriceChipsMarkup(p,platform){
   const best=universeOfferPhysicalBest(p,platform);
   const digital=universeOfferDigital(p,platform);
@@ -1333,16 +1356,16 @@ function universeOfferPriceChipsMarkup(p,platform){
     if(mockOn()){
       const demo=sampleOffers(p.title,{year:p.year});
       const chips=[];
-      if(demo.used)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'used')}">Usado ${esc(demo.used.display)} ${mockChip()}</a>`);
-      else if(demo.new)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'new')}">Novo ${esc(demo.new.display)} ${mockChip()}</a>`);
+      if(demo.used)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'used')}">Usado ${esc(demo.used.display)}</a>`);
+      else if(demo.new)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'new')}">Novo ${esc(demo.new.display)}</a>`);
       if(demo.digital?.consult)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital — consultar</a>`);
       if(chips.length)return chips.join('');
     }
     return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
   }
   const chips=[];
-  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''}</a>`);
-  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}${digital.mock?' '+mockChip():''}</a>`);
+  if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}</a>`);
+  if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}</a>`);
   return chips.join('');
 }
 /* ---------- carrossel de cards (rodada11, item 5) ----------
@@ -1392,8 +1415,10 @@ function universeOfferCard(p){
   // Card inteiro abre na aba do chip principal (o físico mais barato, ou
   // o digital se só ele existir; sem nenhuma oferta, vai pra ficha do jogo).
   const mainHref=best?comparisonHref(p,platform,best.cond):digital?comparisonHref(p,platform,'digital'):`#/jogo/${p.slug}?plat=${enc(platform)}`;
+  const isMock=universeOfferIsMock(p,platform);
   return `<article class="universe-offer-card">
     <a class="uoc-cover igdb-cover-slot" href="${mainHref}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}" aria-label="Ver ofertas de ${esc(p.title)}">${coverTile(p.title,{note:false})}</a>
+    <span class="corner-mock" data-uoc-mock="${esc(p.slug)}"${isMock?'':' hidden'}>EXEMPLO</span>
     ${saveButton(gameRef(p))}
     <div class="uoc-overlay">
       <h3 class="uoc-title">${esc(p.title)}</h3>
@@ -1408,8 +1433,9 @@ async function hydrateUniverseOffers(games,token){
     await Promise.all(conds.map(cond=>fetchCond(p.title,platform,cond)));
     if(token!==viewToken)return;
     const slot=main.querySelector(`[data-universe-offer-price="${p.slug}"]`);
-    if(!slot)return;
-    slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
+    if(slot)slot.innerHTML=universeOfferPriceChipsMarkup(p,platform);
+    const badge=main.querySelector(`[data-uoc-mock="${p.slug}"]`);
+    if(badge)badge.hidden=!universeOfferIsMock(p,platform);
   });
 }
 // Pacote2, item 5: card com "hover-expand" (ver initHoverExpand) pras
