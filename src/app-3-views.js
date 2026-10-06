@@ -1992,11 +1992,6 @@ function renderPlatform(slug,params,token){
         <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
         <div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>${carouselEdgesMarkup('plat-offers')}</div>
       </section>
-      <div class="platform-cta-row3">
-        ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
-        ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
-        ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
-      </div>
     </div>
     <aside class="platform-side-col">
       <div class="platform-brand-panel" aria-label="${esc(label)}">
@@ -2008,6 +2003,11 @@ function renderPlatform(slug,params,token){
         <a class="sidebar-see-all" href="#/universos?casa=${slug}">Ver todos →</a>
       </div>`:''}
     </aside>
+  </div>
+  <div class="platform-cta-row3">
+    ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
+    ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
+    ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
   </div>
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);

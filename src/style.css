@@ -2134,11 +2134,10 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .cta-compact-icon.collectibles{background:linear-gradient(145deg,#70433C,#A75C4D)}
 .cta-compact-icon.fanmade{background:linear-gradient(145deg,#294F56,#47747A)}
 .cta-compact-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-.cta-compact-body b{font-size:18px;font-weight:500;line-height:1.2;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cta-compact-body b{font-size:18px;font-weight:500;line-height:1.2;color:var(--text-1);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cta-compact-body small{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cta-compact-link{font-size:13px;font-weight:600;color:var(--action-on-glass);margin-top:2px}
+.cta-compact-link{flex:none;font-size:13px;font-weight:600;color:var(--action-on-glass);margin-top:2px}
 .cta-compact:hover{border-color:var(--glass-border,var(--line-strong));background:var(--glass-3,var(--gray))}
-@media(max-width:760px){.cta-compact-body b{white-space:normal}}
 
 /* ============================================================
    FASE 6 — VIDRO FUMÊ NO RESTO DO SITE (home, busca, universos,
