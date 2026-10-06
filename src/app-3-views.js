@@ -1057,7 +1057,10 @@ function renderProduct(slug,params,token){
   // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
   // título continua trazendo esse contexto em texto corrido (não é mais
   // pílula), e o kicker vira as novas pílulas (disponibilidade + PRÉ-VENDA).
-  const heroCopy=[p.franchise,platform,p.year].filter(Boolean).join(' · ');
+  // Pacote4 2.4: jogo ainda não lançado troca o ano (que nem existe —
+  // collections só tem jogo já saído) pela data prevista.
+  const releaseCopy=releaseState(p)!=='lancado'?releaseDateDisplay(p):'';
+  const heroCopy=[p.franchise,platform,releaseCopy||p.year].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
   ${gameHeroMarkup({title:p.title,pillsHtml:productHeroPillsMarkup(p,u),copy:heroCopy,image:heroImage,actions:heroActions,heroClass:'product-hero'})}

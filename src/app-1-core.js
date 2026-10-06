@@ -320,10 +320,31 @@ function paletteForUniverse(u){
   if(!u)return null;
   return paletaIdx.get(u.slug)||paletaIdx.get(norm(u.name))||null;
 }
+// Pacote4 2.4: estado de lançamento — "lancamento" é o par releaseDate
+// (ISO, campo já existente no catálogo, reaproveitado como a "data") +
+// preVenda (boolean, novo; "fonte" já existe como catalogSources). Estado
+// derivado: data futura + preVenda => 'pre-venda'; data futura sem
+// preVenda => 'anunciado'; data passada ou ausente => 'lancado'. A virada
+// é à meia-noite em America/Sao_Paulo (não no fuso de quem está vendo),
+// por isso compara datas (YYYY-MM-DD) em vez de diffDays com Date local.
+const saoPauloDateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'});
+function todaySaoPaulo(){return saoPauloDateFmt.format(new Date())}
+function releaseState(p){
+  if(!p||!p.releaseDate)return 'lancado';
+  if(p.releaseDate<=todaySaoPaulo())return 'lancado';
+  return p.preVenda?'pre-venda':'anunciado';
+}
+function releaseDateDisplay(p){
+  if(!p||!p.releaseDate)return '';
+  const [y,m,d]=p.releaseDate.split('-');
+  return `Lançamento previsto: ${d}/${m}/${y}`;
+}
 function releaseBadge(p){
+  const state=releaseState(p);
+  if(state==='pre-venda')return 'PRÉ-VENDA';
+  if(state==='anunciado')return 'EM BREVE';
   if(!p||!p.releaseDate)return null;
   const rd=new Date(p.releaseDate+'T00:00:00'),diffDays=(rd-new Date())/86400000;
-  if(diffDays>0)return 'PRÉ-VENDA';
   if(diffDays>-10)return 'LANÇAMENTO';
   return null;
 }
