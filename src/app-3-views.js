@@ -1570,7 +1570,7 @@ function universeDiscoverMoreSection(u){
   }));
   return `<section class="lux-section universe-discover-more" aria-labelledby="universe-discover-more-title">
     <div class="lux-section-head"><div><h2 id="universe-discover-more-title">Mais para descobrir</h2></div></div>
-    <div class="discover-more-grid">${cards.join('')}</div>
+    <div class="discover-more-grid" style="--dmc-count:${cards.length}">${cards.join('')}</div>
   </section>`;
 }
 // Painel opaco (superfície tonal, nunca vidro) com a lista completa de jogos
