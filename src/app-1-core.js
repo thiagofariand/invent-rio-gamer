@@ -224,6 +224,19 @@ const retailChip=kind=>kind==='oficial'?'<span class="retail-chip oficial">Loja 
   :kind==='autorizado'?'<span class="retail-chip">Varejo autorizado</span>'
   :kind==='varejo'?'<span class="retail-chip">Varejo/revenda</span>':'';
 
+// Pacote4 3.2: campo manual `lojas` no catálogo — [{loja,url}], loja em
+// STORE_NAMES (mesmos nomes do mapeamento da IGDB em lib/igdb.js, pra UI
+// não ter que conhecer dois vocabulários) — tem PRIORIDADE sobre o link
+// que a IGDB (3.1) devolver pro mesmo jogo, pra corrigir manualmente os
+// títulos principais (sobretudo PlayStation/Xbox/Nintendo, cujo código de
+// categoria a IGDB não confirma de forma estável). Nenhuma URL é inventada
+// aqui — fica vazio até o dono confirmar e preencher no catalog-data.js.
+const STORE_NAMES=new Set(['Steam','GOG','Epic Games','Xbox','PlayStation','Nintendo','itch.io']);
+function catalogStoreLinks(p){
+  if(!Array.isArray(p?.lojas))return [];
+  return p.lojas.filter(l=>l&&STORE_NAMES.has(l.loja)&&/^https?:\/\//i.test(String(l.url||'')));
+}
+
 /* ---------- catálogo: slugs, universos, plataformas ---------- */
 const collectionsByTitle=new Map();
 Object.values(D.collections).forEach(c=>c.items.forEach(i=>{if(!collectionsByTitle.has(i.title))collectionsByTitle.set(i.title,i)}));
