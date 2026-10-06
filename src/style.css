@@ -159,7 +159,12 @@ main:focus-visible{outline:none}
 .card-price{font-weight:750;font-size:15px}
 .card-price small{font-weight:500;color:var(--muted);font-size:12px}
 .card-cta{margin-top:auto;padding-top:4px;color:var(--red-ink);font-weight:600;font-size:13.5px}
-.card .save-btn{position:absolute;top:14px;right:14px;z-index:4;padding:6px;border-radius:999px;background:rgba(255,255,255,.92)}
+/* 1.6: coração de favorito — vidro escuro (28px, blur) legível sobre
+   qualquer capa, igual nos 3 contextos (home, universo, plataforma). */
+.card .save-btn{position:absolute;top:14px;right:14px;z-index:4;width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:999px;border:0;background:rgba(10,4,8,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff}
+/* specificidade (0,3,0): precisa bater body.dark-surface-route .save-btn
+   (0,2,0, declarado DEPOIS no arquivo — sem isso ele vencia por ordem). */
+body.dark-surface-route .card .save-btn{background:rgba(10,4,8,.55);color:#fff}
 .also h3{font-size:13px;font-weight:650;margin-bottom:6px}
 .also li a{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);text-decoration:none;font-size:14px}
 .also li a:hover .also-t{text-decoration:underline}
@@ -1491,8 +1496,9 @@ html{overflow-x:hidden}
   background:linear-gradient(155deg,color-mix(in oklab,var(--page-bg,#2A2521) 82%,black 8%),color-mix(in oklab,var(--action,var(--accent)) 55%,var(--page-bg,#2A2521) 45%));
 }
 .uoc-cover .cv-ini{margin:0;align-self:auto;font-size:clamp(32px,5vw,56px);opacity:.16;color:#fff}
-.universe-offer-card .save-btn{position:absolute;z-index:3;top:16px;right:16px;background:rgba(0,0,0,.45);border:0;color:#fff}
+.universe-offer-card .save-btn{position:absolute;z-index:3;top:16px;right:16px;width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(10,4,8,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:0;color:#fff}
 .universe-offer-card .save-btn:hover{background:rgba(0,0,0,.65)}
+body.dark-surface-route .universe-offer-card .save-btn{background:rgba(10,4,8,.55);color:#fff}
 .uoc-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .uoc-title{margin:0;color:#fff;font:600 13.5px/1.25 var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .uoc-chips{display:flex;flex-wrap:wrap;gap:6px}
