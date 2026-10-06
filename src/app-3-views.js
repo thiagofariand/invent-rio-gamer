@@ -2147,25 +2147,93 @@ function renderPlatform(slug,params,token){
   initCarouselRows(main);
 }
 
-/* ---------- merch, colecionáveis e fan-made ---------- */
+/* ---------- pacote4 4.6: merch, colecionáveis e fan-made ---------- */
+const MERCH_CATEGORIA_LABEL={colecionaveis:'Colecionáveis',decoracao:'Decoração',casa:'Casa',iluminacao:'Iluminação',vestuario:'Vestuário','livros-arte':'Livros e arte'};
+const MERCH_CATEGORIA_ORDER=['colecionaveis','decoracao','casa','iluminacao','vestuario','livros-arte'];
+function readMerchFilters(params){
+  const list=k=>(params.get(k)||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const num=k=>{const v=parseFloat(String(params.get(k)||'').replace(',','.'));return Number.isFinite(v)?v:null};
+  return {
+    universo:new Set(list('universo')),
+    categoria:new Set(list('categoria')),
+    origem:new Set(list('origem')),
+    tipo:new Set(list('tipo')),
+    min:num('min'),max:num('max'),
+    sort:params.get('sort')||'relevancia'
+  };
+}
+function applyMerchFilters(items,F){
+  return items.filter(it=>{
+    if(F.universo.size&&!F.universo.has(it.universo||''))return false;
+    if(F.categoria.size&&!F.categoria.has(it.categoria))return false;
+    if(F.origem.size&&!F.origem.has(it.origem))return false;
+    if(F.tipo.size&&!F.tipo.has(it.tipo))return false;
+    if(F.min!=null||F.max!=null){
+      if(it.preco==null)return false;
+      if(F.min!=null&&it.preco<F.min)return false;
+      if(F.max!=null&&it.preco>F.max)return false;
+    }
+    return true;
+  });
+}
+function sortMerchItems(items,sort){
+  if(sort==='menor-preco')return [...items].sort((a,b)=>(a.preco??Infinity)-(b.preco??Infinity));
+  if(sort==='atualizados')return [...items].sort((a,b)=>String(b.precoAtualizadoEm||'').localeCompare(String(a.precoAtualizadoEm||'')));
+  return items;
+}
+function merchActiveChips(F){
+  const chips=[];
+  F.universo.forEach(v=>chips.push(['universo',v,uMap.get(v)?.name||v]));
+  F.categoria.forEach(v=>chips.push(['categoria',v,MERCH_CATEGORIA_LABEL[v]||v]));
+  F.origem.forEach(v=>chips.push(['origem',v,MERCH_ORIGEM_LABEL[v]||v]));
+  F.tipo.forEach(v=>chips.push(['tipo',v,MERCH_TIPO_LABEL[v]||v]));
+  if(F.min!=null||F.max!=null)chips.push(['preco','','Preço: '+(F.min!=null?brl(F.min):'R$0')+' – '+(F.max!=null?brl(F.max):'∞')]);
+  return chips;
+}
+// Mesma estrutura visual de fdropCheckList (busca), mas com data-mfilter
+// em vez de data-filter — os dois nomes nunca podem colidir, senão o
+// listener genérico de filtro da busca (escopo .filterbar, redireciona
+// pra #/busca) dispararia nesta página também.
+function mdropCheckList(name,items,isOn){
+  return `<div class="fdrop-options">${items.map(([val,label])=>`<label><input type="checkbox" data-mfilter="${name}" data-value="${esc(val)}" ${isOn(val)?'checked':''}> <span>${esc(label)}</span></label>`).join('')}</div>`;
+}
+function merchFilterBarMarkup(F,all){
+  const universosComItem=[...new Set(all.map(it=>it.universo).filter(Boolean))].map(slug=>[slug,uMap.get(slug)?.name||slug]).sort((a,b)=>a[1].localeCompare(b[1]));
+  // "cada categoria sem item fica oculta nos filtros" — mesma regra pra
+  // universo/origem/tipo, calculada sobre o conjunto completo (não o já
+  // filtrado pelos outros filtros, senão a lista encolheria sozinha).
+  const categoriasComItem=MERCH_CATEGORIA_ORDER.filter(c=>all.some(it=>it.categoria===c));
+  const origensComItem=['nacional','importado'].filter(o=>all.some(it=>it.origem===o));
+  const tiposComItem=['oficial','licenciado','fan-made','nao-confirmado'].filter(t=>all.some(it=>it.tipo===t));
+  const sortOpts=[['relevancia','Relevância'],['menor-preco','Menor preço'],['atualizados','Atualizados recentemente']];
+  const sortHrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/merch?'+p.toString()};
+  const current=sortOpts.find(([k])=>k===F.sort)||sortOpts[0];
+  return `<div class="filterbar-row merch-filterbar">
+    ${fdrop('m-universo','Universo',F.universo.size,universosComItem.length?mdropCheckList('universo',universosComItem,v=>F.universo.has(v)):'<p class="fine">Nenhum item com universo catalogado.</p>')}
+    ${fdrop('m-categoria','Categoria',F.categoria.size,mdropCheckList('categoria',categoriasComItem.map(c=>[c,MERCH_CATEGORIA_LABEL[c]]),v=>F.categoria.has(v)))}
+    ${fdrop('m-origem','Origem',F.origem.size,mdropCheckList('origem',origensComItem.map(o=>[o,MERCH_ORIGEM_LABEL[o]]),v=>F.origem.has(v)))}
+    ${fdrop('m-tipo','Tipo',F.tipo.size,mdropCheckList('tipo',tiposComItem.map(t=>[t,MERCH_TIPO_LABEL[t]]),v=>F.tipo.has(v)))}
+    ${fdrop('m-preco','Preço',(F.min!=null||F.max!=null)?1:0,`<div class="price-inputs">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-mprice="min" value="${F.min??''}">
+      <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ máx." aria-label="Preço máximo" data-mprice="max" value="${F.max??''}"></div>
+      <button type="button" class="btn btn-primary btn-sm btn-block" data-act="merch-apply-pricebar" style="margin-top:10px">Aplicar</button>`)}
+    <div class="filterbar-spacer"></div>
+    ${fdrop('m-sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${sortOpts.map(([k,l])=>`<a class="fdrop-link" href="${sortHrefFor(k)}" aria-current="${k===F.sort}">${esc(l)}</a>`).join('')}</div>`)}
+  </div>`;
+}
 function renderMerch(params){
-  const cat=params.get('cat')||'',tipo=params.get('tipo')||'',uni=params.get('uni')||'';
-  const tabs=[['','Todos'],...D.merchCategories.map(c=>[c.key,c.label])];
-  const c=D.merchCategories.find(x=>x.key===cat);
-  const list=mockMerch()?M.items.filter(it=>(!cat||it.cat===cat)&&(!tipo||it.type===tipo)&&(!uni||it.universe===uni)):[];
-  const uName=uni&&uMap.get(uni)?uMap.get(uni).name:'';
-  const types=Object.entries(D.merchTypes).filter(([k,t])=>(!cat||t.cat===cat)&&(!tipo||k===tipo));
-  const q=new URLSearchParams(params);
-  const tabHref=k=>{const p=new URLSearchParams();if(k)p.set('cat',k);if(uni)p.set('uni',uni);const s=p.toString();return '#/merch'+(s?'?'+s:'')};
-  setTitle(c?c.label:'Merch, colecionáveis e fan-made');
-  main.innerHTML=`<h1 class="page-h">${esc(c?c.label:'Merch, colecionáveis e fan-made')}</h1>
-  <p class="lede">${esc(c?c.hint+'.':'Acessórios, colecionáveis, decoração e criações de fãs.')} Itens oficiais podem ter várias ofertas; peças fan-made e artesanais costumam ser anúncios únicos.</p>
-  <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="${tabHref(k)}" aria-current="${k===cat}">${esc(l)}</a>`).join('')}</div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><label for="uniSel" class="fine">Universo</label>
-    <select id="uniSel" class="select" data-act="pick-uni"><option value="">Todos os universos</option>${universes.map(u=>`<option value="${u.slug}" ${u.slug===uni?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
-  ${list.length?originLegend()+`<div class="cards4">${list.map(merchCard).join('')}</div>`:(mockMerch()?'<div class="empty"><p>Nenhum item de exemplo para este filtro.</p></div>':'<div class="empty"><h2>Merch e fan-made ainda não têm integração</h2><p>Use os atalhos abaixo: eles abrem a busca direto nas lojas.</p></div>')}
-  <div class="section-gap"><h2 class="page-h" style="font-size:19px">Buscar nas lojas</h2><p class="lede">Sem integração ainda: os links abrem a busca de cada loja${uName?` por ${esc(uName)}`:''}.</p>
-    <div class="shortcut-groups">${types.map(([k,t])=>`<div class="shortcut-group"><h3>${esc(t.label)}</h3><div class="shortcut-links">${merchLinks(t.term+(uName?' '+uName:''),t.cat)}</div></div>`).join('')}</div></div>`;
+  const F=readMerchFilters(params);
+  const all=merchItemsVisible();
+  const filtered=sortMerchItems(applyMerchFilters(all,F),F.sort);
+  const chips=merchActiveChips(F);
+  setTitle('Colecionáveis e merch');
+  main.innerHTML=`<h1 class="page-h">Colecionáveis e merch</h1>
+  <p class="lede">Itens curados à mão — oficiais, licenciados, não confirmados e fan-made. Preço do produto; frete e impostos são calculados na loja pelo seu CEP.</p>
+  <aside class="filterbar" aria-label="Filtros">${merchFilterBarMarkup(F,all)}</aside>
+  ${chips.length?`<div class="chips-active">${chips.map(c=>`<button class="chip-x" data-act="merch-rm-filter" data-k="${c[0]}" data-v="${esc(c[1])}" aria-label="Remover filtro ${esc(c[2])}">${esc(c[2])} ${ico('close',14)}</button>`).join('')}<button class="chip-x chip-x-clear" data-act="merch-clear-filters">Limpar tudo</button></div>`:''}
+  <p class="fine" style="margin:4px 0 14px">${filtered.length} ${filtered.length===1?'item':'itens'}</p>
+  ${filtered.length?`<div class="merch-square-grid">${filtered.map(merchSquareCard).join('')}</div>`:`<div class="empty"><h2>Nenhum item com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="merch-clear-filters">Limpar filtros</button></p></div>`}
+  <p class="fine" style="margin-top:12px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>`;
 }
 
 /* ---------- Meu Inventário ---------- */
