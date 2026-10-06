@@ -942,6 +942,20 @@ function purchasePricePanelMarkup(p,platform){
     ${cols.map(([cond])=>purchasePriceColMarkup(cond,p,platform)).join('')}
   </div>`;
 }
+// Pacote4 1.3b: versão compacta (104px) dos 3 cartões de baixo da página de
+// plataforma — cartão grande (visualMenuCard, acima) fica só pras outras
+// telas que já usavam ele (ex. "Mais para descobrir").
+function compactMenuCard({title,copy,kind='collectibles',href='#'}){
+  const icon=kind==='fanmade'?ico('brush',26):ico('cube',26);
+  return `<a class="cta-compact" href="${href}">
+    <span class="cta-compact-icon ${kind}" aria-hidden="true">${icon}</span>
+    <span class="cta-compact-body">
+      <b>${esc(title)}</b>
+      <small>${esc(copy)}</small>
+      <span class="cta-compact-link">Explorar →</span>
+    </span>
+  </a>`;
+}
 function visualMenuCard({title,copy,kind='collectibles',image='',href='#'}){
   const src=localOrRemoteImage(image);
   const icon=kind==='fanmade'?ico('brush',34):ico('cube',34);
@@ -1153,10 +1167,19 @@ function universeHeroBestOffer(p,platform){
   }
   return best;
 }
+// Pacote4 1.3a: igual ao fix de universeOfferPriceChipsMarkup — sem isso o
+// botão do hero também caía sempre em "Ver detalhes" no primeiro render
+// (summaryOf() só tem cache depois de fetchCond, que aqui nunca rodava).
+function universeHeroDemoOffer(p){
+  const demo=sampleOffers(p.title,{year:p.year});
+  if(demo.used)return {cond:'used',summary:{minDisplay:demo.used.display,mock:true}};
+  if(demo.new)return {cond:'new',summary:{minDisplay:demo.new.display,mock:true}};
+  return null;
+}
 function universeHeroCtaMarkup(p,platform){
-  const best=universeHeroBestOffer(p,platform);
+  const best=universeHeroBestOffer(p,platform)||(mockOn()?universeHeroDemoOffer(p):null);
   if(!best)return `<a class="btn btn-primary" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
-  return `<a class="btn btn-primary hero-price-btn" href="${comparisonHref(p,platform,best.cond)}">${heroPriceCtaText(esc(COND_LABEL[best.cond]),esc(best.summary.minDisplay),best.summary.mock?mockChip():'')}<span class="hpc-arrow">→</span></a>`;
+  return `<a class="btn btn-primary hero-price-btn" href="${comparisonHref(p,platform,best.cond)}" data-universe-hero-price="${esc(p.slug)}">${heroPriceCtaText(esc(COND_LABEL[best.cond]),esc(best.summary.minDisplay),best.summary.mock?mockChip():'')}<span class="hpc-arrow">→</span></a>`;
 }
 // preferredPlatforms (item 6, rodada 5): na página de plataforma, cada
 // slide deve mostrar a variante do jogo QUE PERTENCE à plataforma atual —
@@ -1225,6 +1248,27 @@ function hydrateUniverseHero(root,token){
   });
   initHomeCarousel(root);
 }
+// Pacote4 1.3a: busca a oferta real do(s) jogo(s) em destaque no hero e troca
+// o preço de exemplo pelo real quando a API responder — mesma fonte
+// (summaryOf/fetchCond) que os cards de oferta já usam, só que aqui o botão
+// já nasce com o preço de exemplo (não fica em "Ver detalhes" esperando).
+function hydrateUniverseHeroPrices(root,token){
+  const btns=$$('[data-universe-hero-price]',root);
+  mapLimit(btns,2,async btn=>{
+    const slug=btn.dataset.universeHeroPrice;
+    const p=catalog.find(x=>x.slug===slug);
+    if(!p)return;
+    const url=new URL(btn.getAttribute('href'),location.href);
+    const platform=url.searchParams.get('plat')||p.variants?.[0]?.[1]||'';
+    const conds=['used','new','digital'].filter(cond=>!((cond==='used'&&p.used===false)||(cond==='new'&&p.new===false)));
+    await Promise.all(conds.map(cond=>fetchCond(p.title,platform,cond)));
+    if(token!==viewToken||!btn.isConnected)return;
+    const best=universeHeroBestOffer(p,platform);
+    if(!best)return;
+    btn.href=comparisonHref(p,platform,best.cond);
+    btn.innerHTML=`${heroPriceCtaText(esc(COND_LABEL[best.cond]),esc(best.summary.minDisplay),best.summary.mock?mockChip():'')}<span class="hpc-arrow">→</span>`;
+  });
+}
 function dailyUniverseSelection(titles,slug,count=5){
   const day=new Date().toISOString().slice(0,10);
   return [...titles].sort((a,b)=>hashStr(`${day}|${slug}|${a.slug}`)-hashStr(`${day}|${slug}|${b.slug}`)).slice(0,count);
@@ -1259,10 +1303,25 @@ function universeOfferDigital(p,platform){
   if(!s||s.status!=='ok'||!s.count||s.min==null)return null;
   return s;
 }
+// Pacote4 1.3a: antes caía direto em "Ver detalhes" sempre que summaryOf()
+// ainda não tinha oferta real em cache (ex.: API não respondeu ainda) — sem
+// passar por sampleOffers(), a ÚNICA fonte de preço de exemplo do site (ver
+// comentário em app-1-core.js). Agora, com o modo demonstração ligado, usa o
+// mesmo preço de exemplo que o hero/home já mostram pro mesmo jogo.
 function universeOfferPriceChipsMarkup(p,platform){
   const best=universeOfferPhysicalBest(p,platform);
   const digital=universeOfferDigital(p,platform);
-  if(!best&&!digital)return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
+  if(!best&&!digital){
+    if(mockOn()){
+      const demo=sampleOffers(p.title,{year:p.year});
+      const chips=[];
+      if(demo.used)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'used')}">Usado ${esc(demo.used.display)} ${mockChip()}</a>`);
+      else if(demo.new)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,'new')}">Novo ${esc(demo.new.display)} ${mockChip()}</a>`);
+      if(demo.digital?.consult)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital — consultar</a>`);
+      if(chips.length)return chips.join('');
+    }
+    return `<a class="uoc-chip uoc-chip-wait" href="#/jogo/${p.slug}?plat=${enc(platform)}">Ver detalhes</a>`;
+  }
   const chips=[];
   if(best)chips.push(`<a class="uoc-chip" href="${comparisonHref(p,platform,best.cond)}">${esc(COND_LABEL[best.cond])} ${esc(best.summary.minDisplay)}${best.summary.mock?' '+mockChip():''}</a>`);
   if(digital)chips.push(`<a class="uoc-chip uoc-chip-digital" href="${comparisonHref(p,platform,'digital')}">Digital ${esc(digital.minDisplay)}${digital.mock?' '+mockChip():''}</a>`);
@@ -1611,7 +1670,7 @@ function renderUniverse(slug,params,token){
   })}
   ${tab==='tudo'?'':`<div class="tabs universe-tabs" role="tablist">${tabs.map(([k,l])=>`<a class="tab" role="tab" href="#/universo/${slug}?tab=${k}" aria-current="${k===tab}">${l}</a>`).join('')}</div>`}
   ${body}`;
-  if(tab==='tudo'&&titles.length)hydrateUniverseHero($('[data-home-carousel]',main),token);
+  if(tab==='tudo'&&titles.length){hydrateUniverseHero($('[data-home-carousel]',main),token);hydrateUniverseHeroPrices(main,token)}
   if(tab!=='tudo')hydrateFranchiseHero(u,titles);
   // Na aba "tudo", a lista inteira do Meu Inventário também tem
   // data-igdb-cover (mesmo rolando por dentro) — sem folga aqui, uma
@@ -1890,9 +1949,9 @@ function renderPlatform(slug,params,token){
         <div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>${carouselEdgesMarkup('plat-offers')}</div>
       </section>
       <div class="platform-cta-row3">
-        ${visualMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
-        ${visualMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
-        ${visualMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
+        ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
+        ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:'#/merch?cat=colecionaveis'})}
+        ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?cat=fanmade'})}
       </div>
     </div>
     <aside class="platform-side-col">
@@ -1908,7 +1967,7 @@ function renderPlatform(slug,params,token){
   </div>
   <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
   hydrateIgdbCovers(main,offerPool.length+4);
-  if(top)hydrateUniverseHero($('[data-home-carousel]',main),token);
+  if(top){hydrateUniverseHero($('[data-home-carousel]',main),token);hydrateUniverseHeroPrices(main,token)}
   initCarouselRows(main);
 }
 

@@ -2106,9 +2106,21 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .platform-uni-info b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .platform-uni-info small{font-size:11.5px;color:var(--text-2)}
 .platform-cta-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:40px}
-.platform-cta-row3 .visual-menu-card{grid-template-columns:1fr}
 @media(max-width:1040px){.platform-layout{grid-template-columns:1fr}.platform-side-col{height:auto;flex-direction:row}.platform-brand-panel{min-height:140px}.platform-uni-panel{flex:1}}
 @media(max-width:760px){.platform-cta-row3{grid-template-columns:1fr}.platform-side-col{flex-direction:column}}
+/* 1.3b: cartões compactos (104px) — quadrado de 72px com o gradiente da
+   categoria + ícone, título/descrição/link numa coluna, min-width:0 pra
+   truncar em 1 linha em vez de estourar o grid. */
+.cta-compact{display:flex;align-items:center;gap:14px;height:104px;padding:0 16px;border-radius:14px;border:1px solid var(--glass-border,var(--line-strong));background:var(--glass-2,var(--gray));text-decoration:none;color:inherit;overflow:hidden;min-width:0}
+.cta-compact-icon{flex:none;width:72px;height:72px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff}
+.cta-compact-icon.collectibles{background:linear-gradient(145deg,#70433C,#A75C4D)}
+.cta-compact-icon.fanmade{background:linear-gradient(145deg,#294F56,#47747A)}
+.cta-compact-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cta-compact-body b{font-size:18px;font-weight:500;line-height:1.2;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cta-compact-body small{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cta-compact-link{font-size:13px;font-weight:600;color:var(--action-on-glass);margin-top:2px}
+.cta-compact:hover{border-color:var(--glass-border,var(--line-strong));background:var(--glass-3,var(--gray))}
+@media(max-width:760px){.cta-compact-body b{white-space:normal}}
 
 /* ============================================================
    FASE 6 — VIDRO FUMÊ NO RESTO DO SITE (home, busca, universos,
@@ -2549,8 +2561,8 @@ html[data-theme="neutral"] body.dark-surface-route{
    horizontal válida) — mesma receita do fundo ambiente, só que dentro do
    próprio hero. A capa é vertical, cobre via object-fit:cover numa área
    bem maior que o próprio card (scale), senão sobra tarja na lateral. */
-.game-hero-art.cover-fallback{background-image:var(--hero-img);background-size:cover;background-position:center;filter:blur(32px) saturate(1.1);transform:scale(1.25)}
-.universe-hero-art.cover-fallback .uh-art-img{filter:blur(32px) saturate(1.1);transform:scale(1.4);object-position:center}
+.game-hero-art.cover-fallback{background-image:var(--hero-img);background-size:cover;background-position:center;filter:blur(60px) saturate(1.1);transform:scale(1.5);opacity:.40}
+.universe-hero-art.cover-fallback .uh-art-img{filter:blur(60px) saturate(1.1);transform:scale(1.5);opacity:.40;object-position:center}
 @media(prefers-reduced-motion:reduce){
   .game-hero-art.cover-fallback{filter:none;transform:scale(1)}
   .universe-hero-art.cover-fallback .uh-art-img{filter:none;transform:scale(1)}

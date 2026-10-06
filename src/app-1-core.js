@@ -352,10 +352,8 @@ const PLATFORM_LABEL={nintendo:'Nintendo',playstation:'PlayStation',xbox:'Xbox'}
 // deste pacote ("nunca recriar nem imitar logotipos"). Removido da tabela:
 // sem entrada aqui, o card da plataforma cai no fallback de texto simples
 // (.platform-brand-fallback, DM Sans 700, já era o comportamento pra
-// qualquer plataforma sem logo). Se src/assets/platforms/xbox.svg (SVG
-// OFICIAL, fornecido pelo dono) existir no futuro, basta apontar pra ele
-// aqui — nunca desenhar outro substituto.
-const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg'};
+// qualquer plataforma sem logo).
+const PLATFORM_LOGO={nintendo:'/assets/nintendo-logo.svg',playstation:'/assets/playstation-logo.svg',xbox:'/assets/xbox-logo.svg'};
 
 const universes=[],uMap=new Map();
 function addUniverse(name,eco){
