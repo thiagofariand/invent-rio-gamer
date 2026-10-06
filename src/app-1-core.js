@@ -315,14 +315,23 @@ const casaIdx=new Map();
 Object.entries(CASA_TABLE).forEach(([casa,names])=>names.forEach(n=>casaIdx.set(norm(n),casa)));
 function casaFor(name){return casaIdx.get(norm(name))||'multi'}
 
-// Item 6 (rodada 5): sigla curada por franquia (nunca monograma automático
-// — initialsOf() colidia, ex. Mario e Metroid viravam os dois "M"). Cobre
-// hoje as franquias das casas Nintendo/PlayStation/Xbox (mostradas na
-// página de plataforma); fora dessas cai no fallback initialsOf().
+// Item 6 (rodada 5) / pacote4 1.5: sigla curada por franquia (nunca
+// monograma automático — initialsOf() colidia, ex. Mario e Metroid viravam
+// os dois "M"). Cobre as franquias grandes das casas Nintendo/PlayStation/
+// Xbox (mostradas na página de plataforma). Fora dessas, cai no fallback
+// initialsOf() — intencional só pelo tamanho do problema: franchiseDirectory
+// em catalog-data.js tem ~250 entradas, a maioria jogo avulso do catálogo do
+// GPT ainda não triado (CLAUDE.md, backlog item 1 — "universo só com 3+
+// jogos"); curar sigla manual pra cada uma seria trabalho arbitrário que a
+// triagem do catálogo vai invalidar de qualquer jeito. Resumo do pacote4 1.5
+// lista o que foi corrigido agora x o que ainda depende dessa triagem.
 const SIGLA_TABLE={
   mario:'SM','the-legend-of-zelda':'Z',pokemon:'PK',metroid:'MT',kirby:'KB','donkey-kong':'DK','super-smash-bros':'SS',
   'god-of-war':'GoW',uncharted:'UC','the-last-of-us':'TLOU','gran-turismo':'GT',horizon:'HZ','ratchet-and-clank':'RC','ratchet-clank':'RC',littlebigplanet:'LBP','spider-man':'SP',
-  halo:'HL',gears:'GR',forza:'FZ'
+  halo:'HL',gears:'GR',forza:'FZ',
+  // Pacote4 1.5: antes caíam no fallback initialsOf() (NF/ES) — ambos
+  // apareciam na lista "Universos Xbox" da página de plataforma.
+  'need-for-speed':'NFS','the-elder-scrolls':'TES'
 };
 const sigIdx=new Map();
 Object.entries(SIGLA_TABLE).forEach(([slug,sig])=>sigIdx.set(slug,sig));
