@@ -324,19 +324,36 @@ function destaquesSection(order,heroExclude){
 }
 
 /* ---- 3.6: Universos em destaque (mesma lista curada da sidebar) ---- */
+// Pacote4 1.7 (bug da vistoria): este card tinha data-igdb-cover direto no
+// <a> inteiro — hydrateIgdbCovers() faz el.innerHTML=coverTile(...) quando
+// acha capa, o que apagava sigla/pílula/nome/contagem/botão (sobrava só a
+// capinha, daí o "ponto branco" no canto). Os 3 cards compactos nunca
+// tiveram esse bug porque o data-igdb-cover deles fica num <span> interno
+// só da capa (.ud-compact-cover), nunca no card inteiro. Fix: tira o
+// data-igdb-cover daqui e hidrata à parte com setHeroBackground() (mesmo
+// mecanismo do hero de universo — só troca --hero-img/classe, nunca o
+// innerHTML), então nome/contagem/pílula/botão SEMPRE ficam no DOM.
 function universeDestaqueBig(u){
   const titles=titlesOf(u.slug);
   const rep=representativeFranchiseGame(titles);
   const pal=paletteForUniverse(u);
   const platform=rep?.variants?.[0]?.[1]||'';
   const base=pal?.fundo||'#1f0b14';
-  return `<a class="ud-big igdb-cover-slot" href="#/universo/${u.slug}" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
+  return `<a class="ud-big" href="#/universo/${u.slug}" aria-label="Conhecer o universo ${esc(pal?.nome||u.name)}" data-ud-big-art data-ud-art-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ud-art-platform="${esc(platform)}" data-ud-art-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
     <span class="ud-fallback-sigla" aria-hidden="true">${esc(u.sigla)}</span>
     <span class="ud-pill">${esc(PLATFORM_LABEL[u.casa]||'Multi')}</span>
     <span class="ud-name">${esc(pal?.nome||u.name)}</span>
     <span class="ud-count">${titles.length} jogos catalogados</span>
     <span class="btn btn-primary ud-cta">Conhecer o universo →</span>
   </a>`;
+}
+async function hydrateUniverseDestaqueBig(root){
+  const el=root.querySelector('[data-ud-big-art]');
+  if(!el)return;
+  const d=await fetchIgdbVisual(el.dataset.udArtTitle||'',el.dataset.udArtPlatform||'',el.dataset.udArtYear||'');
+  if(!el.isConnected)return;
+  if(d?.hero?.url)setHeroBackground(el,d.hero.url);
+  else if(d?.cover?.url)setHeroBackground(el,d.cover.url,true);
 }
 function universeDestaqueCompact(entry,u){
   const titles=titlesOf(u.slug);
@@ -456,6 +473,7 @@ function renderHome(){
   const hero=$('[data-hhw]',main);
   initHomeHeroWide(hero);
   hydrateHomeHeroWide(hero);
+  hydrateUniverseDestaqueBig(main);
   initCarouselRows(main);
   // Acima da dobra (hero + Destaques) hidrata na hora; o resto é lazy (3.9).
   hydrateIgdbCovers(main,heroSlides.length*2+destaquesPoolList.length+2);
