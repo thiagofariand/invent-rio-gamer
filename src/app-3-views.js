@@ -2333,15 +2333,20 @@ function renderNotFound(){
 const SIMPLE_PAGES={
   sobre:'Sobre',contato:'Contato',privacidade:'Privacidade',termos:'Termos de uso','aviso-afiliado':'Aviso de afiliado'
 };
-function renderSimplePage(slug){
+// Pacote4 5.2: #/contato?assunto=remocao (link do rodapé) pré-seleciona o
+// assunto na página de Contato — texto jurídico de verdade continua por
+// conta do dono, isto só mostra qual assunto trouxe a visita.
+const CONTATO_ASSUNTOS={remocao:'Remoção de conteúdo'};
+function renderSimplePage(slug,params){
   const title=SIMPLE_PAGES[slug];
   if(!title)return renderNotFound();
   setTitle(title);
+  const assunto=slug==='contato'?CONTATO_ASSUNTOS[params?.get('assunto')||'']:null;
   // Nota: rota hash de SPA — <meta name="robots"> inserido via innerHTML não
   // tem efeito real de indexação (precisaria estar no <head> estático ou
   // num cabeçalho HTTP); como são só placeholders "em elaboração", motor de
   // busca não tem conteúdo relevante pra indexar de qualquer forma.
-  main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">${esc(title)}</h1><p>Conteúdo em elaboração.</p><p style="margin-top:12px"><a class="btn btn-outline btn-sm" href="#/">Voltar ao início</a></p></div>`;
+  main.innerHTML=`<div class="empty"><h1 class="page-h" style="font-size:22px">${esc(title)}</h1>${assunto?`<p class="fine">Assunto: <b>${esc(assunto)}</b></p>`:''}<p>Conteúdo em elaboração.</p><p style="margin-top:12px"><a class="btn btn-outline btn-sm" href="#/">Voltar ao início</a></p></div>`;
 }
 
 

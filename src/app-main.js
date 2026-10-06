@@ -149,7 +149,7 @@ function route(){
   else if(path==='/merch')renderMerch(params);
   else if(path.startsWith('/item/'))renderMerchItem(path.slice(6),token);
   else if(path==='/inventario')renderInventory(params);
-  else if(SIMPLE_PAGES[path.slice(1)])renderSimplePage(path.slice(1));
+  else if(SIMPLE_PAGES[path.slice(1)])renderSimplePage(path.slice(1),params);
   else renderNotFound();
   main.focus({preventScroll:true});
   window.scrollTo(0,0);
