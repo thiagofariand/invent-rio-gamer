@@ -112,22 +112,68 @@ function initHomeCarousel(root){
    Colecionáveis e merch, rodapé (rodapé é HTML estático, ver index.html).
    ============================================================ */
 
-/* ---- 3.1/3.2/3.3: hero largo com miniaturas e rotação automática ---- */
+/* ---- Pacote5 1.1/1.2: hero largo (home e plataforma), componente único
+   com rotação automática. Reaproveita o esqueleto do hero largo do
+   pacote3 (.hhw-*); o que muda nesta versão: altura fixa 340px, janela de
+   arte a 70% de largura (var(--hero-art-w)) com degradê pro --hero-base
+   da PALETA do jogo/universo do slide (não mais a cor hash aleatória de
+   antes), texto no topo-esquerdo, pílulas só informativas (ver
+   heroWideInfoPills) e indicadores/pausa no canto SUPERIOR direito (os
+   ladrilhos de universo cobrem a base — ver item 1.3). ---- */
 function catalogGameForTrend(t){return catalog.find(p=>p.title===t.title)||null}
+// Pacote5, COMO TRABALHAR: preço do botão do hero — jogo NÃO lançado
+// nunca mostra "Usado a partir de" (reaproveita releaseState do 4B, não
+// reimplementa). Com oferta física de exemplo (sampleOffers nunca gera
+// Usado pra jogo não lançado, só Novo) mostra "Pré-venda a partir de
+// R$X"; sem oferta nenhuma, "Em breve" (+ data, se houver).
+function heroWidePriceCta(p,platform){
+  if(!p)return `<a class="btn btn-primary hero-price-btn" href="#/">Ver detalhes →</a>`;
+  if(releaseState(p)!=='lancado'){
+    const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+    const d=releaseDateDisplay(p);
+    if(demo?.display)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}"><span class="hpc-full">Pré-venda a partir de ${esc(demo.display)} →</span><span class="hpc-short">Pré-venda ${esc(demo.display)} →</span>${mockChip()}</a>`;
+    return `<a class="btn btn-ghost hero-price-btn" href="#/jogo/${p.slug}">Em breve${d?` · ${esc(d)}`:''} →</a>`;
+  }
+  const cached=bestUsed(p);
+  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+  const label=cached?'Usado':demo?.label;
+  const value=cached?.minDisplay||demo?.display;
+  if(!value)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}">Ver detalhes →</a>`;
+  return `<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(p,platform)}"><span class="hpc-full">${esc(label)} a partir de ${esc(value)} →</span><span class="hpc-short">${esc(label)} ${esc(value)} →</span>${!cached?mockChip():''}</a>`;
+}
+// Pílulas informativas (item 1.1): só PRÉ-VENDA/EM BREVE (reaproveita
+// posterReleaseBadgeMarkup/releaseState do 4B) e "Só em console {X}"
+// quando o jogo só sai num único console (heurística best-effort: só 1
+// entrada em variants — sem rede pra IGDB neste ambiente pra validar
+// contra exclusividade "de verdade").
+function heroWideInfoPills(p){
+  if(!p)return [];
+  const pills=[];
+  const state=releaseState(p);
+  if(state!=='lancado'){
+    const d=releaseDateDisplay(p);
+    pills.push(state==='pre-venda'?`PRÉ-VENDA${d?` · ${esc(d)}`:''}`:'EM BREVE');
+  }
+  const plats=[...new Set((p.variants||[]).map(v=>v[1]))];
+  if(plats.length===1){
+    const rotulo=consoleInfo(plats[0])?.rotulo||plats[0];
+    pills.push(`Só em console ${esc(rotulo)}`);
+  }
+  return pills;
+}
 function homeHeroSlideFromTrend(t,pillLabel){
   const game=catalogGameForTrend(t);
-  let ctaHtml;
-  if(game){
-    const platform=game.variants?.[0]?.[1]||'';
-    ctaHtml=`<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(game,platform)}">${posterPriceChipText(game,platform)}</a>`;
-  }else{
-    ctaHtml=`<a class="btn btn-primary" href="${esc(homeTrendHref(t))}">Ver detalhes</a>`;
-  }
+  const platform=game?.variants?.[0]?.[1]||'';
+  const u=game?.universe?uMap.get(game.universe):null;
+  const pal=u?paletteForUniverse(u):null;
   return {
-    pill:pillLabel,title:t.title,
-    igdbTitle:t.title,igdbPlatform:game?.variants?.[0]?.[1]||'',igdbYear:game?.year||'',
+    pill:pillLabel,title:t.title,baseColor:pal?.fundo||'#1a1512',
+    igdbTitle:game?igdbTitleFor(game,platform):t.title,igdbPlatform:platform,igdbYear:game?.year||'',
     heroSlug:game?.slug||'',
-    href:homeTrendHref(t),ctaHtml,thumbLabel:t.short||t.title
+    href:homeTrendHref(t),
+    ctaHtml:heroWidePriceCta(game,platform),
+    infoPills:heroWideInfoPills(game),
+    thumbLabel:t.short||t.title
   };
 }
 function homeHeroSlideFromUniverse(slug){
@@ -138,11 +184,12 @@ function homeHeroSlideFromUniverse(slug){
   const pal=paletteForUniverse(u);
   const platform=rep?.variants?.[0]?.[1]||'';
   return {
-    pill:'UNIVERSO',title:pal?.nome||u.name,
+    pill:'UNIVERSO',title:pal?.nome||u.name,baseColor:pal?.fundo||'#1a1512',
     igdbTitle:rep?igdbTitleFor(rep,platform):u.name,igdbPlatform:platform,igdbYear:rep?.year||'',
     heroSlug:rep?.slug||'',
     href:`#/universo/${u.slug}`,
-    ctaHtml:`<a class="btn btn-primary" href="#/universo/${u.slug}">Conhecer o universo →</a>`,
+    ctaHtml:`<a class="btn btn-primary hero-price-btn" href="#/universo/${u.slug}">Conhecer o universo →</a>`,
+    infoPills:[],
     thumbLabel:pal?.nome||u.name
   };
 }
@@ -162,39 +209,68 @@ function loadHomeHeroSlides(){
   if(fromFile.length)return fromFile.slice(0,4);
   return D.trendingNow.slice(0,4).map(t=>homeHeroSlideFromTrend(t,'EM ALTA'));
 }
-function homeHeroWideMarkup(slides){
+// Página de plataforma (seção 3.1): destaques da plataforma, mais em alta
+// primeiro — mesmo pool de D.trendingNow, filtrado pelos jogos que têm
+// aquela plataforma no catálogo. Sem pílula de tipo (opts.showTypePill
+// false faz homeHeroWideMarkup omitir a pílula EM ALTA/UNIVERSO).
+function platformHeroSlides(plats){
+  const inPlat=p=>p.variants.some(v=>plats.includes(v[1]));
+  const trendTitles=new Set(D.trendingNow.map(t=>t.title));
+  const pool=catalog.filter(inPlat);
+  const trendGames=pool.filter(p=>trendTitles.has(p.title));
+  const rest=pool.filter(p=>!trendTitles.has(p.title)).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0));
+  const games=[...trendGames,...rest].slice(0,4);
+  return games.map(g=>{
+    const platform=g.variants.find(v=>plats.includes(v[1]))?.[1]||g.variants[0][1];
+    const u=g.universe?uMap.get(g.universe):null;
+    const pal=u?paletteForUniverse(u):null;
+    return {
+      pill:'',title:g.title,baseColor:pal?.fundo||'#1a1512',
+      igdbTitle:igdbTitleFor(g,platform),igdbPlatform:platform,igdbYear:g.year||'',
+      heroSlug:g.slug,href:`#/jogo/${g.slug}`,
+      ctaHtml:heroWidePriceCta(g,platform),
+      infoPills:heroWideInfoPills(g),
+      thumbLabel:g.title
+    };
+  });
+}
+function homeHeroWideMarkup(slides,opts={}){
+  const showTypePill=opts.showTypePill!==false;
   return `<section class="hhw" aria-roledescription="carrossel" aria-label="Destaques" data-hhw>
     <div class="hhw-track" data-hhw-track>
-    ${slides.map((s,i)=>`<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}">
-      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+    ${slides.map((s,i)=>{
+      const longTitle=s.title.length>28;
+      const pills=[...(showTypePill&&s.pill?[s.pill]:[]),...(s.infoPills||[])];
+      return `<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}" style="--hero-base:${esc(s.baseColor||'#1a1512')}">
+      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="hhw-copy">
-        <span class="hhw-pill">${esc(s.pill)}</span>
-        <h1>${esc(s.title)}</h1>
+        ${pills.length?`<div class="hhw-pills">${pills.map(p=>`<span class="hhw-pill">${p}</span>`).join('')}</div>`:''}
+        <h1 class="${longTitle?'is-long':''}">${esc(s.title)}</h1>
         <div class="hhw-cta">${s.ctaHtml}</div>
       </div>
-    </article>`).join('')}
+    </article>`;
+    }).join('')}
     </div>
-    <div class="hhw-thumbs" role="group" aria-label="Escolher destaque">${slides.map((s,i)=>`<button type="button" class="hhw-thumb ${i===0?'is-active':''}" data-hhw-thumb="${i}" aria-current="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}" title="${esc(s.thumbLabel)}"><span class="hhw-thumb-img" data-hhw-thumb-img style="--hero-h:${hashStr(s.title)%360}"></span><span class="hhw-thumb-bar"><span class="hhw-thumb-fill" data-hhw-fill></span></span></button>`).join('')}</div>
+    <div class="hhw-controls">
+      <div class="hhw-indicators" role="tablist" aria-label="Selecionar destaque">${slides.map((s,i)=>`<button type="button" class="hhw-ind ${i===0?'is-active':''}" data-hhw-ind="${i}" role="tab" aria-selected="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}"><span class="hhw-ind-fill" data-hhw-fill></span></button>`).join('')}</div>
+      <button type="button" class="hhw-pause" data-hhw-pause aria-pressed="false" aria-label="Pausar rotação automática">${ico('check',0)}</button>
+    </div>
     <div class="hhw-dots" role="tablist" aria-label="Selecionar destaque">${slides.map((s,i)=>`<button type="button" class="hhw-dot ${i===0?'is-active':''}" data-hhw-dot="${i}" role="tab" aria-selected="${i===0}" aria-current="${i===0}" aria-label="Mostrar ${esc(s.thumbLabel)}"></button>`).join('')}</div>
-    <button type="button" class="hhw-pause" data-hhw-pause aria-pressed="false" aria-label="Pausar rotação automática">${ico('check',0)}</button>
   </section>`;
 }
 async function hydrateHomeHeroWide(root){
   const arts=$$('[data-hhw-art]',root);
-  await mapLimit(arts,2,async(art,i)=>{
+  await mapLimit(arts,2,async art=>{
     const d=await fetchIgdbVisual(art.dataset.hhwTitle||'',art.dataset.hhwPlatform||'',art.dataset.hhwYear||'');
     if(!art.isConnected)return;
-    const thumbImg=root.querySelectorAll('[data-hhw-thumb-img]')[i];
     if(d?.hero?.url){
       setHeroBackground(art,d.hero.url);
-      if(thumbImg)thumbImg.style.backgroundImage=`url("${d.hero.url.replace(/"/g,'%22')}")`;
       // parteB 6: banner "Conheça o universo" na busca reaproveita esta
       // mesma arte (sem fetch novo) quando o jogo do hero da home pertence
       // ao universo buscado — mesmo cache que a página de universo usa.
       if(art.dataset.hhwSlug)heroImageCache.set(art.dataset.hhwSlug,d.hero.url);
     }else if(d?.cover?.url){
       setHeroBackground(art,d.cover.url,true);
-      if(thumbImg)thumbImg.style.backgroundImage=`url("${d.cover.url.replace(/"/g,'%22')}")`;
     }
   });
 }
@@ -207,7 +283,7 @@ async function hydrateHomeHeroWide(root){
 function initHomeHeroWide(root){
   const PAUSE_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
   const PLAY_ICON='<svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>';
-  const slides=$$('[data-hhw-slide]',root),thumbs=$$('[data-hhw-thumb]',root),dots=$$('[data-hhw-dot]',root),pauseBtn=$('[data-hhw-pause]',root);
+  const slides=$$('[data-hhw-slide]',root),thumbs=$$('[data-hhw-ind]',root),dots=$$('[data-hhw-dot]',root),pauseBtn=$('[data-hhw-pause]',root);
   if(!slides.length)return;
   const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const coarse=matchMedia('(pointer:coarse)').matches;
@@ -289,14 +365,6 @@ function initHomeHeroWide(root){
 }
 
 /* ---- 3.4/3.5: Destaques (alternador Em alta/Mais novos/Menor preço) ---- */
-function posterPriceChipText(p,platform){
-  const cached=bestUsed(p);
-  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
-  const label=cached?'Usado':demo?.label;
-  const value=cached?.minDisplay||demo?.display;
-  // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
-  return value?heroPriceCtaText(esc(label),esc(value),!cached?mockChip():''):'Ver detalhes';
-}
 // Pacote4 2.5: "Pré-venda" no alternador — joga pro topo (e só mostra) os
 // jogos em pré-venda de verdade (releaseState 'pre-venda'; "Em breve"/
 // anunciado fica de fora, o rótulo é específico pra pré-venda aberta).

@@ -2732,47 +2732,52 @@ html[data-theme="neutral"] body.dark-surface-route{
    PACOTE3, SEÇÃO 3 — HOME NOVA
    ============================================================ */
 /* 3.1/3.2/3.3: hero largo */
-.hhw{position:relative;width:100%;height:clamp(260px,39vh,300px);border-radius:18px;overflow:hidden;background:#1a1512}
+/* Pacote5, item 1.1/1.2: hero largo — altura fixa, janela de arte a
+   var(--hero-art-w) de largura com degradê pro --hero-base do slide
+   (cor da paleta do jogo/universo, não mais hash aleatório), texto no
+   topo-esquerda, indicadores finos (3px) + pausa no canto SUPERIOR
+   direito (a fileira de ladrilhos de universo cobre a base — item 1.3). */
+.hhw{position:relative;width:100%;height:var(--hero-h-wide);border-radius:18px;overflow:hidden;background:#1a1512}
 .hhw-track{position:absolute;inset:0}
 .hhw-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility 0s linear .5s;z-index:1}
 .hhw-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .5s ease,visibility 0s linear;z-index:2}
-.hhw-art{position:absolute;inset:0;background:linear-gradient(135deg,#2a2622,#57433B);background-size:cover;background-position:center}
-.hhw-art.has-image{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.55) 42%,rgba(14,10,8,.12) 78%),var(--hero-img)}
-.hhw-art.cover-fallback{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.72) 55%),var(--hero-img);filter:blur(28px) saturate(1.1);transform:scale(1.2)}
+.hhw-art{position:absolute;top:0;right:0;bottom:0;width:var(--hero-art-w);background:linear-gradient(145deg,var(--hero-base,#1a1512),color-mix(in oklab,var(--hero-base,#1a1512) 55%,#000 45%));background-size:cover;background-position:center 30%}
+.hhw-art.has-image{background-image:var(--hero-fade),var(--hero-img)}
+.hhw-art.cover-fallback{background-image:linear-gradient(90deg,var(--hero-base,#1a1512) 0%,color-mix(in oklab,var(--hero-base,#1a1512) 65%,transparent) 55%),var(--hero-img);filter:blur(28px) saturate(1.1);transform:scale(1.2)}
 .hhw-art .game-hero-placeholder{opacity:.12}
-.hhw-copy{position:relative;z-index:3;height:100%;width:min(560px,62%);padding:28px 32px;display:flex;flex-direction:column;justify-content:center;gap:12px;color:#fff;container-type:inline-size}
+.hhw-copy{position:absolute;top:30px;left:28px;z-index:3;width:46%;display:flex;flex-direction:column;gap:12px;color:#fff;container-type:inline-size}
+.hhw-pills{display:flex;flex-wrap:wrap;gap:6px}
 .hhw-pill{display:inline-block;align-self:flex-start;background:rgba(0,0,0,.4);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
-.hhw-copy h1{font:700 clamp(28px,2.8vw,40px)/1.08 var(--font-ui);letter-spacing:-.02em;max-width:18ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hhw-copy h1{color:#fff;font:500 34px/1.1 var(--font-ui);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.hhw-copy h1.is-long{font-size:26px}
 .hhw-cta{margin-top:4px}
-.hhw-thumbs{position:absolute;right:24px;bottom:24px;z-index:6;display:flex;gap:10px}
-.hhw-thumb{width:112px;height:63px;border-radius:9px;overflow:hidden;position:relative;border:1.5px solid rgba(255,255,255,.3);background:#2a2420;opacity:.75;cursor:pointer;padding:0;transition:opacity 150ms ease,border-color 150ms ease}
-.hhw-thumb:hover,.hhw-thumb:focus-visible{opacity:.92}
-.hhw-thumb.is-active{opacity:1;border-color:#fff}
-.hhw-thumb-img{position:absolute;inset:0;background-size:cover;background-position:center;background-color:hsl(var(--hero-h,0) 20% 22%)}
-.hhw-thumb-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25)}
-.hhw-thumb-fill{display:block;height:100%;width:100%;background:var(--action);transform-origin:left;transform:scaleX(0)}
+.hhw-controls{position:absolute;top:16px;right:16px;z-index:6;display:flex;align-items:center;gap:10px}
+.hhw-indicators{display:flex;gap:6px}
+.hhw-ind{width:28px;height:3px;padding:0;border:0;border-radius:2px;background:rgba(255,255,255,.3);cursor:pointer;overflow:hidden;position:relative}
+.hhw-ind.is-active{background:rgba(255,255,255,.3)}
+.hhw-ind-fill{display:block;height:100%;width:100%;background:#fff;transform-origin:left;transform:scaleX(0)}
 @keyframes hhw-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.hhw-pause{position:absolute;left:24px;bottom:24px;z-index:6;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hhw-pause{position:static;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hhw-pause:hover{background:rgba(0,0,0,.6)}
 .hhw-dots{display:none}
 @media(max-width:899px){
-  .hhw{height:auto;min-height:320px}
+  .hhw{height:auto;min-height:240px}
   .hhw-track{position:static;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .hhw-track::-webkit-scrollbar{display:none}
   .hhw-slide{position:relative;inset:auto;flex:0 0 100%;scroll-snap-align:start;opacity:1;visibility:visible;pointer-events:auto;transition:none}
-  .hhw-copy{width:100%;padding:24px 20px 76px}
-  .hhw-thumbs{display:none}
+  .hhw-art{width:100%}
+  .hhw-copy{position:relative;top:auto;left:auto;max-width:100%;width:100%;padding:24px 20px 56px}
   /* rotação automática já fica desligada em pointer:coarse (ver JS) —
      sem autoplay o botão pausar/retomar perde o sentido; os indicadores
-     (bolinhas) assumem a navegação no lugar das miniaturas. */
-  .hhw-pause{display:none}
+     (bolinhas) assumem a navegação no lugar deles. */
+  .hhw-controls{display:none}
   .hhw-dots{display:flex;gap:8px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
   .hhw-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
   .hhw-dot.is-active{background:#fff;width:20px;border-radius:4px}
 }
 @media(prefers-reduced-motion:reduce){
   .hhw-slide{transition:none}
-  .hhw-thumb-fill{animation:none!important}
+  .hhw-ind-fill{animation:none!important}
 }
 
 /* 3.4/3.5/3.7: fileira "peek" (6 cards cheios + a 7ª espiando 8px) usada
