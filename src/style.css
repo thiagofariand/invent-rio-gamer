@@ -132,6 +132,9 @@ main:focus-visible{outline:none}
 .save-btn:hover{background:var(--gray)}
 .save-btn.on{color:var(--red-ink);border-color:#F1B4AE;background:var(--red-tint)}
 .save-btn.icon-only{padding:7px;border-radius:999px}
+/* Ajuste 4B.2: "Em breve" no lugar do botão Salvar/Tenho (jogo ainda não
+   lançado) — span, não button, nunca clicável. */
+.is-disabled{opacity:.6;cursor:default;pointer-events:none}
 
 /* ---------- capas (marcadores de posição) ---------- */
 .cover{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;aspect-ratio:3/4;border-radius:6px;padding:8px;overflow:hidden;background:hsl(var(--h) 14% 92%);color:hsl(var(--h) 26% 28%);border:1px solid hsl(var(--h) 14% 84%);min-width:0}

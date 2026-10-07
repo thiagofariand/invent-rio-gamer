@@ -982,10 +982,14 @@ function formatBadgeMarkup(p){
 // na aba da condição); sem oferta carregada ainda, esmaece e tira a seta.
 function purchasePriceColMarkup(cond,p,platform){
   const label=cond==='new'?'Novo':cond==='used'?'Usado':'Download';
-  // Pacote4 2.2/2.3: jogo semDisco nunca revende Usado (código de uso
-  // único) — nem chega a consultar oferta, fica sempre neste estado fixo.
+  // Pacote4 2.2/2.3 + ajuste 4B.1: jogo semDisco nunca revende Usado
+  // (código de uso único) — nem chega a consultar oferta, fica sempre
+  // neste estado fixo, com PRIORIDADE sobre "ainda não lançado" (nunca
+  // vai ter Usado de qualquer forma, lançado ou não). Jogo também ainda
+  // não lançado ganha uma segunda linha com a data prevista.
   if(cond==='used'&&p.semDisco){
-    return `<div class="ppanel-col is-empty ppanel-no-resale"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">Sem revenda (código de uso único)</span></span></div>`;
+    const notLaunchedYet=releaseState(p)!=='lancado';
+    return `<div class="ppanel-col is-empty ppanel-no-resale"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">Sem revenda: esta edição física vem com código de download de uso único, sem disco.</span>${notLaunchedYet?`<span class="ppanel-from">${esc(releaseDateDisplay(p))}.</span>`:''}</span></div>`;
   }
   if(cond==='digital'){
     return `<a class="ppanel-col" href="${offerPageHref(p,platform,'digital')}">
@@ -1022,12 +1026,14 @@ function purchasePriceColMarkup(cond,p,platform){
 function purchasePricePanelMarkup(p,platform){
   const physical=p.physical!==false;
   const digital=p.digital===true||hasDigital(p,platform);
-  // Pacote4 2.5: jogo ainda não lançado não tem coluna Usado nenhuma (nem
-  // o bloco "sem revenda" do semDisco — não existe o que revender ainda).
+  // Pacote4 2.5 + ajuste 4B.1: jogo ainda não lançado não tem coluna Usado
+  // (não existe o que revender ainda) — EXCETO jogo semDisco, que sempre
+  // mostra a coluna (com a mensagem "sem revenda", que tem prioridade
+  // sobre "ainda não lançado" — ver purchasePriceColMarkup).
   const notLaunched=releaseState(p)!=='lancado';
   const cols=[];
   if(p.new!==false)cols.push(['new']);
-  if(!notLaunched&&(p.used!==false||p.semDisco))cols.push(['used']);
+  if(p.semDisco||(!notLaunched&&p.used!==false))cols.push(['used']);
   if(digital)cols.push(['digital']);
   if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
   const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
@@ -1105,8 +1111,13 @@ function renderProduct(slug,params,token){
   const ref=gameRef(p),cur=invGet(ref.id);
   const heroImage=visualAsset('games',p.slug,'hero');
   const uDisplayName=u?(paletteForUniverse(u)?.nome||u.name):'';
+  // Ajuste 4B.2: jogo ainda não lançado (pré-venda/anunciado) não pode
+  // ser marcado "Já tenho" — o botão Salvar (que abre o modal Quero/
+  // Tenho/Alerta; não é um favorito à parte, ver openSaveModal) vira
+  // texto estático "Em breve" no hero, conforme pacote4 2.5.
+  const heroNotLaunched=releaseState(p)!=='lancado';
   const heroActions=`
-    ${saveButton(ref,{label:true})}
+    ${heroNotLaunched?'<span class="btn save-btn is-disabled" aria-disabled="true">Em breve</span>':saveButton(ref,{label:true})}
     ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(uDisplayName)} →</a>`:''}`;
   // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
   // título continua trazendo esse contexto em texto corrido (não é mais
@@ -1222,14 +1233,18 @@ async function renderOfferComparison(slug,params,token){
     const stores=digitalAvailable?applyDirectStoreLinks(digitalStores(p,platform),catalogStoreLinks(p)):[];
     if(digitalAvailable&&!stores.length&&p.digitalUrl)stores.push({name:'Loja oficial',url:p.digitalUrl,direto:true});
     const loading='<div class="compare-loading"><span></span><span></span><span></span></div>';
-    // Pacote4 2.2/2.5: jogo semDisco nunca revende Usado, e jogo ainda não
-    // lançado não tem mercado de Usado nenhum — a aba "Todos" mostra o
-    // bloco fixo certo em vez de buscar ofertas que não podem existir.
+    // Pacote4 2.2/2.5 + ajuste 4B.1: jogo semDisco nunca revende Usado — a
+    // mensagem "sem revenda" tem PRIORIDADE sobre "ainda não lançado"
+    // (nunca vai ter Usado de qualquer forma); jogo ainda não lançado
+    // ganha uma segunda linha com a data prevista. Jogo comum (sem
+    // semDisco) ainda não lançado não tem mercado de Usado nenhum ainda.
     const notLaunched=releaseState(p)!=='lancado';
     const noUsedMarket=p.semDisco||notLaunched;
-    const usedMsg=notLaunched?'Ainda não lançado.':'Sem revenda (código de uso único).';
+    const usedMsg=p.semDisco
+      ?`Sem revenda: esta edição física vem com código de download de uso único, sem disco.${notLaunched?`<br>${esc(releaseDateDisplay(p))}.`:''}`
+      :'Ainda não lançado.';
     offers.innerHTML=`<section class="compare-block"><h3>Novo ${formatBadgeMarkup(p)}</h3>${p.semDisco?'<p class="fine">Caixa com código de download, sem disco.</p>':''}<div class="compare-offers" id="cmp-new">${loading}</div></section>
-      <section class="compare-block"><h3>Usado</h3>${noUsedMarket?`<div class="empty compact"><p>${esc(usedMsg)}</p></div>`:`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
+      <section class="compare-block"><h3>Usado</h3>${noUsedMarket?`<div class="empty compact"><p>${usedMsg}</p></div>`:`<div class="compare-offers" id="cmp-used">${loading}</div>`}</section>
       ${stores.length?`<section class="compare-block"><h3>Digital</h3><div class="compare-offers" id="cmp-digital">${digitalOfferCards(p,platform,stores)}</div></section>`:''}`;
     if(stores.length)hydrateDigitalStoreLinks(p,platform,'#cmp-digital',stores,token);
     const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),noUsedMarket?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
@@ -1256,19 +1271,21 @@ async function renderOfferComparison(slug,params,token){
     if(stores.length)hydrateDigitalStoreLinks(p,platform,'#comparisonOffers',stores,token);
     return;
   }
-  // Pacote4 2.2/2.5: aba Usado isolada num jogo semDisco (não consulta
-  // fonte nenhuma, código de ativação não revende) ou ainda não lançado
-  // (não existe o que revender ainda).
+  // Pacote4 2.2/2.5 + ajuste 4B.1: aba Usado isolada num jogo semDisco —
+  // PRIORIDADE sobre "ainda não lançado" (nunca vai ter Usado, lançado ou
+  // não; nunca sugerir "volte quando o jogo sair" pra esse caso). Jogo
+  // comum ainda não lançado continua com a mensagem de "ainda não saiu".
+  if(cond==='used'&&p.semDisco){
+    const notLaunchedYet=releaseState(p)!=='lancado';
+    status.textContent='Sem revenda nesta edição';
+    comparisonSpinnerOff();
+    offers.innerHTML=`<div class="empty"><h2>Sem revenda (código de uso único)</h2><p>Esta edição física vem com código de download de uso único, sem disco — não há o que revender.${notLaunchedYet?`<br>${esc(releaseDateDisplay(p))}.`:''}</p></div>`;
+    return;
+  }
   if(cond==='used'&&releaseState(p)!=='lancado'){
     status.textContent='Ainda não lançado';
     comparisonSpinnerOff();
     offers.innerHTML=`<div class="empty"><h2>Ainda não lançado</h2><p>${esc(releaseDateDisplay(p)||'Sem data de lançamento confirmada.')} Volte quando o jogo sair pra ver ofertas de Usado.</p></div>`;
-    return;
-  }
-  if(cond==='used'&&p.semDisco){
-    status.textContent='Sem revenda nesta edição';
-    comparisonSpinnerOff();
-    offers.innerHTML=`<div class="empty"><h2>Sem revenda (código de uso único)</h2><p>Esta edição vem em caixa física com código de ativação — não há disco físico pra revender.</p></div>`;
     return;
   }
   const res=await fetchCond(p.title,platform,cond);
