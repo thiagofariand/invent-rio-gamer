@@ -349,7 +349,7 @@ function openFiltersDrawer(){
 }
 function collectFilterParams(scope){
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
-  ['cat','genre','cond','plat'].forEach(name=>{
+  ['cat','genre','cond','plat','console'].forEach(name=>{
     const vals=$$(`${scope} [data-filter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
   });
@@ -453,7 +453,7 @@ document.addEventListener('click',e=>{
   if(act==='rm-filter'){
     const p=new URLSearchParams(location.hash.split('?')[1]||'');
     const k=btn.dataset.k;
-    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'){
+    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'||k==='console'){
       const vals=(p.get(k)||'').split(',').filter(v=>v&&v!==btn.dataset.v);
       if(vals.length)p.set(k,vals.join(','));else p.delete(k);
     }else p.delete(k);

@@ -58,15 +58,25 @@ function rowsFromMatches(matches){
 }
 const CATS=[['games','Games'],['acessorios','Acessórios'],['colecionaveis','Colecionáveis'],['merch','Decoração'],['fanmade','Fan-made']];
 const catLabel=k=>(CATS.find(c=>c[0]===k)||[])[1]||k;
-const ORIGIN_LABEL={oficial:'Oficial','nao-confirmado':'Licenciamento não confirmado',fanmade:'Fan-made',artesanal:'Artesanal'};
+// Pacote5, seção 5: a busca lê merch.json (fonte única, merchItemsVisible()
+// já aplica a regra do selo EXEMPLO) em vez de M.items (mock-data.js,
+// migração pendente desde o pacote4). categoria/tipo do merch.json não têm
+// 1:1 com os buckets antigos de CATS — mapeado best-effort: tipo fan-made
+// vira o bucket "fanmade", categoria colecionaveis vira "colecionaveis",
+// o resto (decoracao/casa/iluminacao/vestuario/livros-arte) cai no bucket
+// catch-all "merch" (rótulo "Decoração", já existente).
+function merchRowCat(it){
+  if(it.tipo==='fan-made')return 'fanmade';
+  if(it.categoria==='colecionaveis')return 'colecionaveis';
+  return 'merch';
+}
 function merchRows(raw){
-  if(!mockMerch())return [];
   const q=norm(raw),tokens=q.split(' ').filter(Boolean);
-  return M.items.map(it=>{
-    const u=it.universe?uMap.get(it.universe):null;
-    const hay=' '+norm([it.title,it.subtitle,u?u.name:'',(D.merchTypes[it.type]||{}).label||''].join(' '));
+  return merchItemsVisible().map(it=>{
+    const u=it.universo?uMap.get(it.universo):null;
+    const hay=' '+norm([it.titulo,u?u.name:'',MERCH_CATEGORIA_LABEL[it.categoria]||'',MERCH_TIPO_LABEL[it.tipo]||''].join(' '));
     const ok=!tokens.length||tokens.every(t=>hay.includes(' '+t));
-    return ok?{kind:'merch',item:it,score:tokens.length?40:0}:null;
+    return ok?{kind:'merch',item:it,cat:merchRowCat(it),score:tokens.length?40:0}:null;
   }).filter(Boolean);
 }
 function readFilters(params){
@@ -76,7 +86,12 @@ function readFilters(params){
     cats:new Set(list('cat')),
     genres:new Set(list('genre')),
     conds:new Set(list('cond').map(c=>URL_COND[c]).filter(Boolean)),
-    plats:new Set(list('plat')),
+    // Pacote5, seção 5: `plat` é a FAMÍLIA (nintendo|playstation|xbox),
+    // filtrando pelos consoles daquela família via consoles.json;
+    // `console` é o valor exato de plataformas[] (ex. PS2) — os dois
+    // juntos filtram console dentro da família.
+    plats:new Set(list('plat').filter(v=>['nintendo','playstation','xbox'].includes(v))),
+    consoles:new Set(list('console')),
     min:num('min'),max:num('max'),
     retro:params.get('retro')==='1',
     // Pacote2, item 4.1: #/busca?universo={slug}&retro=1 — link do card
@@ -87,7 +102,7 @@ function readFilters(params){
     lanc:['lancado','pre-venda','anunciado'].includes(params.get('lanc'))?params.get('lanc'):''
   };
 }
-const rowCat=r=>r.kind==='game'?'games':r.item.cat;
+const rowCat=r=>r.kind==='game'?'games':r.cat;
 function visibleConds(r,F){
   if(!F||!F.conds||!F.conds.size)return r.conds;
   const v=r.conds.filter(c=>F.conds.has(c));
@@ -99,7 +114,8 @@ function applyFilters(rows,F){
     if(r.kind==='game'){
       if(F.universo&&r.p.universe!==F.universo)return false;
       if(F.conds.size&&!r.conds.some(c=>F.conds.has(c)))return false;
-      if(F.plats.size&&!F.plats.has(r.platform))return false;
+      if(F.plats.size&&!F.plats.has(consoleFamily(r.platform)))return false;
+      if(F.consoles.size&&!F.consoles.has(r.platform))return false;
       if(F.retro&&!isRetro(r.platform))return false;
       if(F.lanc&&releaseState(r.p)!==F.lanc)return false;
       if(F.genres&&F.genres.size&&!(r.p.genres||[]).some(g=>F.genres.has(g)))return false;
@@ -112,10 +128,10 @@ function applyFilters(rows,F){
         }
       }
     }else{
-      if(F.universo&&r.item.universe!==F.universo)return false;
-      if(F.conds.size||F.plats.size||F.retro||F.lanc||(F.genres&&F.genres.size))return false;
-      if(F.min!=null&&r.item.price<F.min)return false;
-      if(F.max!=null&&r.item.price>F.max)return false;
+      if(F.universo&&r.item.universo!==F.universo)return false;
+      if(F.conds.size||F.plats.size||F.consoles.size||F.retro||F.lanc||(F.genres&&F.genres.size))return false;
+      if(F.min!=null&&r.item.preco<F.min)return false;
+      if(F.max!=null&&r.item.preco>F.max)return false;
     }
     return true;
   });
@@ -176,17 +192,18 @@ function fetchCond(title,platform,cond){
 /* ---------- linhas de resultado ---------- */
 const rowKey=r=>r.kind==='game'?`${r.p.slug}|${r.platform}`:`m|${r.item.id}`;
 const condKey=(r,cond)=>rowKey(r)+'|'+cond;
+// Pacote5, seção 5: preço do merch.json segue a mesma regra de frescor de
+// precoAtualizadoEm (merchPriceLine, já usada no card/página do item —
+// nunca duplicada aqui).
 function priceCell(r){
-  if(r.kind==='merch'){
-    return `<div class="price-block">${r.item.unique?'preço do anúncio':'a partir de'}<span class="price-val">${brl(r.item.price)}</span><span class="fine">${mockChip()} preço de exemplo</span></div>`;
-  }
+  if(r.kind==='merch')return `<div class="price-block">${merchPriceLine(r.item)}</div>`;
   return '';
 }
+// Regra fixa do merch (vale pro site inteiro): nunca link direto pra loja
+// a partir de card/lista — o clique abre #/item/{id}; só lá tem o botão
+// de verdade pra loja.
 function rowAction(r){
-  if(r.kind==='merch'){
-    if(r.item.unique)return `<button class="btn btn-outline" data-act="mock-item" data-id="${esc(r.item.id)}">Ver item →</button>`;
-    return `<button class="btn btn-outline" data-act="open-merch-offers" data-id="${esc(r.item.id)}">Ver ofertas →</button>`;
-  }
+  if(r.kind==='merch')return `<a class="btn btn-outline" href="#/item/${esc(r.item.id)}">Ver item →</a>`;
   return '';
 }
 // Pacote3, item 2.1: preço de exemplo da linha de busca vem do MESMO
@@ -216,13 +233,13 @@ function gameRowPriceList(r,F){
 function rowMarkup(r,F){
   const rk=esc(rowKey(r));
   if(r.kind==='merch'){
-    const it=r.item,u=it.universe?uMap.get(it.universe):null;
-    regRef(mockRef(it));
+    const it=r.item,u=it.universo?uMap.get(it.universo):null;
+    const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
     return `<article class="row" data-rowkey="${rk}">
-      <div class="row-cover">${coverTile(it.title,{size:'',mock:false})}</div>
-      <div class="row-main"><span class="row-title" style="cursor:default">${esc(it.title)}</span>
-        <div class="row-chips"><span class="chip">${esc(ORIGIN_LABEL[it.origin]||'')}</span><span class="chip soft">${esc(catLabel(it.cat))}</span>${it.unique?'<span class="chip soft">peça única</span>':''}${mockChip()}</div>
-        <div class="row-sub">${esc(it.subtitle)}${u?' · '+esc(u.name):''}</div></div>
+      <div class="row-cover">${hasPhoto?`<img src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy">`:coverTile(it.titulo,{size:'',mock:false})}</div>
+      <div class="row-main"><a class="row-title" href="#/item/${esc(it.id)}">${esc(it.titulo)}</a>
+        <div class="row-chips"><span class="chip">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span><span class="chip soft">${esc(catLabel(r.cat))}</span>${it.exemplo?mockChip():''}</div>
+        <div class="row-sub">${esc(it.loja)}${u?' · '+esc(u.name):''}</div></div>
       <div class="row-price" data-pcell>${priceCell(r)}</div>
       <div class="row-action">${rowAction(r)}</div></article>`;
   }

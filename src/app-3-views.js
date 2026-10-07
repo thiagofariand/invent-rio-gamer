@@ -752,7 +752,7 @@ function filterBarMarkup(F,platforms){
   const genreItems=GENRES.map(g=>[g.slug,g.label]);
   const platItems=platforms.map(p=>[p,p]);
   return `<div class="filterbar-row">
-    ${fdrop('plat','Plataforma',F.plats.size,platItems.length?fdropCheckList('plat',platItems,v=>F.plats.has(v),platItems.length>8)+`<label class="fdrop-extra"><input type="checkbox" data-filter="retro" data-value="1" ${F.retro?'checked':''}> <span>Só retrô</span></label>`:'<p class="fine">Sem plataformas nesta busca.</p>')}
+    ${fdrop('console','Plataforma',F.consoles.size,platItems.length?fdropCheckList('console',platItems,v=>F.consoles.has(v),platItems.length>8)+`<label class="fdrop-extra"><input type="checkbox" data-filter="retro" data-value="1" ${F.retro?'checked':''}> <span>Só retrô</span></label>`:'<p class="fine">Sem plataformas nesta busca.</p>')}
     ${fdrop('cat','Categoria',F.cats.size,fdropCheckList('cat',CATS,v=>F.cats.has(v),CATS.length>8))}
     ${fdrop('genre','Gênero',F.genres.size,fdropCheckList('genre',genreItems,v=>F.genres.has(v),genreItems.length>8))}
     ${fdrop('cond','Condição',F.conds.size,fdropCheckList('cond',[['usado','Usado'],['novo','Novo'],['digital','Digital']],v=>F.conds.has(URL_COND[v]),false))}
@@ -771,7 +771,7 @@ function filtersMarkup(F,platforms,prefix){
   <div class="fg"><h3>Categoria</h3>${CATS.map(([k,l])=>chk('cat',k,l,F.cats.has(k))).join('')}</div>
   <div class="fg"><h3>Gênero</h3>${GENRES.map(g=>chk('genre',g.slug,g.label,F.genres.has(g.slug))).join('')}</div>
   <div class="fg"><h3>Condição</h3>${['new','used','digital'].map(c=>chk('cond',COND_URL[c],COND_LABEL[c],F.conds.has(c))).join('')}</div>
-  <div class="fg"><h3>Plataforma</h3><div class="scroll">${platforms.map(p=>chk('plat',p,p,F.plats.has(p))).join('')||'<span class="fine">Sem plataformas nesta busca.</span>'}</div>
+  <div class="fg"><h3>Plataforma</h3><div class="scroll">${platforms.map(p=>chk('console',p,p,F.consoles.has(p))).join('')||'<span class="fine">Sem plataformas nesta busca.</span>'}</div>
     <label style="margin-top:6px"><input type="checkbox" data-filter="retro" data-value="1" ${F.retro?'checked':''}> <span>Só retrô</span></label></div>
   <div class="fg"><h3>Faixa de preço</h3><div class="price-inputs">
     <input type="number" inputmode="decimal" min="0" step="1" placeholder="R$ mín." aria-label="Preço mínimo" data-price="min" value="${F.min??''}">
@@ -782,12 +782,12 @@ function filtersMarkup(F,platforms,prefix){
 // de sempre, "considera só os preços já consultados"); sem dado, fica no
 // fim do critério de preço (nunca derruba o resultado, só não prioriza).
 function rowSortPrice(r){
-  if(r.kind==='merch')return Number.isFinite(r.item.price)?r.item.price:Infinity;
+  if(r.kind==='merch')return Number.isFinite(r.item.preco)?r.item.preco:Infinity;
   let min=Infinity;
   ['used','new'].forEach(c=>{const s=summaryOf(c,r.p.title,r.platform);if(s&&s.min!=null)min=Math.min(min,s.min)});
   return min;
 }
-function rowTitle(r){return r.kind==='merch'?r.item.title:r.p.title}
+function rowTitle(r){return r.kind==='merch'?r.item.titulo:r.p.title}
 function sortRows(rows,sort){
   if(sort==='preco-asc')rows.sort((a,b)=>rowSortPrice(a)-rowSortPrice(b));
   else if(sort==='preco-desc')rows.sort((a,b)=>rowSortPrice(b)-rowSortPrice(a));
@@ -799,7 +799,8 @@ function activeChips(F){
   F.cats.forEach(c=>chips.push(['cat',c,catLabel(c)]));
   F.genres.forEach(g=>chips.push(['genre',g,genreLabel(g)]));
   F.conds.forEach(c=>chips.push(['cond',COND_URL[c],COND_LABEL[c]]));
-  F.plats.forEach(p=>chips.push(['plat',p,p]));
+  F.plats.forEach(p=>chips.push(['plat',p,FAMILY_LABEL[p]||p]));
+  F.consoles.forEach(c=>chips.push(['console',c,c]));
   if(F.retro)chips.push(['retro','1','Retrô']);
   if(F.universo){const u=uMap.get(F.universo);chips.push(['universo',F.universo,u?u.name:F.universo])}
   if(F.min!=null)chips.push(['min','',`a partir de ${brl(F.min)}`]);
