@@ -694,10 +694,10 @@ function renderHome(){
       ${homeHeroWideMarkup(heroSlides)}
       ${universeTilesOverlapMarkup('Universos populares','#/universos',tileUniverses)}
       ${homeTabsMarkup(order)}
-      <div class="carousel-row-wrap">
+      ${cardsPool.length?`<div class="carousel-row-wrap">
         <div class="peek-grid home-cards" data-carousel-row="home-destaques" data-scroll-mult="6">${cardsPool.map(posterCard).join('')}</div>
         ${carouselEdgesMarkup('home-destaques')}
-      </div>
+      </div>`:`<p class="lede" style="padding:24px 0">Nenhum jogo nesta aba por enquanto${order==='pre-venda'?' (os jogos em pré-venda já aparecem no destaque do topo).':'.'}</p>`}
     </div>
     ${homeSidePanelMarkup()}
   </div>`;
