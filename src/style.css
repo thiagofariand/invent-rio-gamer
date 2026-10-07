@@ -17,6 +17,12 @@
   /* Pacote4 1B.5: espaçamento vertical hero -> card de compra (ficha do
      jogo), antes ~2px (sem margem definida entre os dois blocos). */
   --space-hero-card:16px;
+  /* Pacote5: hero largo (home + plataforma) e ladrilhos de universo
+     sobrepostos (item 1.1/1.3). */
+  --hero-h-wide:340px;--hero-art-w:70%;
+  --hero-fade:linear-gradient(90deg,var(--hero-base,#1a1512) 0%,var(--hero-base,#1a1512) 26%,transparent 52%);
+  --tile-h:92px;--tile-overlap:88px;--tile-pop:34px;
+  --side-w:300px;
 }
 @supports (transition-timing-function:linear(0,1)){
   :root{--ease-spring:linear(0,.42 7.9%,1.07 18.9%,1.16 23.5%,1.1 30.6%,1,.98 39.7%,1 50.8%,1)}
@@ -2828,6 +2834,47 @@ html[data-theme="neutral"] body.dark-surface-route{
   .home-universes-grid{grid-template-columns:minmax(0,1fr);gap:12px}
   .ud-big{height:180px}
   .home-universes-compact{flex-direction:column}
+}
+
+/* Pacote5, item 1.3: UniverseTile — ladrilho único reaproveitado na home,
+   na página de plataforma (sobrepostos ao hero) e no diretório de
+   universos (em grade, sem sobreposição). Capa do jogo principal saltando
+   --tile-pop acima do topo; sem capa válida (hydrateUniverseTiles mede o
+   naturalWidth de verdade, >=200px), fica só a cor da paleta + sigla. */
+.universe-tile{position:relative;display:flex;align-items:flex-end;justify-content:center;height:var(--tile-h);border-radius:20px;text-decoration:none;overflow:visible;
+  background:linear-gradient(145deg,var(--ut-base,#1f0b14),color-mix(in oklab,var(--ut-base,#1f0b14) 55%,#000 45%));
+  box-shadow:0 10px 22px rgba(0,0,0,.4)}
+.ut-cover-wrap{display:none;position:absolute;top:calc(-1 * var(--tile-pop));left:50%;width:60px;height:80px;z-index:2}
+.has-cover .ut-cover-wrap{display:block}
+.has-cover .ut-sigla{display:none}
+.ut-cover-slot{display:block;width:100%;height:100%;border-radius:9px;background-size:cover;background-position:center;background-color:#2a1019;
+  border:1.5px solid rgba(255,255,255,.5);box-shadow:0 8px 16px rgba(0,0,0,.45);
+  transform:translateX(-50%) rotate(-6deg);transition:transform 200ms var(--ease-spring)}
+.universe-tile:hover .ut-cover-slot,.universe-tile:focus-visible .ut-cover-slot{transform:translateX(-50%) translateY(-6px) rotate(-3deg)}
+.ut-sigla{color:#fff;font:700 28px/1 var(--font-ui);opacity:.9;padding-bottom:18px}
+.ut-body{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 8px 12px;text-align:center;min-width:0;width:100%}
+.ut-name{color:#fff;font:500 13px/1.3 var(--font-ui);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ut-count{color:rgba(255,255,255,.72);font-size:11px}
+.universe-tile.universe-tile-more{background:var(--glass-2);border:1px dashed var(--glass-border)}
+.universe-tile.universe-tile-more .ut-name{color:var(--text-1)}
+.universe-tile.universe-tile-more .ut-count{color:var(--text-2)}
+@media(hover:none){.universe-tile:hover .ut-cover-slot{transform:translateX(-50%) rotate(-6deg)}}
+@media(prefers-reduced-motion:reduce){.ut-cover-slot{transition:none}}
+/* Fileira sobreposta ao hero largo (home/plataforma): o topo da fileira
+   fica --tile-overlap acima da base do hero; padding-top reserva espaço
+   pra capa saltar sem cortar. Rótulo da fileira fica ACIMA, sobre o hero. */
+.universe-tiles-row{position:relative;z-index:5;display:flex;gap:14px;margin-top:calc(-1 * var(--tile-overlap));padding-top:var(--tile-pop)}
+.universe-tiles-row>.universe-tile{flex:1;min-width:0}
+.universe-tiles-label{position:relative;z-index:6;display:inline-block;color:#fff;font:500 16px/1.2 var(--font-ui);text-shadow:0 1px 6px rgba(0,0,0,.5);text-decoration:none;margin-bottom:12px}
+/* Diretório (item 4): mesmo ladrilho em grade, sem sobrepor hero nenhum —
+   reserva o espaço de --tile-pop no topo de cada fileira. */
+.universe-tiles-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 14px;padding-top:var(--tile-pop)}
+.universe-tiles-grid>.universe-tile{margin:0}
+@media(max-width:1000px){.universe-tiles-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:899px){
+  .universe-tiles-grid{grid-template-columns:repeat(2,1fr)}
+  .universe-tiles-row{overflow-x:auto;scroll-snap-type:x mandatory;margin-top:12px;padding-top:var(--tile-pop)}
+  .universe-tiles-row>.universe-tile{flex:0 0 120px;scroll-snap-align:start}
 }
 
 /* 3.8: colecionáveis/merch em quadrados */

@@ -391,6 +391,58 @@ function universosDestaqueSection(){
   </section>`;
 }
 
+/* ============================================================
+   PACOTE5, ITEM 1.3 — UniverseTile (componente único: home, plataforma
+   e diretório de universos). Capa do jogo principal do universo
+   saltando acima do ladrilho; sem capa válida (sem imagem, ou IGDB
+   devolveu mas a imagem carregou com largura < 200px), fica só a cor
+   da paleta + sigla. A hidratação mede a largura de verdade (naturalWidth)
+   antes de trocar pra capa — nunca um <img> esticado/pixelado.
+   ============================================================ */
+function universeTileMarkup(u,opts={}){
+  const titles=titlesOf(u.slug);
+  const rep=representativeFranchiseGame(titles);
+  const pal=paletteForUniverse(u);
+  const platform=rep?.variants?.[0]?.[1]||'';
+  const base=pal?.fundo||'#1f0b14';
+  const displayName=pal?.nome||u.name;
+  const count=opts.count!=null?opts.count:titles.length;
+  return `<a class="universe-tile" href="#/universo/${u.slug}" aria-label="Universo ${esc(displayName)}, ${count} ${count===1?'jogo':'jogos'}" data-ut-tile data-ut-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ut-platform="${esc(platform)}" data-ut-year="${esc(rep?.year||'')}" style="--ut-base:${esc(base)}">
+    <span class="ut-cover-wrap" aria-hidden="true"><span class="ut-cover-slot"></span></span>
+    <span class="ut-sigla" aria-hidden="true">${esc(u.sigla)}</span>
+    <span class="ut-body"><b class="ut-name">${esc(displayName)}</b><small class="ut-count">${count} jogo${count===1?'':'s'}</small></span>
+  </a>`;
+}
+// "Ver todos os universos →" — usado quando uma fileira de ladrilhos
+// precisa de um último item que leve ao diretório (item 3.2: plataforma
+// com mais de 6 universos).
+function universeTileMoreMarkup(href,label='Ver todos os universos'){
+  return `<a class="universe-tile universe-tile-more" href="${esc(href)}">
+    <span class="ut-body"><b class="ut-name">${esc(label)}</b><small class="ut-count">→</small></span>
+  </a>`;
+}
+async function hydrateUniverseTiles(root){
+  const nodes=$$('[data-ut-tile]',root).filter(el=>!el.dataset.utState);
+  await mapLimit(nodes,3,async el=>{
+    el.dataset.utState='loading';
+    const d=await fetchIgdbVisual(el.dataset.utTitle||'',el.dataset.utPlatform||'',el.dataset.utYear||'');
+    const url=d?.cover?.url;
+    if(!el.isConnected)return;
+    if(!url){el.dataset.utState='empty';return}
+    const img=new Image();
+    img.onload=()=>{
+      if(!el.isConnected)return;
+      if(img.naturalWidth<200){el.dataset.utState='empty';return}
+      const slot=el.querySelector('.ut-cover-slot');
+      if(slot)slot.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`;
+      el.classList.add('has-cover');
+      el.dataset.utState='done';
+    };
+    img.onerror=()=>{el.dataset.utState='empty'};
+    img.src=url;
+  });
+}
+
 /* ---- 3.7: Retrô (mesmo card/expansão de Destaques) ---- */
 function retroPool(exclude){
   const rank=p=>{const s=sampleOffers(p.title,{year:p.year});return s.bucket==='both'?3:(s.bucket==='used'||s.bucket==='new')?2:s.bucket==='digital'?1:0};
