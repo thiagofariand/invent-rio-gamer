@@ -2865,12 +2865,14 @@ html[data-theme="neutral"] body.dark-surface-route{
 .universe-tile.universe-tile-more .ut-count{color:var(--text-2)}
 @media(hover:none){.universe-tile:hover .ut-cover-slot{transform:translateX(-50%) rotate(-6deg)}}
 @media(prefers-reduced-motion:reduce){.ut-cover-slot{transition:none}}
-/* Fileira sobreposta ao hero largo (home/plataforma): o topo da fileira
-   fica --tile-overlap acima da base do hero; padding-top reserva espaço
-   pra capa saltar sem cortar. Rótulo da fileira fica ACIMA, sobre o hero. */
-.universe-tiles-row{position:relative;z-index:5;display:flex;gap:14px;margin-top:calc(-1 * var(--tile-overlap));padding-top:var(--tile-pop)}
+/* Fileira sobreposta ao hero largo (home/plataforma): o wrap inteiro
+   (rótulo + fileira) sobe --tile-overlap sobre a base do hero;
+   padding-top reserva espaço pra capa saltar sem cortar. Rótulo fica
+   ACIMA da fileira, ainda dentro da área sobreposta ao hero. */
+.universe-tiles-overlap{position:relative;z-index:5;display:flex;flex-direction:column;gap:8px;margin-top:calc(-1 * var(--tile-overlap));padding-top:var(--tile-pop)}
+.universe-tiles-row{display:flex;gap:14px}
 .universe-tiles-row>.universe-tile{flex:1;min-width:0}
-.universe-tiles-label{position:relative;z-index:6;display:inline-block;color:#fff;font:500 16px/1.2 var(--font-ui);text-shadow:0 1px 6px rgba(0,0,0,.5);text-decoration:none;margin-bottom:12px}
+.universe-tiles-label{position:relative;z-index:6;display:inline-block;color:#fff;font:500 16px/1.2 var(--font-ui);text-shadow:0 1px 6px rgba(0,0,0,.5);text-decoration:none}
 /* Diretório (item 4): mesmo ladrilho em grade, sem sobrepor hero nenhum —
    reserva o espaço de --tile-pop no topo de cada fileira. */
 .universe-tiles-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 14px;padding-top:var(--tile-pop)}
@@ -2878,8 +2880,56 @@ html[data-theme="neutral"] body.dark-surface-route{
 @media(max-width:1000px){.universe-tiles-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:899px){
   .universe-tiles-grid{grid-template-columns:repeat(2,1fr)}
-  .universe-tiles-row{overflow-x:auto;scroll-snap-type:x mandatory;margin-top:12px;padding-top:var(--tile-pop)}
+  .universe-tiles-overlap{margin-top:12px}
+  .universe-tiles-row{overflow-x:auto;scroll-snap-type:x mandatory}
   .universe-tiles-row>.universe-tile{flex:0 0 120px;scroll-snap-align:start}
+}
+
+/* Pacote5, seção 2 — home nova: coluna principal (784px) + painel lateral
+   (var(--side-w)), topo alinhado à barra lateral existente (.app-sidebar);
+   main já tem margin-left reservando o espaço da barra — ver --sidebar-w. */
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr) var(--side-w);gap:16px;align-items:start}
+.home-main{min-width:0}
+.home-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* Abas (item 2.1): sem pílula, ativa com sublinhado reto. */
+.home-tabs{display:flex;gap:24px;border-bottom:1px solid var(--glass-border);margin:16px 0 14px;overflow-x:auto}
+.home-tab{position:relative;flex:none;padding:0 0 10px;color:var(--text-2);font:500 14px var(--font-ui);text-decoration:none;white-space:nowrap}
+.home-tab.is-active{color:var(--text-1)}
+.home-tab.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--action,var(--red))}
+/* Cartões do painel lateral — --glass-2, radius 18, padding 14/16. */
+.side-card{display:block;background:var(--glass-2);border:1px solid var(--glass-border);border-radius:18px;padding:14px 16px;text-decoration:none;color:inherit}
+.side-card h3{font:500 16px/1.2 var(--font-ui);color:var(--text-1);margin:0}
+.side-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.side-see-all{font-size:12px;color:var(--text-2);text-decoration:none;white-space:nowrap}
+.side-card-copy{font-size:13px;color:var(--text-2);margin:8px 0 12px}
+.side-chip-row{display:flex;flex-wrap:wrap;gap:8px}
+.side-chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--glass-3,rgba(255,255,255,.08));border:1px solid var(--glass-border);color:var(--text-1);font-size:12.5px;font-weight:600;text-decoration:none}
+.side-game-list{display:flex;flex-direction:column;gap:10px}
+.side-game-row,.side-upcoming-row{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.side-row-cover{flex:none;width:28px;height:38px;display:block}
+.side-row-cover .cover{width:28px;height:38px;aspect-ratio:auto;border-radius:5px!important}
+.side-game-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.side-game-title{font-size:13px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-game-ctx{font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-row-price{flex:none;font-size:12px;font-weight:700;color:var(--text-1)}
+.side-row-price.is-quiet{font-weight:500;color:var(--text-2)}
+.side-upcoming-date{flex:none;width:36px;height:36px;border-radius:9px;background:var(--glass-3,rgba(255,255,255,.08));display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.side-upcoming-date b{font-size:14px;color:var(--text-1)}
+.side-upcoming-date small{font-size:9.5px;text-transform:uppercase;color:var(--text-2)}
+.side-console-block{margin-top:12px}
+.side-console-block:first-of-type{margin-top:0}
+.side-console-name{display:block;font:500 14px var(--font-ui);color:var(--text-1);text-decoration:none;margin-bottom:8px}
+.side-console-chips{display:flex;flex-wrap:wrap;gap:6px}
+.side-console-chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--glass-border);color:var(--text-1);font-size:12px;text-decoration:none}
+.side-console-chip b{font-weight:700;color:var(--text-2)}
+.home-guide-card{display:flex;align-items:center;gap:12px}
+.side-guide-icon{flex:none;width:36px;height:36px;border-radius:10px;background:var(--glass-3,rgba(255,255,255,.08));display:flex;align-items:center;justify-content:center;color:var(--text-1)}
+.side-guide-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.side-guide-body b{font-size:13px;color:var(--text-1);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.side-guide-body small{font-size:11.5px;color:var(--text-2)}
+@media(max-width:899px){
+  .home-grid{grid-template-columns:1fr}
+  .home-side{flex-direction:column}
 }
 
 /* 3.8: colecionáveis/merch em quadrados */

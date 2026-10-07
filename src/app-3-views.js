@@ -389,76 +389,6 @@ function destaquesPool(order,exclude){
 function destaquesAlternatorMarkup(order,hrefBase='#/',paramName='destaques'){
   return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" href="${hrefBase}?${paramName}=${k}" aria-pressed="${k===order}" data-destaques-order="${k}" data-destaques-param="${paramName}" data-destaques-base="${hrefBase}">${esc(l)}</a>`).join('')}</div>`;
 }
-function destaquesSection(order,heroExclude){
-  const pool=destaquesPool(order,heroExclude);
-  if(!pool.length)return '';
-  return `<section class="lux-section home-destaques" aria-labelledby="home-destaques-title" data-lazy-eager>
-    <div class="lux-section-head">
-      <div>${rowTitleLink('home-destaques-title','Destaques',`#/em-alta?ordem=${order}`)}</div>
-      ${destaquesAlternatorMarkup(order)}
-    </div>
-    <div class="carousel-row-wrap">
-      <div class="peek-grid" data-carousel-row="home-destaques" data-scroll-mult="6">${pool.map(posterCard).join('')}</div>
-      ${carouselEdgesMarkup('home-destaques')}
-    </div>
-  </section>`;
-}
-
-/* ---- 3.6: Universos em destaque (mesma lista curada da sidebar) ---- */
-// Pacote4 1.7 (bug da vistoria): este card tinha data-igdb-cover direto no
-// <a> inteiro — hydrateIgdbCovers() faz el.innerHTML=coverTile(...) quando
-// acha capa, o que apagava sigla/pílula/nome/contagem/botão (sobrava só a
-// capinha, daí o "ponto branco" no canto). Os 3 cards compactos nunca
-// tiveram esse bug porque o data-igdb-cover deles fica num <span> interno
-// só da capa (.ud-compact-cover), nunca no card inteiro. Fix: tira o
-// data-igdb-cover daqui e hidrata à parte com setHeroBackground() (mesmo
-// mecanismo do hero de universo — só troca --hero-img/classe, nunca o
-// innerHTML), então nome/contagem/pílula/botão SEMPRE ficam no DOM.
-function universeDestaqueBig(u){
-  const titles=titlesOf(u.slug);
-  const rep=representativeFranchiseGame(titles);
-  const pal=paletteForUniverse(u);
-  const platform=rep?.variants?.[0]?.[1]||'';
-  const base=pal?.fundo||'#1f0b14';
-  return `<a class="ud-big" href="#/universo/${u.slug}" aria-label="Conhecer o universo ${esc(pal?.nome||u.name)}" data-ud-big-art data-ud-art-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ud-art-platform="${esc(platform)}" data-ud-art-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
-    <span class="ud-fallback-sigla" aria-hidden="true">${esc(u.sigla)}</span>
-    <span class="ud-pill">${esc(PLATFORM_LABEL[u.casa]||'Multi')}</span>
-    <span class="ud-name">${esc(pal?.nome||u.name)}</span>
-    <span class="ud-count">${titles.length} jogos catalogados</span>
-    <span class="btn btn-primary ud-cta">Conhecer o universo →</span>
-  </a>`;
-}
-async function hydrateUniverseDestaqueBig(root){
-  const el=root.querySelector('[data-ud-big-art]');
-  if(!el)return;
-  const d=await fetchIgdbVisual(el.dataset.udArtTitle||'',el.dataset.udArtPlatform||'',el.dataset.udArtYear||'');
-  if(!el.isConnected)return;
-  if(d?.hero?.url)setHeroBackground(el,d.hero.url);
-  else if(d?.cover?.url)setHeroBackground(el,d.cover.url,true);
-}
-function universeDestaqueCompact(entry,u){
-  const titles=titlesOf(u.slug);
-  const rep=representativeFranchiseGame(titles);
-  const platform=rep?.variants?.[0]?.[1]||'';
-  return `<a class="ud-compact" href="#/universo/${u.slug}">
-    <span class="ud-compact-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{note:false})}</span>
-    <span class="ud-compact-body"><b>${esc(entry.nome||u.name)}</b><small>${titles.length} jogos · ${esc(PLATFORM_LABEL[u.casa]||'Multi')}</small></span>
-    <span class="btn btn-ghost btn-sm ud-compact-cta">Ver universo →</span>
-  </a>`;
-}
-function universosDestaqueSection(){
-  const entries=SIDEBAR_FEATURED_UNIVERSES.map(e=>({entry:e,u:uMap.get(e.slug)})).filter(x=>x.u).slice(0,4);
-  if(!entries.length)return '';
-  const [big,...rest]=entries;
-  return `<section class="lux-section home-universes" aria-labelledby="home-universes-title" data-lazy-section>
-    <div class="lux-section-head"><div>${rowTitleLink('home-universes-title','Universos em destaque','#/universos')}</div></div>
-    <div class="home-universes-grid">
-      ${universeDestaqueBig(big.u)}
-      <div class="home-universes-compact">${rest.map(x=>universeDestaqueCompact(x.entry,x.u)).join('')}</div>
-    </div>
-  </section>`;
-}
-
 /* ============================================================
    PACOTE5, ITEM 1.3 — UniverseTile (componente único: home, plataforma
    e diretório de universos). Capa do jogo principal do universo
@@ -511,25 +441,6 @@ async function hydrateUniverseTiles(root){
   });
 }
 
-/* ---- 3.7: Retrô (mesmo card/expansão de Destaques) ---- */
-function retroPool(exclude){
-  const rank=p=>{const s=sampleOffers(p.title,{year:p.year});return s.bucket==='both'?3:(s.bucket==='used'||s.bucket==='new')?2:s.bucket==='digital'?1:0};
-  return catalog.filter(p=>!exclude.has(p.title)&&p.variants.some(v=>isRetro(v[1])))
-    .sort((a,b)=>rank(b)-rank(a))
-    .slice(0,12);
-}
-function retroSection(exclude){
-  const pool=retroPool(exclude);
-  if(!pool.length)return '';
-  return `<section class="lux-section home-retro" aria-labelledby="home-retro-title" data-lazy-section>
-    <div class="lux-section-head"><div>${rowTitleLink('home-retro-title','Retrô','#/busca?retro=1')}<p class="row-subtitle">Clássicos, em preço de usado</p></div></div>
-    <div class="carousel-row-wrap">
-      <div class="peek-grid" data-carousel-row="home-retro" data-scroll-mult="6">${pool.map(posterCard).join('')}</div>
-      ${carouselEdgesMarkup('home-retro')}
-    </div>
-  </section>`;
-}
-
 /* ---- 3.8 / pacote4 4.2-4.4: card de merch (quadrado, sem foto por padrão) ---- */
 const MERCH_ORIGEM_LABEL={nacional:'Nacional',importado:'Importado'};
 const MERCH_TIPO_LABEL={oficial:'Oficial',licenciado:'Licenciado','fan-made':'Fan-made','nao-confirmado':'Não confirmado'};
@@ -573,32 +484,6 @@ function merchSquareCard(it){
     </div>
   </a>`;
 }
-// Pacote4 4.9: a fileira aparece com item real (exemplo:false, sempre
-// visível) OU de demonstração (só com o modo demonstração ligado);
-// merchItemsVisible() (4.1) já aplica exatamente essa regra — sem item
-// nenhum dos dois tipos, cai no fallback "Além dos jogos".
-function homeMerchSection(){
-  const items=merchItemsVisible().slice(0,12);
-  if(!items.length){
-    return `<section class="merch-home-stage" aria-labelledby="home-merch-title" data-lazy-section>
-      <div class="merch-home-copy"><h2 id="home-merch-title">Além dos jogos</h2><p>Produtos licenciados, criações independentes e peças para transformar coleção em ambiente.</p><a class="btn btn-warm" href="#/merch">Explorar tudo</a></div>
-      <div class="merch-home-grid">
-        <a class="merch-home-card" href="#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}"><span class="merch-home-icon">${ico('cube',28)}</span><div><b>Produtos oficiais</b><small>Amiibo, figures, livros e acessórios licenciados.</small></div><span>→</span></a>
-        <a class="merch-home-card" href="#/merch?tipo=fan-made"><span class="merch-home-icon">${ico('brush',28)}</span><div><b>Feito por fãs</b><small>Artesanato, impressão 3D e peças autorais.</small></div><span>→</span></a>
-      </div>
-    </section>`;
-  }
-  return `<section class="lux-section home-merch-squares" aria-labelledby="home-merch-title" data-lazy-section>
-    <div class="lux-section-head"><div>${rowTitleLink('home-merch-title','Colecionáveis e merch','#/merch')}</div></div>
-    <div class="merch-square-grid">${items.map(merchSquareCard).join('')}</div>
-  </section>`;
-}
-
-/* ---- 3.10: título clicável com seta no hover (desktop) + "Ver tudo →" (mobile) ---- */
-function rowTitleLink(id,label,href){
-  return `<h2 id="${id}"><a class="row-title-link" href="${esc(href)}">${esc(label)}<span class="row-title-arrow" aria-hidden="true">→</span></a></h2><a class="row-see-all-mobile" href="${esc(href)}">Ver tudo →</a>`;
-}
-
 /* ---- 3.9: lazy load (IntersectionObserver, margem 400px) ---- */
 function initLazySections(root){
   const sections=$$('[data-lazy-section]',root);
@@ -617,7 +502,7 @@ function initStaggerEntrance(root){
   let already=false;
   try{already=sessionStorage.getItem('inventario-gamer:v1:home-stagger-done')==='1'}catch{}
   if(already)return;
-  const cards=$$('.home-destaques .poster-card',root).slice(0,6);
+  const cards=$$('.home-cards .poster-card',root).slice(0,6);
   if(!cards.length)return;
   cards.forEach((card,i)=>{
     card.style.animationDelay=(i*40)+'ms';
@@ -626,6 +511,175 @@ function initStaggerEntrance(root){
   });
   try{sessionStorage.setItem('inventario-gamer:v1:home-stagger-done','1')}catch{}
 }
+/* ============================================================
+   PACOTE5, SEÇÃO 2 — HOME NOVA: coluna principal (hero largo + ladrilhos
+   sobrepostos + abas + cards) e painel lateral (4 cartões). Substitui o
+   layout do pacote3 (hero com miniaturas, Destaques com título próprio,
+   bloco "Universos em destaque", fileira Retrô e vitrine de merch — ver
+   item 2.4). "Colecionáveis e merch" sai da home nesta versão (não
+   listado na nova composição do pacote5; continua acessível por #/merch
+   e pelo menu).
+   ============================================================ */
+function universeTilesOverlapMarkup(label,href,list){
+  if(!list.length)return '';
+  return `<div class="universe-tiles-overlap">
+    <a class="universe-tiles-label" href="${esc(href)}">${esc(label)} →</a>
+    <div class="universe-tiles-row">${list.map(u=>universeTileMarkup(u)).join('')}</div>
+  </div>`;
+}
+function homeTabsMarkup(order){
+  return `<div class="home-tabs" role="tablist" aria-label="Destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="home-tab ${k===order?'is-active':''}" href="#/?destaques=${k}" role="tab" aria-selected="${k===order}" data-destaques-order="${k}">${esc(l)}</a>`).join('')}</div>`;
+}
+
+/* ---- painel lateral: 4 cartões (item 2.2) ---- */
+function sideRowCoverMarkup(g,platform){
+  return `<span class="side-row-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(g,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(g.year||'')}">${coverTile(g.title,{note:false})}</span>`;
+}
+// Preço físico de 1 linha pro painel lateral — jogo não lançado nunca
+// mostra "Usado"/preço (regra de COMO TRABALHAR), só "Em breve · dd/mm".
+function sideRowPriceChip(g){
+  if(releaseState(g)!=='lancado'){
+    const d=releaseDateShort(g);
+    return `<span class="side-row-price is-quiet">Em breve${d?` · ${esc(d)}`:''}</span>`;
+  }
+  const cached=bestUsed(g);
+  const demo=mockOn()?sampleOffersBestPhysical(g.title,{year:g.year}):null;
+  const label=cached?'Usado':demo?.label;
+  const value=cached?.minDisplay||demo?.display;
+  return value?`<span class="side-row-price">${esc(label)} ${esc(value)}${!cached?mockChip():''}</span>`:`<span class="side-row-price is-quiet">Ver detalhes</span>`;
+}
+function sideGameRow(g,ctx){
+  const platform=g.variants?.[0]?.[1]||'';
+  return `<a class="side-game-row" href="#/jogo/${g.slug}">
+    ${sideRowCoverMarkup(g,platform)}
+    <span class="side-game-body"><b class="side-game-title">${esc(g.title)}</b><small class="side-game-ctx">${esc(ctx)}</small></span>
+    ${sideRowPriceChip(g)}
+  </a>`;
+}
+// 2.2a: "Comece sua coleção" (ninguém marcado ainda) ou "Para a sua
+// coleção" (Tenho e/ou Quero/Alerta já existem). "Jogos marcados" = Tenho;
+// Quero/Alerta entram só na linha (1). O Meu Inventário é a ÚNICA fonte
+// (invList()) — não cria um favorito separado.
+function homeCollectionCard(){
+  const all=invList().filter(it=>it.kind==='game');
+  const owned=all.filter(it=>it.status==='owned');
+  const listed=all.filter(it=>it.status==='wanted'||it.alert);
+  if(!owned.length&&!listed.length){
+    const chips=SIDEBAR_FEATURED_UNIVERSES.slice(0,3).map(e=>uMap.get(e.slug)).filter(Boolean);
+    return `<div class="side-card home-coll-card">
+      <h3>Comece sua coleção</h3>
+      <p class="side-card-copy">Marque o que você já tem e mostramos o que falta, com preço.</p>
+      <div class="side-chip-row">${chips.map(u=>`<a class="side-chip" href="#/universo/${u.slug}">${esc(paletteForUniverse(u)?.nome||u.name)}</a>`).join('')}</div>
+    </div>`;
+  }
+  const rows=[];
+  const seen=new Set();
+  listed.slice(0,2).forEach(it=>{
+    const g=catalogBySlug.get(it.id.slice(5));
+    if(g&&!seen.has(g.slug)){rows.push({g,ctx:'Na sua lista'});seen.add(g.slug)}
+  });
+  let seeMoreHref=rows[0]?.g?.universe?`#/universo/${rows[0].g.universe}`:'#/universo';
+  if(owned.length&&rows.length<3){
+    const ownedBySlug=new Map();
+    owned.forEach(it=>{const g=catalogBySlug.get(it.id.slice(5));if(g?.universe)ownedBySlug.set(g.universe,(ownedBySlug.get(g.universe)||0)+1)});
+    const markedIds=new Set(all.filter(it=>it.status).map(it=>it.id));
+    const candidates=[];
+    ownedBySlug.forEach((count,slug)=>{
+      const titles=titlesOf(slug);
+      titles.forEach(g=>{if(!markedIds.has('game:'+g.slug)&&!seen.has(g.slug))candidates.push({g,count,total:titles.length,slug})});
+    });
+    const priceOf=g=>{const c=bestUsed(g);if(c)return c.min;const d=mockOn()?sampleOffersBestPhysical(g.title,{year:g.year}):null;return d?.price??Infinity};
+    candidates.sort((a,b)=>b.count-a.count||priceOf(a.g)-priceOf(b.g));
+    for(const c of candidates){
+      if(rows.length>=3)break;
+      const uDisplay=paletteForUniverse(uMap.get(c.slug))?.nome||c.slug;
+      rows.push({g:c.g,ctx:`Você tem ${c.count} de ${c.total} em ${uDisplay}`});
+      seen.add(c.g.slug);
+      if(rows.length===1)seeMoreHref=`#/universo/${c.slug}`;
+    }
+  }
+  if(!rows.length)return '';
+  return `<div class="side-card home-coll-card">
+    <div class="side-card-head"><h3>Para a sua coleção</h3><a class="side-see-all" href="${esc(seeMoreHref)}">ver mais →</a></div>
+    <div class="side-game-list">${rows.map(r=>sideGameRow(r.g,r.ctx)).join('')}</div>
+  </div>`;
+}
+// 2.2b: "Em breve" (até 3 lançamentos futuros, mais próximo primeiro) —
+// sem nenhum, o cartão vira "Mais novos" (3 jogos lançados mais recentes).
+const MES_CURTO=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function homeUpcomingOrNewCard(){
+  const today=todaySaoPaulo();
+  const upcoming=catalog.filter(p=>p.releaseDate&&p.releaseDate>today).sort((a,b)=>a.releaseDate.localeCompare(b.releaseDate));
+  if(upcoming.length){
+    const ownedUni=new Set(invList().filter(it=>it.kind==='game'&&it.status==='owned').map(it=>catalogBySlug.get(it.id.slice(5))?.universe).filter(Boolean));
+    const listedIds=new Set(invList().filter(it=>it.kind==='game'&&(it.status==='wanted'||it.alert)).map(it=>it.id));
+    const scored=upcoming.map(p=>({p,inList:listedIds.has('game:'+p.slug)}));
+    scored.sort((a,b)=>(b.inList-a.inList)||a.p.releaseDate.localeCompare(b.p.releaseDate));
+    const rows=scored.slice(0,3).map(({p,inList})=>{
+      const [,m,d]=p.releaseDate.split('-');
+      const note=inList?'na sua lista':(p.universe&&ownedUni.has(p.universe))?'da sua série':'';
+      const status=releaseState(p)==='pre-venda'?'Pré-venda aberta':'Em breve';
+      return `<a class="side-upcoming-row" href="#/jogo/${p.slug}">
+        <span class="side-upcoming-date"><b>${d}</b><small>${MES_CURTO[Number(m)-1]||''}</small></span>
+        <span class="side-game-body"><b class="side-game-title">${esc(p.title)}</b><small class="side-game-ctx">${status}${note?` · ${note}`:''}</small></span>
+      </a>`;
+    }).join('');
+    return `<div class="side-card home-upcoming-card">
+      <div class="side-card-head"><h3>Em breve</h3><a class="side-see-all" href="#/em-alta?ordem=pre-venda">ver tudo →</a></div>
+      <div class="side-game-list">${rows}</div>
+    </div>`;
+  }
+  const recent=[...catalog].filter(p=>p.year).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)).slice(0,3);
+  if(!recent.length)return '';
+  return `<div class="side-card home-upcoming-card">
+    <div class="side-card-head"><h3>Mais novos</h3><a class="side-see-all" href="#/?destaques=novos">ver tudo →</a></div>
+    <div class="side-game-list">${recent.map(g=>sideGameRow(g,g.year?String(g.year):'')).join('')}</div>
+  </div>`;
+}
+// 2.2c: "Comprar por console", sempre agrupado por plataforma (nunca
+// consoles de famílias diferentes juntos) — consoles vêm do catálogo
+// (p.variants), nunca digitados; ordem por consoles.json (mais novo 1º).
+const FAMILY_LABEL={playstation:'PlayStation',nintendo:'Nintendo',xbox:'Xbox'};
+function consoleGameCounts(){
+  const counts=new Map();
+  catalog.forEach(p=>{
+    new Set(p.variants.map(v=>v[1])).forEach(plat=>counts.set(plat,(counts.get(plat)||0)+1));
+  });
+  return counts;
+}
+function homeConsoleCard(){
+  const counts=consoleGameCounts();
+  const blocks=['playstation','nintendo','xbox'].map(fam=>{
+    const names=Object.keys(CONSOLES).filter(c=>CONSOLES[c].familia===fam&&counts.get(c));
+    const top=sortConsoles(names).slice(0,3);
+    if(!top.length)return '';
+    return `<div class="side-console-block">
+      <a class="side-console-name" href="#/plataforma/${fam}">${esc(FAMILY_LABEL[fam])}</a>
+      <div class="side-console-chips">${top.map(c=>`<a class="side-console-chip" href="#/plataforma/${fam}?console=${enc(c)}">${esc(c)} <b>${counts.get(c)}</b></a>`).join('')}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  if(!blocks)return '';
+  return `<div class="side-card home-console-card">
+    <div class="side-card-head"><h3>Comprar por console</h3><a class="side-see-all" href="#/games">ver todos →</a></div>
+    ${blocks}
+  </div>`;
+}
+// 2.2d: só aparece com pelo menos 1 guia publicado em src/data/guias.json
+// (vazio por enquanto) — sem guia, o cartão nem entra no HTML; o painel
+// (flex column) redistribui a altura sozinho.
+function homeGuideCard(){
+  const g=GUIAS[0];
+  if(!g)return '';
+  return `<a class="side-card home-guide-card" href="${esc(g.href||'#/')}">
+    <span class="side-guide-icon">${ico('tag',22)}</span>
+    <span class="side-guide-body"><b>${esc(g.titulo||'')}</b><small>Guia · ${esc(g.minutos||'')} min →</small></span>
+  </a>`;
+}
+function homeSidePanelMarkup(){
+  const cards=[homeCollectionCard(),homeUpcomingOrNewCard(),homeConsoleCard(),homeGuideCard()].filter(Boolean);
+  return `<aside class="home-side">${cards.join('')}</aside>`;
+}
+
 function renderHome(){
   setTitle('');
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
@@ -633,23 +687,27 @@ function renderHome(){
   const renderId=++homeRenderId;
   const heroSlides=loadHomeHeroSlides();
   const heroExclude=new Set(heroSlides.map(s=>s.title));
-  const destaquesPoolList=destaquesPool(order,heroExclude);
-  const retroExclude=new Set([...heroExclude,...destaquesPoolList.map(p=>p.title)]);
-  main.innerHTML=`
-  ${homeHeroWideMarkup(heroSlides)}
-  ${destaquesSection(order,heroExclude)}
-  ${universosDestaqueSection()}
-  ${retroSection(retroExclude)}
-  ${homeMerchSection()}`;
+  const tileUniverses=SIDEBAR_FEATURED_UNIVERSES.map(e=>uMap.get(e.slug)).filter(Boolean).slice(0,5);
+  const cardsPool=destaquesPool(order,heroExclude).slice(0,5);
+  main.innerHTML=`<div class="home-grid">
+    <div class="home-main">
+      ${homeHeroWideMarkup(heroSlides)}
+      ${universeTilesOverlapMarkup('Universos populares','#/universos',tileUniverses)}
+      ${homeTabsMarkup(order)}
+      <div class="carousel-row-wrap">
+        <div class="peek-grid home-cards" data-carousel-row="home-destaques" data-scroll-mult="6">${cardsPool.map(posterCard).join('')}</div>
+        ${carouselEdgesMarkup('home-destaques')}
+      </div>
+    </div>
+    ${homeSidePanelMarkup()}
+  </div>`;
   const hero=$('[data-hhw]',main);
   initHomeHeroWide(hero);
   hydrateHomeHeroWide(hero);
-  hydrateUniverseDestaqueBig(main);
+  hydrateUniverseTiles(main);
   initCarouselRows(main);
-  // Acima da dobra (hero + Destaques) hidrata na hora; o resto é lazy (3.9).
-  hydrateIgdbCovers(main,heroSlides.length*2+destaquesPoolList.length+2);
-  initLazySections(main);
-  hydrateHoverExpandPrices(destaquesPoolList);
+  hydrateIgdbCovers(main,heroSlides.length*2+tileUniverses.length+cardsPool.length+10);
+  hydrateHoverExpandPrices(cardsPool);
   initHoverExpand(main);
   initStaggerEntrance(main);
   main.addEventListener('click',e=>{

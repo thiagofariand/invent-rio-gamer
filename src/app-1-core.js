@@ -354,6 +354,16 @@ try{
   xhrConsoles.send(null);
   if(xhrConsoles.status===200)CONSOLES=JSON.parse(xhrConsoles.responseText);
 }catch(e){/* mantém {} — consoles caem todos no fim, ordenados por nome */}
+// Pacote5 2.2d: "Guia do dia" no painel lateral da home — só aparece com
+// pelo menos 1 guia publicado aqui. Vazio por enquanto (nenhum guia
+// escrito ainda); mesma carga síncrona dos outros arquivos pequenos.
+let GUIAS=[];
+try{
+  const xhrGuias=new XMLHttpRequest();
+  xhrGuias.open('GET','/src/data/guias.json?v=Pacote5',false);
+  xhrGuias.send(null);
+  if(xhrGuias.status===200){const parsed=JSON.parse(xhrGuias.responseText);if(Array.isArray(parsed))GUIAS=parsed}
+}catch(e){/* mantém [] — cartão "Guia do dia" some, painel redistribui */}
 function consoleInfo(name){return CONSOLES[name]||null}
 function consoleFamily(name){return CONSOLES[name]?.familia||''}
 // Mais novo primeiro; sem entrada em CONSOLES fica ao final, por nome.
@@ -402,6 +412,14 @@ function releaseDateDisplay(p){
   if(!p||!p.releaseDate)return '';
   const [y,m,d]=p.releaseDate.split('-');
   return `Lançamento previsto: ${d}/${m}/${y}`;
+}
+// Pacote5 2.2b: "dd/mm" cru (sem ano, sem a frase) — usado no painel
+// lateral da home ("Em breve · dd/mm" nas linhas do cartão "Para a sua
+// coleção" e no quadradinho de data do cartão "Em breve").
+function releaseDateShort(p){
+  if(!p||!p.releaseDate)return '';
+  const [,m,d]=p.releaseDate.split('-');
+  return `${d}/${m}`;
 }
 function releaseBadge(p){
   const state=releaseState(p);
