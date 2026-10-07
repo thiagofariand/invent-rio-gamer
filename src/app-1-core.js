@@ -342,6 +342,30 @@ try{
 function merchItemsVisible(){
   return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
 }
+// Pacote5 1.5: console -> {familia,ano,rotulo}, usado pra agrupar/ordenar
+// "Comprar por console" (home), a caixa de consoles (plataforma) e as abas
+// de família (diretório de universos/busca). Mesma carga síncrona dos
+// arquivos pequenos acima. Console do catálogo sem entrada aqui vai pro
+// fim da ordenação (por nome) em vez de desaparecer.
+let CONSOLES={};
+try{
+  const xhrConsoles=new XMLHttpRequest();
+  xhrConsoles.open('GET','/src/data/consoles.json?v=Pacote5',false);
+  xhrConsoles.send(null);
+  if(xhrConsoles.status===200)CONSOLES=JSON.parse(xhrConsoles.responseText);
+}catch(e){/* mantém {} — consoles caem todos no fim, ordenados por nome */}
+function consoleInfo(name){return CONSOLES[name]||null}
+function consoleFamily(name){return CONSOLES[name]?.familia||''}
+// Mais novo primeiro; sem entrada em CONSOLES fica ao final, por nome.
+function sortConsoles(names){
+  return [...names].sort((a,b)=>{
+    const ia=CONSOLES[a],ib=CONSOLES[b];
+    if(ia&&ib)return (ib.ano||0)-(ia.ano||0);
+    if(ia)return -1;
+    if(ib)return 1;
+    return a.localeCompare(b);
+  });
+}
 // slug-de-franquia normalizado -> lista de apelidos normalizados (pra
 // comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx
 // faz o caminho inverso (apelido normalizado -> {slug,alias cru}) pra achar
