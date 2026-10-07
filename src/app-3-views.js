@@ -2312,50 +2312,83 @@ function platformUniverses(casa){
       return diff||a.name.localeCompare(b.name);
     });
 }
+/* ============================================================
+   PACOTE5, SEÇÃO 3 — PÁGINA DE PLATAFORMA: hero largo sem pílula de
+   tipo/plataforma, ladrilhos sobrepostos (até 6 universos + "ver
+   todos"), 1 linha de destaques (filtra por console via ?console=, URL
+   muda por hash normal — botão voltar funciona, sem recarregar a
+   página) e caixa de consoles alinhada ao topo dos CARDS (não do
+   título). Substitui o layout anterior (hero de universo + "Ofertas em
+   destaque" + painel de logotipo/lista de universos + Retrogaming).
+   ============================================================ */
+function familyPlatforms(fam){return Object.keys(CONSOLES).filter(c=>CONSOLES[c].familia===fam)}
+function platformPool(plats){
+  const inSet=p=>p.variants.some(v=>plats.includes(v[1]));
+  const trendTitles=new Set(D.trendingNow.map(t=>t.title));
+  const pool=catalog.filter(inSet);
+  const trendGames=pool.filter(p=>trendTitles.has(p.title));
+  const rest=pool.filter(p=>!trendTitles.has(p.title)).sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0));
+  return [...trendGames,...rest];
+}
+function platformConsoleBoxMarkup(fam,label,consolesInfo,totalGames,selectedConsole){
+  const logo=PLATFORM_LOGO[fam]?`<img src="${PLATFORM_LOGO[fam]}" alt="${esc(label)}" class="plat-box-logo">`:`<span class="plat-box-logo-fallback">${esc(label)}</span>`;
+  return `<aside class="platform-console-box">
+    <div class="plat-box-head">${logo}<span class="plat-box-count">${totalGames} jogo${totalGames===1?'':'s'} · ${consolesInfo.length} console${consolesInfo.length===1?'':'s'}</span></div>
+    <hr class="plat-box-divider">
+    <div class="plat-box-label">Console</div>
+    <div class="plat-box-chips">
+      <a class="plat-chip ${!selectedConsole?'is-active':''}" href="#/plataforma/${fam}">Todos</a>
+      ${consolesInfo.map(c=>`<a class="plat-chip ${selectedConsole===c.name?'is-active':''}" href="#/plataforma/${fam}?console=${enc(c.name)}">${esc(c.name)} <b>${c.count}</b></a>`).join('')}
+    </div>
+  </aside>`;
+}
 function renderPlatform(slug,params,token){
   const label=PLATFORM_LABEL[slug];
   if(!label)return renderNotFound();
   setTitle(label);
-  const unis=platformUniverses(slug);
-  const top=unis[0];
-  const topTitles=top?titlesOf(top.slug):[];
-  const platformsList=ecoPlatforms(label);
-  const offerPool=[...catalog].filter(p=>uMap.get(p.universe)?.casa===slug)
-    .sort((a,b)=>(Number(b.year)||0)-(Number(a.year)||0)||a.title.localeCompare(b.title))
-    .slice(0,4);
-  // Item 6 (rodada 5): layout de 2 colunas — principal (hero + ofertas +
-  // 3 CTAs) + coluna direita 320px (cartão do logotipo, altura do hero, e
-  // lista de até 6 universos da casa com sigla+nome+nº de jogos).
+  const fam=slug;
+  const plats=familyPlatforms(fam);
+  const selectedConsole=plats.includes(params.get('console')||'')?params.get('console'):'';
+  const heroSlides=platformHeroSlides(plats);
+  const unisAll=platformUniverses(fam);
+  const tileUnis=unisAll.slice(0,6);
+  const moreTile=unisAll.length>6?universeTileMoreMarkup(`#/universos?plat=${fam}`):'';
+  const counts=consoleGameCounts();
+  const consolesInfo=sortConsoles(plats.filter(c=>counts.get(c))).map(c=>({name:c,count:counts.get(c)}));
+  const totalGames=catalog.filter(p=>p.variants.some(v=>plats.includes(v[1]))).length;
+  const pool=platformPool(selectedConsole?[selectedConsole]:plats);
+  const rowTitle=selectedConsole?`Jogos de ${selectedConsole}`:'Jogos em destaque';
+  const seeAllHref=selectedConsole?`#/busca?plat=${fam}&console=${enc(selectedConsole)}`:`#/busca?plat=${fam}`;
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <span>${esc(label)}</span></nav>
-  <div class="platform-layout">
-    <div class="platform-main">
-      ${top?universeHeroMarkup(top,topTitles,platformsList):`<section class="universe-feature-row"><div class="game-hero universe-hero"><div class="game-hero-copy"><h1>${esc(label)}</h1><p>Catálogo em preenchimento.</p></div></div></section>`}
-      <section class="universe-game-shelf" aria-labelledby="plat-offers-title">
-        <div class="lux-section-head"><div><h2 id="plat-offers-title">Ofertas em destaque</h2></div></div>
-        <div class="carousel-row-wrap"><div class="universe-offer-grid" data-carousel-row="plat-offers">${offerPool.map(universeOfferCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>${carouselEdgesMarkup('plat-offers')}</div>
-      </section>
+  ${homeHeroWideMarkup(heroSlides,{showTypePill:false})}
+  ${universeTilesOverlapMarkup(`Universos ${label}`,`#/universos?plat=${fam}`,tileUnis)}${moreTile}
+  <div class="lux-section-head" style="margin-top:28px"><div><h2 id="plat-destaques-title">${esc(rowTitle)}</h2></div><a class="pill-see-all" href="${esc(seeAllHref)}">Ver todos (${pool.length}) →</a></div>
+  <div class="platform-destaques-grid" data-plat-destaques>
+    <div class="carousel-row-wrap">
+      <div class="peek-grid" data-carousel-row="plat-destaques" data-scroll-mult="6">${pool.slice(0,12).map(posterCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
+      ${carouselEdgesMarkup('plat-destaques')}
     </div>
-    <aside class="platform-side-col">
-      <div class="platform-brand-panel" aria-label="${esc(label)}">
-        ${PLATFORM_LOGO[slug]?`<img src="${PLATFORM_LOGO[slug]}" alt="${esc(label)}" class="platform-brand-logo">`:`<span class="platform-brand-fallback">${esc(label)}</span>`}
-      </div>
-      ${unis.length?`<div class="platform-uni-panel">
-        <h2>Universos ${esc(label)}</h2>
-        <ul class="platform-uni-list">${unis.slice(0,6).map(u=>{const n=gamesOnPlatform(u,slug);return `<li><a class="platform-uni-row" href="#/universo/${u.slug}?plat=${slug}"><span class="platform-uni-dot">${esc(u.sigla)}</span><span class="platform-uni-info"><b>${esc(u.name)}</b><small>${n} ${n===1?'jogo':'jogos'} no ${esc(label)}</small></span></a></li>`}).join('')}</ul>
-        <a class="sidebar-see-all" href="#/universos?casa=${slug}">Ver todos →</a>
-      </div>`:''}
-    </aside>
+    ${platformConsoleBoxMarkup(fam,label,consolesInfo,totalGames,selectedConsole)}
   </div>
   <div class="platform-cta-row3">
-    ${compactMenuCard({title:'Retrogaming',copy:`Clássicos e relançamentos do ecossistema ${label}.`,kind:'collectibles',href:`#/busca?retro=1&plat=${enc(platformsList.join(','))}`})}
     ${compactMenuCard({title:'Merch e Colecionáveis',copy:'Amiibo, figures, livros e itens oficiais.',kind:'collectibles',href:`#/merch?tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
     ${compactMenuCard({title:'Fan-made e Decoração',copy:'Peças artesanais, quadros e criações de fãs.',kind:'fanmade',href:'#/merch?tipo=fan-made'})}
-  </div>
-  <p class="fine" style="margin-top:32px;text-align:center"><a class="btn btn-primary" href="#/busca?plat=${enc(platformsList.join(','))}">Ver todos os jogos da ${esc(label)} →</a></p>`;
-  hydrateIgdbCovers(main,offerPool.length+4);
-  if(top){hydrateUniverseHero($('[data-home-carousel]',main),token);hydrateUniverseHeroPrices(main,token)}
+  </div>`;
+  const hero=$('[data-hhw]',main);
+  initHomeHeroWide(hero);
+  hydrateHomeHeroWide(hero);
+  hydrateUniverseTiles(main);
   initCarouselRows(main);
+  hydrateIgdbCovers(main,heroSlides.length*2+tileUnis.length+12);
+  hydrateHoverExpandPrices(pool.slice(0,12));
+  initHoverExpand(main);
+  // Item 3.5: console selecionado rola suavemente até a linha de
+  // destaques quando ela está abaixo da dobra.
+  if(selectedConsole){
+    const sec=$('[data-plat-destaques]',main);
+    if(sec&&sec.getBoundingClientRect().top>window.innerHeight*0.6)sec.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+  }
 }
 
 /* ---------- pacote4 4.6: merch, colecionáveis e fan-made ---------- */
@@ -2546,11 +2579,6 @@ function renderSimplePage(slug,params){
 
 
 /* ---------- navegação: destino único + barra lateral ---------- */
-function ecoPlatforms(eco){
-  const set=new Set();
-  catalog.forEach(p=>p.variants.forEach(v=>{if(v[0]===eco)set.add(v[1])}));
-  return [...set];
-}
 // Destino único de navegação por slug (header, sidebar, hub etc.). Fase 5:
 // nintendo/playstation/xbox agora vão pra própria página de plataforma
 // (antes caíam na busca filtrada). Retrô ainda não tem rota própria —
