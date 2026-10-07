@@ -260,8 +260,13 @@ function homeHeroWideMarkup(slides,opts={}){
 }
 async function hydrateHomeHeroWide(root){
   const arts=$$('[data-hhw-art]',root);
+  // Pacote5b, item 1: a largura de verdade da janela de arte (var(--hero-art-w),
+  // 70% do hero) precisa ir pro back-end — sem isso ele não sabe exigir uma
+  // artwork larga o bastante pra cobrir a janela sem pixelar (mesmo esquema
+  // de heroW que hydrateIgdbVisuals já usa pra ficha do jogo/universo).
+  const heroW=arts[0]?arts[0].getBoundingClientRect().width:0;
   await mapLimit(arts,2,async art=>{
-    const d=await fetchIgdbVisual(art.dataset.hhwTitle||'',art.dataset.hhwPlatform||'',art.dataset.hhwYear||'');
+    const d=await fetchIgdbVisual(art.dataset.hhwTitle||'',art.dataset.hhwPlatform||'',art.dataset.hhwYear||'','',heroW);
     if(!art.isConnected)return;
     if(d?.hero?.url){
       setHeroBackground(art,d.hero.url);
