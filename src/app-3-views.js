@@ -2243,48 +2243,38 @@ function gamesOnPlatform(u,plat){
   if(!plat)return titlesOf(u.slug).length;
   return titlesOf(u.slug).filter(p=>p.variants.some(v=>PLATFORM_ECO_KEY[v[0]]===plat)).length;
 }
-function universeDirectoryCard(u,plat){
-  const rep=representativeFranchiseGame(titlesOf(u.slug));
-  const repPlat=rep?.variants?.[0]?.[1]||'';
-  const count=gamesOnPlatform(u,plat);
-  const exclusive=SHOW_EXCLUSIVE_BADGE&&plat&&u.casa===plat;
-  return `<a class="udir-card" href="#/universo/${u.slug}${plat?`?plat=${plat}`:''}">
-    <div class="udir-cover igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(rep?igdbTitleFor(rep,repPlat):u.name)}" data-igdb-platform="${esc(repPlat)}" data-igdb-year="${esc(rep?.year||'')}">${coverTile(u.name,{size:'wide',note:false})}</div>
-    <div class="udir-body">
-      <div class="udir-name">${esc(u.name)}${exclusive?'<span class="udir-exclusive">Exclusivo</span>':''}</div>
-      <div class="udir-count">${count} ${count===1?'jogo':'jogos'}${plat?` no ${esc(PLATFORM_LABEL[plat])}`:''}</div>
-    </div>
-  </a>`;
+// Pacote5, seção 4: ordem curada primeiro (SIDEBAR_FEATURED_UNIVERSES,
+// declarada mais abaixo no arquivo — por isso o Map é montado dentro da
+// função, não no topo do módulo), depois alfabética.
+function sortUniversesCurated(list){
+  const order=new Map(SIDEBAR_FEATURED_UNIVERSES.map((e,i)=>[e.slug,i]));
+  return [...list].sort((a,b)=>{
+    const ca=order.has(a.slug)?order.get(a.slug):Infinity;
+    const cb=order.has(b.slug)?order.get(b.slug):Infinity;
+    return ca!==cb?ca-cb:a.name.localeCompare(b.name);
+  });
 }
 function renderUniverses(params){
   setTitle('Universos');
   const q=norm(params.get('q')||'');
-  // Pacote único, item 4.1/4.3: "Multi" sai da UI como categoria navegável
-  // — casa continua existindo só pra ordenar e pro selo opcional
-  // "Exclusivo"; as abas agora filtram por DISPONIBILIDADE real
-  // (u.plataformas, derivado dos jogos catalogados), não por "casa".
-  const casa=['nintendo','playstation','xbox'].includes(params.get('casa'))?params.get('casa'):'';
-  const list=universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
-    .filter(u=>!casa||u.plataformas.includes(casa))
-    .filter(u=>!q||norm(u.name).includes(q))
-    .sort((a,b)=>{
-      if(casa){
-        const aHome=a.casa===casa?0:1,bHome=b.casa===casa?0:1;
-        if(aHome!==bHome)return aHome-bHome;
-        const diff=gamesOnPlatform(b,casa)-gamesOnPlatform(a,casa);
-        if(diff)return diff;
-      }
-      return a.name.localeCompare(b.name);
-    });
-  const casaTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox']];
-  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('casa',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  // Pacote único, item 4.1/4.3 + pacote5 seção 4: a aba é uma FAMÍLIA
+  // (nintendo/playstation/xbox) — um universo aparece nela por
+  // DISPONIBILIDADE real (u.plataformas, derivado dos jogos catalogados
+  // em variants[][0]), não pela "casa"/dona da franquia. ?plat= abre
+  // já na aba (vem do ladrilho "Ver todos os universos" da plataforma).
+  const plat=['nintendo','playstation','xbox'].includes(params.get('plat'))?params.get('plat'):'';
+  const list=sortUniversesCurated(universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
+    .filter(u=>!plat||u.plataformas.includes(plat))
+    .filter(u=>!q||norm(u.name).includes(q)));
+  const platTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox']];
+  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('plat',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
   main.innerHTML=`
   <h1 class="page-h">Universos</h1>
   <p class="lede">Explore franquias e encontre onde comprar cada jogo.</p>
   <div class="section-gap" style="margin-top:16px"><input id="uniSearchInput" type="search" class="select" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}" style="max-width:320px;width:100%"></div>
-  <div class="tabs" role="tablist" style="margin-top:14px">${casaTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===casa}">${esc(l)}</a>`).join('')}</div>
-  <div class="udir-grid" style="margin-top:16px">${list.map(u=>universeDirectoryCard(u,casa)).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
-  hydrateIgdbCovers(main,list.length);
+  <div class="tabs" role="tablist" style="margin-top:14px">${platTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===plat}">${esc(l)}</a>`).join('')}</div>
+  <div class="universe-tiles-grid" style="margin-top:24px">${list.map(u=>universeTileMarkup(u,{count:gamesOnPlatform(u,plat)})).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
+  hydrateUniverseTiles(main);
   const searchEl=$('#uniSearchInput');
   searchEl?.addEventListener('input',()=>{
     const p=new URLSearchParams(location.hash.split('?')[1]||'');
