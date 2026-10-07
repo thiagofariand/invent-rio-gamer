@@ -118,21 +118,30 @@ function initHomeCarousel(root){
    arte a 70% de largura (var(--hero-art-w)) com degradê pro --hero-base
    da PALETA do jogo/universo do slide (não mais a cor hash aleatória de
    antes), texto no topo-esquerdo, pílulas só informativas (ver
-   heroWideInfoPills) e indicadores/pausa no canto SUPERIOR direito (os
-   ladrilhos de universo cobrem a base — ver item 1.3). ---- */
+   heroWideStatePill/heroWideExclusivePill) e indicadores/pausa no canto
+   SUPERIOR direito (os ladrilhos de universo cobrem a base — item 1.3). ---- */
 function catalogGameForTrend(t){return catalog.find(p=>p.title===t.title)||null}
 // Pacote5, COMO TRABALHAR: preço do botão do hero — jogo NÃO lançado
 // nunca mostra "Usado a partir de" (reaproveita releaseState do 4B, não
 // reimplementa). Com oferta física de exemplo (sampleOffers nunca gera
 // Usado pra jogo não lançado, só Novo) mostra "Pré-venda a partir de
 // R$X"; sem oferta nenhuma, "Em breve" (+ data, se houver).
+// Pacote5b, item 2: botão e pílula de estado SEMPRE derivados da MESMA
+// checagem (demo de pré-venda presente ou não) — nunca duas fontes que
+// podem discordar entre si (antes a pílula olhava releaseState==='pre-venda'
+// e o botão olhava só a oferta de exemplo; um jogo 'anunciado' com oferta
+// podia mostrar botão "Pré-venda a partir de" com pílula "EM BREVE").
+function heroWideReleaseInfo(p){
+  if(!p||releaseState(p)==='lancado')return null;
+  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
+  return {hasOffer:!!demo?.display,offerDisplay:demo?.display,dateDisplay:releaseDateDisplay(p)};
+}
 function heroWidePriceCta(p,platform){
   if(!p)return `<a class="btn btn-primary hero-price-btn" href="#/">Ver detalhes →</a>`;
-  if(releaseState(p)!=='lancado'){
-    const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
-    const d=releaseDateDisplay(p);
-    if(demo?.display)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}"><span class="hpc-full">Pré-venda a partir de ${esc(demo.display)} →</span><span class="hpc-short">Pré-venda ${esc(demo.display)} →</span>${mockChip()}</a>`;
-    return `<a class="btn btn-ghost hero-price-btn" href="#/jogo/${p.slug}">Em breve${d?` · ${esc(d)}`:''} →</a>`;
+  const rel=heroWideReleaseInfo(p);
+  if(rel){
+    if(rel.hasOffer)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}"><span class="hpc-full">Pré-venda a partir de ${esc(rel.offerDisplay)} →</span><span class="hpc-short">Pré-venda ${esc(rel.offerDisplay)} →</span>${mockChip()}</a>`;
+    return `<a class="btn btn-ghost hero-price-btn" href="#/jogo/${p.slug}">Em breve${rel.dateDisplay?` · ${esc(rel.dateDisplay)}`:''} →</a>`;
   }
   const cached=bestUsed(p);
   const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
@@ -141,25 +150,25 @@ function heroWidePriceCta(p,platform){
   if(!value)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}">Ver detalhes →</a>`;
   return `<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(p,platform)}"><span class="hpc-full">${esc(label)} a partir de ${esc(value)} →</span><span class="hpc-short">${esc(label)} ${esc(value)} →</span>${!cached?mockChip():''}</a>`;
 }
-// Pílulas informativas (item 1.1): só PRÉ-VENDA/EM BREVE (reaproveita
-// posterReleaseBadgeMarkup/releaseState do 4B) e "Só em console {X}"
-// quando o jogo só sai num único console (heurística best-effort: só 1
-// entrada em variants — sem rede pra IGDB neste ambiente pra validar
-// contra exclusividade "de verdade").
-function heroWideInfoPills(p){
-  if(!p)return [];
-  const pills=[];
-  const state=releaseState(p);
-  if(state!=='lancado'){
-    const d=releaseDateDisplay(p);
-    pills.push(state==='pre-venda'?`PRÉ-VENDA${d?` · ${esc(d)}`:''}`:'EM BREVE');
-  }
+// Pacote5b, item 2: no máximo 1 pílula de ESTADO (PRÉ-VENDA/EM BREVE),
+// sempre coerente com o botão (heroWideReleaseInfo, acima — mesma
+// checagem). "Só em console X" é uma pílula separada, de EXCLUSIVIDADE,
+// não de estado (heurística best-effort: só 1 entrada em variants — sem
+// rede pra IGDB neste ambiente pra validar contra exclusividade de
+// verdade); quem chama decide se cabe junto (ver opts.showExclusivePill
+// em homeHeroWideMarkup — no máximo 2 pílulas no total, nunca 3).
+function heroWideStatePill(p){
+  const rel=heroWideReleaseInfo(p);
+  if(!rel)return null;
+  if(rel.hasOffer)return `PRÉ-VENDA${rel.dateDisplay?` · ${esc(rel.dateDisplay)}`:''}`;
+  return 'EM BREVE';
+}
+function heroWideExclusivePill(p){
+  if(!p)return null;
   const plats=[...new Set((p.variants||[]).map(v=>v[1]))];
-  if(plats.length===1){
-    const rotulo=consoleInfo(plats[0])?.rotulo||plats[0];
-    pills.push(`Só em console ${esc(rotulo)}`);
-  }
-  return pills;
+  if(plats.length!==1)return null;
+  const rotulo=consoleInfo(plats[0])?.rotulo||plats[0];
+  return `Só em console ${esc(rotulo)}`;
 }
 function homeHeroSlideFromTrend(t,pillLabel){
   const game=catalogGameForTrend(t);
@@ -172,7 +181,7 @@ function homeHeroSlideFromTrend(t,pillLabel){
     heroSlug:game?.slug||'',
     href:homeTrendHref(t),
     ctaHtml:heroWidePriceCta(game,platform),
-    infoPills:heroWideInfoPills(game),
+    statePill:heroWideStatePill(game),exclusivePill:heroWideExclusivePill(game),
     thumbLabel:t.short||t.title
   };
 }
@@ -189,7 +198,7 @@ function homeHeroSlideFromUniverse(slug){
     heroSlug:rep?.slug||'',
     href:`#/universo/${u.slug}`,
     ctaHtml:`<a class="btn btn-primary hero-price-btn" href="#/universo/${u.slug}">Conhecer o universo →</a>`,
-    infoPills:[],
+    statePill:null,exclusivePill:null,
     thumbLabel:pal?.nome||u.name
   };
 }
@@ -229,23 +238,42 @@ function platformHeroSlides(plats){
       igdbTitle:igdbTitleFor(g,platform),igdbPlatform:platform,igdbYear:g.year||'',
       heroSlug:g.slug,href:`#/jogo/${g.slug}`,
       ctaHtml:heroWidePriceCta(g,platform),
-      infoPills:heroWideInfoPills(g),
+      statePill:heroWideStatePill(g),exclusivePill:heroWideExclusivePill(g),
       thumbLabel:g.title
     };
   });
+}
+// Pacote5b, item 2: sem reticências no hero — o título mostrado tira o
+// complemento entre parênteses do final ("(2026)", "(Switch 2)"); o
+// título completo continua no aria-label e na página do jogo. 3 faixas
+// de tamanho (34/26/22px) pelo tamanho do título JÁ sem o complemento.
+function heroDisplayTitle(title){
+  const stripped=String(title||'').replace(/\s*\([^)]*\)\s*$/,'').trim();
+  return stripped||title||'';
 }
 function homeHeroWideMarkup(slides,opts={}){
   const showTypePill=opts.showTypePill!==false;
   return `<section class="hhw" aria-roledescription="carrossel" aria-label="Destaques" data-hhw>
     <div class="hhw-track" data-hhw-track>
     ${slides.map((s,i)=>{
-      const longTitle=s.title.length>28;
-      const pills=[...(showTypePill&&s.pill?[s.pill]:[]),...(s.infoPills||[])];
+      const displayTitle=heroDisplayTitle(s.title);
+      const sizeClass=displayTitle.length>36?'is-xlong':displayTitle.length>28?'is-long':'';
+      // Pacote5b, item 2: no máximo 1 pílula de estado, SEMPRE coerente
+      // com o botão (heroWideStatePill reusa a mesma checagem do botão).
+      // Home: type (EM ALTA/UNIVERSO) + [estado OU exclusividade], nunca
+      // as 3 juntas. Plataforma (showTypePill false): só a de estado —
+      // "Só em console X" não aparece lá (item 2, pedido explícito).
+      const pills=[];
+      if(showTypePill){
+        if(s.pill)pills.push(s.pill);
+        if(s.statePill)pills.push(s.statePill);
+        else if(s.exclusivePill)pills.push(s.exclusivePill);
+      }else if(s.statePill)pills.push(s.statePill);
       return `<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}" style="--hero-base:${esc(s.baseColor||'#1a1512')}">
       <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="hhw-copy">
         ${pills.length?`<div class="hhw-pills">${pills.map(p=>`<span class="hhw-pill">${p}</span>`).join('')}</div>`:''}
-        <h1 class="${longTitle?'is-long':''}">${esc(s.title)}</h1>
+        <h1 class="${sizeClass}" aria-label="${esc(s.title)}">${esc(displayTitle)}</h1>
         <div class="hhw-cta">${s.ctaHtml}</div>
       </div>
     </article>`;
