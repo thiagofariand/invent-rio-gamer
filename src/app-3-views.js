@@ -444,12 +444,13 @@ function universeTileMarkup(u,opts={}){
     <span class="ut-body"><b class="ut-name">${esc(displayName)}</b><small class="ut-count">${count} jogo${count===1?'':'s'}</small></span>
   </a>`;
 }
-// "Ver todos os universos →" — usado quando uma fileira de ladrilhos
-// precisa de um último item que leve ao diretório (item 3.2: plataforma
-// com mais de 6 universos).
-function universeTileMoreMarkup(href,label='Ver todos os universos'){
+// Pacote5b, item 5: "Ver todos →" — último ladrilho DA MESMA fileira
+// (mesma largura/altura dos outros, sem capa) quando a plataforma tem
+// mais de 6 universos; substitui a faixa de largura total do pacote5
+// (item 3.2 antigo).
+function universeTileMoreMarkup(href,count){
   return `<a class="universe-tile universe-tile-more" href="${esc(href)}">
-    <span class="ut-body"><b class="ut-name">${esc(label)}</b><small class="ut-count">→</small></span>
+    <span class="ut-body"><b class="ut-name">Ver todos →</b><small class="ut-count">${count} universo${count===1?'':'s'}</small></span>
   </a>`;
 }
 async function hydrateUniverseTiles(root){
@@ -553,11 +554,11 @@ function initStaggerEntrance(root){
    listado na nova composição do pacote5; continua acessível por #/merch
    e pelo menu).
    ============================================================ */
-function universeTilesOverlapMarkup(label,href,list){
+function universeTilesOverlapMarkup(label,href,list,extraTileHtml){
   if(!list.length)return '';
   return `<div class="universe-tiles-overlap">
     <a class="universe-tiles-label" href="${esc(href)}">${esc(label)} →</a>
-    <div class="universe-tiles-row">${list.map(u=>universeTileMarkup(u)).join('')}</div>
+    <div class="universe-tiles-row">${list.map(u=>universeTileMarkup(u)).join('')}${extraTileHtml||''}</div>
   </div>`;
 }
 function homeTabsMarkup(order){
@@ -2376,7 +2377,10 @@ function renderPlatform(slug,params,token){
   const heroSlides=platformHeroSlides(plats);
   const unisAll=platformUniverses(fam);
   const tileUnis=unisAll.slice(0,6);
-  const moreTile=unisAll.length>6?universeTileMoreMarkup(`#/universos?plat=${fam}`):'';
+  // Pacote5b, item 5: "Ver todos →" entra na MESMA fileira (7º ladrilho,
+  // mesma largura/altura) quando a plataforma tem mais de 6 universos —
+  // nunca mais uma faixa de largura total abaixo dos ladrilhos.
+  const moreTile=unisAll.length>6?universeTileMoreMarkup(`#/universos?plat=${fam}`,unisAll.length):'';
   const counts=consoleGameCounts();
   const consolesInfo=sortConsoles(plats.filter(c=>counts.get(c))).map(c=>({name:c,count:counts.get(c)}));
   const totalGames=catalog.filter(p=>p.variants.some(v=>plats.includes(v[1]))).length;
@@ -2386,7 +2390,7 @@ function renderPlatform(slug,params,token){
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <span>${esc(label)}</span></nav>
   ${homeHeroWideMarkup(heroSlides,{showTypePill:false})}
-  ${universeTilesOverlapMarkup(`Universos ${label}`,`#/universos?plat=${fam}`,tileUnis)}${moreTile}
+  ${universeTilesOverlapMarkup(`Universos ${label}`,`#/universos?plat=${fam}`,tileUnis,moreTile)}
   <div class="lux-section-head" style="margin-top:28px"><div><h2 id="plat-destaques-title">${esc(rowTitle)}</h2></div><a class="pill-see-all" href="${esc(seeAllHref)}">Ver todos (${pool.length}) →</a></div>
   <div class="platform-destaques-grid" data-plat-destaques>
     <div class="carousel-row-wrap">
