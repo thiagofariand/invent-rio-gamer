@@ -460,7 +460,19 @@ function addUniverse(name,eco){
   const u={slug,name,eco:eco||'Multi',hasCatalog:false,casa:casaFor(name),sigla:siglaFor(slug,name)};
   uMap.set(slug,u);universes.push(u);return u;
 }
-Object.entries(D.franchiseDirectory).forEach(([eco,arr])=>arr.forEach(n=>addUniverse(n,eco)));
+// Ajuste 4B.3: addUniverse() é "primeira-escrita-vence" — processar as
+// chaves na ordem natural do objeto (Nintendo, PlayStation, Multi) trava
+// o eco de QUALQUER franquia também listada em Nintendo/PlayStation (quase
+// todas, incluindo Elden Ring e Resident Evil, que também aparecem em
+// Multi) antes de chegar na entrada Multi, que nunca roda. Resultado:
+// nenhuma franquia do catálogo resolvia eco==='Multi' (conferido — a
+// interseção de "só em Multi" é vazia), e o link da Steam em
+// digitalStores() (único lugar que lê u.eco) nunca aparecia pra ninguém.
+// Processar "Multi" primeiro faz a entrada Multi (sinal editorial de
+// franquia realmente multiplataforma, inclusive PC) ganhar prioridade —
+// franquia sem entrada em Multi continua caindo em Nintendo/PlayStation
+// normalmente.
+['Multi','Nintendo','PlayStation'].forEach(eco=>(D.franchiseDirectory[eco]||[]).forEach(n=>addUniverse(n,eco)));
 catalog.forEach(p=>{addUniverse(p.franchise,'Multi').hasCatalog=true});
 const titlesOf=slug=>catalog.filter(p=>p.universe===slug);
 
