@@ -1111,8 +1111,13 @@ function renderProduct(slug,params,token){
   const ref=gameRef(p),cur=invGet(ref.id);
   const heroImage=visualAsset('games',p.slug,'hero');
   const uDisplayName=u?(paletteForUniverse(u)?.nome||u.name):'';
+  // Ajuste 4B.2: jogo ainda não lançado (pré-venda/anunciado) não pode
+  // ser marcado "Já tenho" — o botão Salvar (que abre o modal Quero/
+  // Tenho/Alerta; não é um favorito à parte, ver openSaveModal) vira
+  // texto estático "Em breve" no hero, conforme pacote4 2.5.
+  const heroNotLaunched=releaseState(p)!=='lancado';
   const heroActions=`
-    ${saveButton(ref,{label:true})}
+    ${heroNotLaunched?'<span class="btn save-btn is-disabled" aria-disabled="true">Em breve</span>':saveButton(ref,{label:true})}
     ${u?`<a class="btn btn-ghost" href="#/universo/${u.slug}">Universo ${esc(uDisplayName)} →</a>`:''}`;
   // Item 2.1: a pílula "plataforma · ano" saiu — o parágrafo abaixo do
   // título continua trazendo esse contexto em texto corrido (não é mais

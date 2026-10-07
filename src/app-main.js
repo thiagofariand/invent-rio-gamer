@@ -314,9 +314,16 @@ function openSaveModal(id){
   const cur=invGet(id);
   $('#saveModalTitle').textContent=ref.title;
   const isFanmade=ref.kind==='fanmade';
+  // Ajuste 4B.2: jogo ainda não lançado (pré-venda/anunciado) não pode
+  // ser marcado "Já tenho" — a opção some do modal, mas "Quero" e o
+  // alerta de preço continuam (fazem sentido pra quem quer acompanhar um
+  // lançamento futuro). O heart/Salvar não é um favorito à parte: é a
+  // MESMA entrada de Quero/Tenho/Alerta, por isso a regra entra aqui.
+  const game=ref.kind==='game'?catalogBySlug.get(ref.id.slice(5)):null;
+  const notLaunchedGame=game&&releaseState(game)!=='lancado';
   const opts=isFanmade
     ?[['saved','Salvar anúncio','Guardar este anúncio para olhar depois']]
-    :[['wanted','Quero','Entra na sua lista de procurados'],['owned','Já tenho','Marca este item como seu']];
+    :[['wanted','Quero','Entra na sua lista de procurados'],...(notLaunchedGame?[]:[['owned','Já tenho','Marca este item como seu']])];
   let html=opts.map(([st,label,sub])=>`<button class="save-opt" data-act="set-status" data-status="${st}" aria-pressed="${cur&&cur.status===st}">${label}<small>${esc(sub)}</small></button>`).join('');
   if(!isFanmade)html+=`<button class="save-opt" data-act="toggle-alert" aria-pressed="${!!(cur&&cur.alert)}">${cur&&cur.alert?'🔔 Alerta marcado':'🔔 Criar alerta de preço'}<small>Só registra seu interesse neste aparelho — ainda não envia notificação</small></button>`;
   if(cur)html+=`<button class="save-opt" data-act="clear-status">Remover do inventário</button>`;
