@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="cat-colecionaveis" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="12" r="7"/><path d="M22 24h20l2 16h-6v12h-12V40h-6z"/><path d="M18 58h28"/></symbol>
+<symbol id="cat-casa" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18h30v26a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8z"/><path d="M44 24h6a6 6 0 0 1 0 14h-6"/><path d="M22 10c0 4 4 4 4 8M32 10c0 4 4 4 4 8"/></symbol>
+<symbol id="cat-iluminacao" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8h24l8 26H12z"/><path d="M32 34v18"/><path d="M22 56h20"/></symbol>
+<symbol id="cat-decoracao" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="8" width="44" height="48" rx="3"/><path d="M18 44l10-12 8 8 6-6 4 10z"/><circle cx="24" cy="20" r="4"/></symbol>
+<symbol id="cat-vestuario" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8l-14 8 6 10 6-3v31h24V23l6 3 6-10-14-8c-2 4-6 6-10 6s-8-2-10-6z"/></symbol>
+<symbol id="cat-livros-arte" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h30a6 6 0 0 1 6 6v38H18a6 6 0 0 1-6-6z"/><path d="M18 54a6 6 0 0 1 0-12h30"/></symbol>
+</svg>

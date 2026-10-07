@@ -1,0 +1,19 @@
+{
+  "_leia-me": "Parte B, item 7b/7d: apelidos de FRANQUIA pra busca (não aparecem na UI como nome, só ajudam a achar). Chave = slugify(franchise) do catálogo. Carregado síncrono, igual paleta-universos.json. Franquias de 1-2 jogos (sem universo próprio) usam o campo aliases do próprio jogo em catalog-data.js em vez de entrar aqui.",
+  "spider-man": ["homem aranha", "homem-aranha", "spiderman", "aranha"],
+  "ea-sports-fc": ["fifa"],
+  "call-of-duty": ["cod"],
+  "grand-theft-auto": ["gta"],
+  "resident-evil": ["re", "biohazard"],
+  "mortal-kombat": ["mk"],
+  "final-fantasy": ["ff"],
+  "god-of-war": ["gow", "deus da guerra"],
+  "assassins-creed": ["ac", "assassins creed"],
+  "donkey-kong": ["dk"],
+  "dark-souls": ["ds"],
+  "super-smash-bros": ["smash", "smash bros"],
+  "mario": ["mario", "mário", "super mário"],
+  "the-legend-of-zelda": ["zelda", "lenda de zelda", "a lenda de zelda"],
+  "pokemon": ["pokemon"],
+  "star-wars": ["guerra nas estrelas"]
+}

@@ -4,5 +4,13 @@
       "path": "/api/trending",
       "schedule": "0 11 * * *"
     }
+  ],
+  "headers": [
+    {
+      "source": "/painel.html",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
   ]
 }
