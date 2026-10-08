@@ -165,10 +165,18 @@ dono, pacote5b final — ver nota abaixo)
   continua existindo (usado pela ficha do jogo e pelo hero de universo) — por baixo, hoje é só uma casca fina
   sobre `setBackdropArt()`. **Não validado com artwork real neste ambiente** (sem rede pra IGDB) — conferir
   crossfade, opacidade e contraste dos títulos soltos no preview antes de confiar.
+  **Correção pacote5d 1**: o fundo nunca aparecia porque `<body>` tinha `background:var(--store)` OPACO
+  (`--store` = `--page-bg` em `body.dark-surface-route`, hoje toda página) — como `<body>` não cria stacking
+  context próprio, essa cor pintava POR CIMA dos filhos de z-index negativo (ordem de pintura do CSS: z-index
+  negativo entra antes da caixa não-posicionada do próprio elemento). A cor da paleta agora vive só em
+  **`#ambientAnchor`** (camada 1, elemento próprio, `z-index:-3`, o mais baixo dos quatro) — `<body>` (e as 2
+  outras "eras" de regra que setavam o mesmo background) ficou transparente.
 
 ## Arquivos de prompt (`docs/`)
-- `docs/prompt-pacote-5c.md`: pacote atual (hero ancorado à direita, fundo dinâmico, caixa de consoles "cabe ou
-  sai", ladrilho "Ver todos" com leque de capas, contagem de universos corrigida — os 5 itens feitos).
+- `docs/prompt-pacote-5d-correcoes.md`: pacote atual (4 correções sobre o 5C — fundo dinâmico que não aparecia,
+  hero da ficha do jogo sem arte, "Ver todos" duplicado, pílula branca vazia — os 4 itens feitos).
+- `docs/prompt-pacote-5c.md`: pacote anterior, completo (hero ancorado à direita, fundo dinâmico, caixa de
+  consoles "cabe ou sai", ladrilho "Ver todos" com leque de capas, contagem de universos corrigida).
 - `docs/prompt-pacote-5b-ajustes.md`: pacote anterior, completo.
 - `docs/prompt-pacote-5-final.md`: pacote anterior, completo (seções 1-6).
 - `docs/prompt-pacote-4.md`: pacote anterior, completo (1B, 2, 3, 4, 5).
@@ -193,9 +201,20 @@ posição — removida do markup do `.hhw-art`/`.lhw-art`); fundo dinâmico da p
 "Visual" acima) em home/plataforma/universo/jogo; caixa de consoles "cabe ou sai" (altura fixa, esconde os
 consoles com menos jogos primeiro até caber, nunca o selecionado, "+N →" quando sobra oculto); ladrilho "Ver
 todos" sólido com leque de 3 mini-capas; contagem de universos corrigida (só conta universo de verdade, 3+
-jogos — Nintendo 115→27, PlayStation 203→24). Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis
-validados com fallback de sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4
-heurísticas de capa, no crossfade do PageBackdrop e no leque de capas do "Ver todos".
+jogos — Nintendo 115→27, PlayStation 203→24). Pacote5D completo (4 correções sobre o 5C): fundo dinâmico que não
+aparecia de jeito nenhum (causa: `<body>` opaco pintando por cima do PageBackdrop — ver "Correção pacote5d 1" na
+seção "Visual" acima; não era bug de posição/imagem, era ordem de pintura do CSS); hero da ficha do jogo
+"vazio" em jogos de pacote combo (ex. "Super Mario Galaxy + Super Mario Galaxy 2") — o hero já reaproveitava a
+mesma cadeia de arte (`hydrateIgdbVisuals`→`setHeroBackground`→`fetchIgdbVisual`, nada duplicado), o problema
+era o título composto não bater com nada na IGDB — `fetchIgdbVisual` agora tenta de novo só com o jogo antes do
+" + " quando a busca completa falha; rótulo "Universos {plataforma}" não é mais link quando o ladrilho "Ver
+todos" existe (os dois levavam pro mesmo lugar); selo "Varejo/revenda" de oferta real (Shopee/Gamer Hut) tinha
+dois bugs de CSS empilhados dentro de `.compare-source` (coluna flex sem `align-self:flex-start` esticava o
+chip pra largura inteira + `.compare-source>span` com especificidade maior pintava o texto quase-branco em
+cima do fundo branco do próprio chip) — lia como "pílula branca vazia", corrigido. Sem rede pra IGDB neste
+ambiente de execução: ladrilhos/heróis validados com fallback de sigla/degradê, não com capa real — conferir
+no preview antes de confiar nas 4 heurísticas de capa, no crossfade do PageBackdrop, no leque de capas do
+"Ver todos" e se o retry sem sufixo da IGDB realmente acha os jogos de pacote combo.
 Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes foram feitos primeiro em um e depois portados.
 
 ## Backlog (ordem sugerida)
