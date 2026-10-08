@@ -280,6 +280,10 @@ const catalogBySlug=new Map(catalog.map(p=>[p.slug,p]));
 // busca de capa sem mudar o título que aparece pro usuário no site.
 function igdbTitleFor(p,platform){
   if(!p)return '';
+  // Pacote5e, item 3.1: "versão oculta" (versoes.json) tem prioridade —
+  // nome_completo da versão certa pra essa plataforma, quando existe.
+  const verTitle=versionIgdbTitle(p,platform);
+  if(verTitle)return verTitle;
   const v=platform&&p.variants?p.variants.find(x=>x[1]===platform):null;
   return (v&&v[2])||p.title;
 }
@@ -365,6 +369,64 @@ function sortConsoles(names){
     if(ib)return 1;
     return a.localeCompare(b);
   });
+}
+// Pacote5e, item 3.1: "versões ocultas" — obra (p.slug) -> lista de
+// versões por plataforma (nome_completo, igdb_id, ano, tipo). Carregada
+// síncrona, mesmo padrão de CONSOLES/PALETA_UNIVERSOS acima. Jogo sem
+// entrada aqui (a grande maioria do catálogo) não tem versão nenhuma —
+// as funções abaixo devolvem null/os valores de sempre nesse caso.
+let VERSOES={};
+try{
+  const xhrVersoes=new XMLHttpRequest();
+  xhrVersoes.open('GET','/src/data/versoes.json?v=Pacote5e',false);
+  xhrVersoes.send(null);
+  if(xhrVersoes.status===200)VERSOES=JSON.parse(xhrVersoes.responseText);
+}catch(e){/* mantém {} — nenhum jogo tem versão, comportamento de sempre */}
+// Pacote5e, item 3.3: "nome_completo de cada versão vira apelido de
+// busca" — catalog já estava montado (searchText incluído) antes de
+// VERSOES carregar, por isso reconstrói aliases/searchText só pras obras
+// com entrada aqui (maioria do catálogo passa reto, sem custo).
+Object.keys(VERSOES).forEach(slug=>{
+  const p=catalogBySlug.get(slug);
+  if(!p)return;
+  const extra=VERSOES[slug].map(v=>v.nome_completo).filter(Boolean);
+  p.aliases=[...new Set([...(p.aliases||[]),...extra])];
+  p.searchText=normSearch([p.title,...p.aliases,p.franchise].join(' '));
+});
+// Versão da obra p que cobre `platform` — null sem entrada em VERSOES ou
+// sem versão pra essa plataforma específica.
+function versionFor(p,platform){
+  const list=VERSOES[p?.slug];
+  if(!list)return null;
+  return list.find(v=>v.plataformas.includes(platform))||null;
+}
+// Ano certo pra mostrar com essa plataforma selecionada: o da VERSÃO
+// (quando existe), nunca o p.year genérico da obra (que não distingue
+// 2000 do N64 de 2015 do 3DS, por exemplo).
+function versionYear(p,platform){
+  return versionFor(p,platform)?.ano??p?.year??null;
+}
+// Título que vai pra IGDB: nome_completo da versão tem prioridade sobre
+// o 3º item de variants (mecanismo antigo, ainda usado pros jogos sem
+// entrada em VERSOES) e sobre p.title puro.
+function versionIgdbTitle(p,platform){
+  return versionFor(p,platform)?.nome_completo||null;
+}
+// ID numérico da IGDB da versão — quando existe, a busca deixa de ser por
+// nome (ver fetchIgdbVisual/findGame). null em todos os exemplos atuais
+// (sem rede pra IGDB neste ambiente pra confirmar o número real — ver
+// _leia-me de versoes.json).
+function versionIgdbId(p,platform){
+  return versionFor(p,platform)?.igdb_id??null;
+}
+// Pacote5e, item 3.3: card genérico (sem plataforma escolhida pelo
+// visitante, ex. fileira de destaques) mostra "capa e ano da versão mais
+// recente" — a versão de maior `ano` entre as que a obra tem. null sem
+// entrada em VERSOES (comportamento de sempre: usa a 1ª variante).
+function versionLatest(p){
+  const list=VERSOES[p?.slug];
+  if(!list||!list.length)return null;
+  return [...list].sort((a,b)=>(b.ano||0)-(a.ano||0))[0];
 }
 // slug-de-franquia normalizado -> lista de apelidos normalizados (pra
 // comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx

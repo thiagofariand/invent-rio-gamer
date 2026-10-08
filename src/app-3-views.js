@@ -1219,9 +1219,12 @@ const igdbVisualMemo=new Map();
 // resolvida pra cada jogo — o banner de universo na busca só mostra
 // imagem se já tiver passado por aqui (nunca dispara pedido novo).
 const heroImageCache=new Map();
-async function fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW){
+async function fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW,id){
   try{
-    const qs=new URLSearchParams({q:title});
+    // Pacote5e, item 3.1: com id (igdb_id de uma "versão oculta"
+    // confirmada em versoes.json), a busca é DIRETO pelo ID — nunca por
+    // nome (q fica de fora da query inteiramente).
+    const qs=id?new URLSearchParams({id:String(id)}):new URLSearchParams({q:title});
     if(platform)qs.set('platform',platform);
     if(year)qs.set('year',year);
     if(heroRatio)qs.set('ratio',heroRatio);
@@ -1232,13 +1235,17 @@ async function fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW){
     return d&&d.ok&&d.found?d:null;
   }catch{return null}
 }
-async function fetchIgdbVisual(title,platform='',year='',heroRatio='',heroW=0){
-  const key=[title,platform,year,heroRatio,heroW].join('|');
+async function fetchIgdbVisual(title,platform='',year='',heroRatio='',heroW=0,id=null){
+  const key=[title,platform,year,heroRatio,heroW,id||''].join('|');
   if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
 
   const p=(async()=>{
-    const d=await fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW);
+    const d=await fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW,id);
     if(d)return d;
+    // id exato não achou nada (ou nenhum id foi passado) — sem tentativa
+    // de fallback por nome quando havia um id (seria voltar a buscar por
+    // nome, que o pacote5e pede pra nunca fazer quando o id existe).
+    if(id)return null;
     // Pacote5d, item 2: título de pacote combo ("Super Mario Galaxy +
     // Super Mario Galaxy 2") não bate com nada na IGDB — mesma armadilha
     // já documentada pra sufixo nosso colado no título ("(2023)", nome da
@@ -1278,7 +1285,7 @@ function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
   el.innerHTML=coverTile(title,{platform,image:url});
 }
-async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector='',slug=''}) {
+async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game-hero-art',coverSelector='',slug='',igdbId=null}) {
   const hero=document.querySelector(heroSelector);
   // Pacote único, item 6.3: {fallback:true} em hero-overrides.json pula a
   // IGDB de vez pro hero (mas não pra capa — a capa pequena não sofre o
@@ -1287,7 +1294,7 @@ async function hydrateIgdbVisuals({title,platform='',year='',heroSelector='.game
   // Item 2.2: largura renderizada de verdade do hero, pro back-end exigir
   // >= 1.2x dela na arte (evita logo pixelado esticado — ver pickHero()).
   const heroW=hero?hero.getBoundingClientRect().width:0;
-  const d=await fetchIgdbVisual(title,platform,year,'',heroW);
+  const d=await fetchIgdbVisual(title,platform,year,'',heroW,igdbId);
   if(!d)return;
   const isGameTheme=document.documentElement.dataset.theme==='game';
   if(hero){
@@ -1320,7 +1327,10 @@ async function hydrateIgdbCovers(root=document,limit=12){
     const title=el.dataset.igdbTitle||'';
     const platform=el.dataset.igdbPlatform||'';
     const year=el.dataset.igdbYear||'';
-    const d=await fetchIgdbVisual(title,platform,year);
+    // Pacote5e, item 3.1: "versão oculta" com igdb_id confirmado — busca
+    // pelo ID, não pelo nome (data-igdb-id, quando o card vier marcado).
+    const id=el.dataset.igdbId||null;
+    const d=await fetchIgdbVisual(title,platform,year,'',0,id);
 
     if(!el.isConnected)return;
     if(d?.cover?.url){
@@ -1590,7 +1600,11 @@ function renderProduct(slug,params,token){
   // Pacote4 2.4: jogo ainda não lançado troca o ano (que nem existe —
   // collections só tem jogo já saído) pela data prevista.
   const releaseCopy=releaseState(p)!=='lancado'?releaseDateDisplay(p):'';
-  const heroCopy=[p.franchise,platform,releaseCopy||p.year].filter(Boolean).join(' · ');
+  // Pacote5e, item 3.3: "versão oculta" (versoes.json) troca o ano junto
+  // com a plataforma — 2000 (N64) vs 2015 (3DS) pro mesmo Majora's Mask,
+  // por exemplo, em vez do p.year genérico da obra sempre igual.
+  const displayYear=versionYear(p,platform);
+  const heroCopy=[p.franchise,platform,releaseCopy||displayYear].filter(Boolean).join(' · ');
   main.innerHTML=`
   <nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/universo/${u.slug}">${esc(u.name)}</a> › <span>${esc(p.title)}</span></nav>
   ${gameHeroMarkup({title:p.title,pillsHtml:productHeroPillsMarkup(p,u),copy:heroCopy,image:heroImage,actions:heroActions,heroClass:'product-hero'})}
@@ -1603,10 +1617,11 @@ function renderProduct(slug,params,token){
   hydrateIgdbVisuals({
     title:igdbTitleFor(p,platform),
     platform,
-    year:p.year||'',
+    year:displayYear||'',
     heroSelector:'.game-hero-art',
     coverSelector:'#productCoverSlot',
-    slug:p.slug
+    slug:p.slug,
+    igdbId:versionIgdbId(p,platform)
   });
   ['used','new'].forEach(async cond=>{
     await fetchCond(p.title,platform,cond);
@@ -1652,7 +1667,7 @@ function comparisonOfferCard(o){
   </article>`;
 }
 async function hydrateComparisonDetails(p,platform){
-  const d=await fetchIgdbVisual(igdbTitleFor(p,platform),platform,p.year||'');
+  const d=await fetchIgdbVisual(igdbTitleFor(p,platform),platform,versionYear(p,platform)||'','',0,versionIgdbId(p,platform));
   if(!d)return;
   if(d.cover?.url)setCoverImage($('#comparisonCover'),p.title,platform,d.cover.url);
   const summary=$('#comparisonSummary');
@@ -1690,7 +1705,7 @@ async function renderOfferComparison(slug,params,token){
   <div class="compare-filterbar"><div><span>Plataforma</span>${platforms.map(x=>`<a href="${comparisonHref(p,x,cond)}" aria-current="${x===platform}">${esc(x)}</a>`).join('')}</div><div><span>Formato</span><a href="${comparisonHref(p,platform,'all')}" aria-current="${cond==='all'}">Todos</a><a href="${comparisonHref(p,platform,'new')}" aria-current="${cond==='new'}">Novo</a><a href="${comparisonHref(p,platform,'used')}" aria-current="${cond==='used'}">Usado</a>${digitalAvailable?`<a href="${comparisonHref(p,platform,'digital')}" aria-current="${cond==='digital'}">Digital</a>`:''}</div></div>
   <div class="compare-layout">
     <section class="compare-results" aria-labelledby="compare-results-title"><div class="compare-results-head"><div><h2 id="compare-results-title">${esc(condText)} · ${esc(platform)}</h2><p id="compareStatus">Verificando preços e disponibilidade…</p></div><span class="compare-spinner" aria-hidden="true"></span></div><div id="comparisonOffers" class="compare-offers"><div class="compare-loading"><span></span><span></span><span></span></div></div></section>
-    <aside class="compare-game-card"><div id="comparisonCover" class="compare-cover">${coverTile(p.title,{platform})}</div><h2>${esc(p.title)}</h2><dl><div><dt>Lançamento</dt><dd id="comparisonYear">${esc(p.year||'—')}</dd></div><div><dt>Plataforma</dt><dd>${esc(platform)}</dd></div><div><dt>Condição buscada</dt><dd>${esc(condText)}</dd></div><div class="compare-detail-row" hidden><dt>Estúdio / publicadora</dt><dd id="comparisonStudio"></dd></div></dl><p id="comparisonSummary" class="compare-summary">A sinopse será carregada com os dados do catálogo IGDB.</p>${p.universe?`<a href="#/universo/${p.universe}">Ver universo ${esc(p.franchise)} →</a>`:''}</aside>
+    <aside class="compare-game-card"><div id="comparisonCover" class="compare-cover">${coverTile(p.title,{platform})}</div><h2>${esc(p.title)}</h2><dl><div><dt>Lançamento</dt><dd id="comparisonYear">${esc(versionYear(p,platform)||'—')}</dd></div><div><dt>Plataforma</dt><dd>${esc(platform)}</dd></div><div><dt>Condição buscada</dt><dd>${esc(condText)}</dd></div><div class="compare-detail-row" hidden><dt>Estúdio / publicadora</dt><dd id="comparisonStudio"></dd></div></dl><p id="comparisonSummary" class="compare-summary">A sinopse será carregada com os dados do catálogo IGDB.</p>${p.universe?`<a href="#/universo/${p.universe}">Ver universo ${esc(p.franchise)} →</a>`:''}</aside>
   </div>`;
   hydrateComparisonDetails(p,platform);
   const offers=$('#comparisonOffers'),status=$('#compareStatus');
@@ -2117,15 +2132,23 @@ function posterReleaseBadgeMarkup(p){
   if(state==='lancado')return '';
   return `<span class="corner-mock">${state==='pre-venda'?'PRÉ-VENDA':'EM BREVE'}</span>`;
 }
-function posterCard(p){
-  const platform=p.variants?.[0]?.[1]||'';
+// Pacote5e, item 3.3: platformHint (vindo de um contexto já filtrado por
+// plataforma/console, ex. renderPlatform) tem prioridade; sem ele, "obra
+// com versão oculta" (versoes.json) usa a versão mais recente (capa/ano
+// certos daquela versão); jogo sem versão cai no comportamento de sempre
+// (1ª variante).
+function posterCard(p,platformHint){
+  const latest=versionLatest(p);
+  const platform=(platformHint&&p.variants.some(v=>v[1]===platformHint))?platformHint
+    :(latest?latest.plataformas[0]:p.variants?.[0]?.[1]||'');
+  const displayYear=versionYear(p,platform);
   // Pacote5b, item 4: "plataforma(s) · ano" em UMA linha (CSS corta com
   // reticências); texto completo no title="" pra quem passar o mouse.
-  const metaFull=`${platShort(p)}${p.year?` · ${p.year}`:''}`;
+  const metaFull=`${platShort(p)}${displayYear?` · ${displayYear}`:''}`;
   return `<article class="hec-card poster-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
     <div class="hec-fixed">
       <div class="hec-cover-wrap">
-        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{note:false})}</a>
+        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(displayYear||'')}"${versionIgdbId(p,platform)?` data-igdb-id="${esc(versionIgdbId(p,platform))}"`:''}>${coverTile(p.title,{note:false})}</a>
         ${posterReleaseBadgeMarkup(p)}
       </div>
       <div class="poster-info">
@@ -2710,7 +2733,7 @@ function renderPlatform(slug,params,token){
   <div class="lux-section-head" style="margin-top:28px"><div><h2 id="plat-destaques-title">${esc(rowTitle)}</h2></div><a class="pill-see-all" href="${esc(seeAllHref)}">Ver todos (${pool.length}) →</a></div>
   <div class="platform-destaques-grid" data-plat-destaques>
     <div class="carousel-row-wrap">
-      <div class="peek-grid home-cards" data-carousel-row="plat-destaques" data-scroll-mult="6">${pool.slice(0,12).map(posterCard).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
+      <div class="peek-grid home-cards" data-carousel-row="plat-destaques" data-scroll-mult="6">${pool.slice(0,12).map(p=>posterCard(p,selectedConsole)).join('')||'<p class="lede">Catálogo em preenchimento.</p>'}</div>
       ${carouselEdgesMarkup('plat-destaques')}
     </div>
     ${platformConsoleBoxMarkup(fam,label,consolesInfo,totalGames,selectedConsole)}

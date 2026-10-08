@@ -36,10 +36,19 @@ function matchCatalog(raw){
   for(const p of catalog){
     let s=core?scoreTitle(p,q,core):30;
     if(!s)continue;
+    // Pacote5e, item 3.3: buscar o nome_completo exato de uma "versão
+    // oculta" (ex. "Twilight Princess HD") já abre a obra com a
+    // plataforma daquela versão selecionada — sem precisar que
+    // detectPlatform ache o nome de um console no texto.
+    let effPlatform=platform;
+    if(!effPlatform&&core.length>2){
+      const ver=(VERSOES[p.slug]||[]).find(v=>normSearch(v.nome_completo).includes(core));
+      if(ver)effPlatform=ver.plataformas[0];
+    }
     let variants=p.variants;
-    if(platform)variants=variants.filter(v=>v[1]===platform);
+    if(effPlatform)variants=variants.filter(v=>v[1]===effPlatform);
     if(!variants.length)continue;
-    out.push({p,score:s,variants,platform});
+    out.push({p,score:s,variants,platform:effPlatform});
   }
   return out.sort((a,b)=>b.score-a.score||a.p.title.localeCompare(b.p.title));
 }
@@ -246,11 +255,16 @@ function rowMarkup(r,F){
   const p=r.p,href=`#/jogo/${p.slug}?plat=${enc(r.platform)}`;
   const shown=visibleConds(r,F);
   const chips=`<span class="chip soft">${esc(r.platform)}</span>${shown.map(c=>`<span class="chip">${COND_LABEL[c]}</span>`).join('')}`;
+  // Pacote5e, item 3.3: ano da VERSÃO certa pra essa plataforma (não o
+  // p.year genérico da obra) + igdb_id, quando a obra tiver "versão
+  // oculta" (versoes.json).
+  const rowYear=versionYear(p,r.platform);
+  const rowIgdbId=versionIgdbId(p,r.platform);
   return `<article class="row row-game" data-rowkey="${rk}">
     <a class="row-cover" href="${href}" tabindex="-1" aria-hidden="true" data-covercell
-       data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,r.platform))}" data-igdb-platform="${esc(r.platform)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{platform:''})}</a>
+       data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,r.platform))}" data-igdb-platform="${esc(r.platform)}" data-igdb-year="${esc(rowYear||'')}"${rowIgdbId?` data-igdb-id="${esc(rowIgdbId)}"`:''}>${coverTile(p.title,{platform:''})}</a>
     <div class="row-main"><a class="row-title" href="${href}">${esc(p.title)}</a><div class="row-chips">${chips}</div>
-      <div class="row-sub">${esc(p.franchise)}${p.year?' · '+p.year:''}</div></div>
+      <div class="row-sub">${esc(p.franchise)}${rowYear?' · '+rowYear:''}</div></div>
     <div class="row-price-list" data-pricelist>${gameRowPriceList(r,F)}</div>
   </article>`;
 }
