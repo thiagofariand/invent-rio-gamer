@@ -23,6 +23,14 @@
   --hero-fade:linear-gradient(90deg,var(--hero-base,#1a1512) 0%,var(--hero-base,#1a1512) 26%,transparent 52%);
   --tile-h:112px;--tile-overlap:108px;--tile-pop:44px;--tile-w:140px;
   --side-w:300px;
+  /* Pacote5c, item 2: --hero-base GLOBAL (deriva de --page-bg, que já
+     muda por tema/paleta via applyUniverseChrome em app-main.js) — é a
+     cor da "película" do PageBackdrop (#ambientShade). Componentes que já
+     definiam --hero-base no próprio escopo (.game-hero, .universe-hero
+     etc.) continuam valendo ali dentro, mais específicos; isto é só o
+     fallback sitewide, pra um elemento fora deles (#ambientShade é
+     irmão do <body>) também saber a cor da página atual. */
+  --hero-base:color-mix(in oklab,var(--page-bg,var(--accent,#1a1512)) 35%,#000);
 }
 @supports (transition-timing-function:linear(0,1)){
   :root{--ease-spring:linear(0,.42 7.9%,1.07 18.9%,1.16 23.5%,1.1 30.6%,1,.98 39.7%,1 50.8%,1)}
@@ -2298,35 +2306,51 @@ body.dark-surface-route .compare-block>h3{color:var(--text-2)}
 .compare-heading h1{min-width:0;width:100%;font-size:clamp(28px,3vw,44px);line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
 .compare-heading p{margin-top:4px}
 
-/* Fundo ambiente opcional (AMBIENT_BG em app-1-core.js) — mesma arte do
-   hero, uma única vez, sem novo pedido de rede. Estático: sem parallax,
-   sem scroll. Mobile/prefers-reduced-motion: sem blur ao vivo, cai em
-   --page-bg (a camada nem aparece). */
-#ambientBg{
+/* PageBackdrop (pacote5c, item 2) — camada 2 (arte) em DUAS divs
+   (#ambientBg/#ambientBg2) pra fazer crossfade de verdade (opacity
+   anima de uma pra outra, nunca "apaga" pra depois acender a próxima).
+   --backdrop-art/--backdrop-art-game (opacidade-alvo) e --backdrop-fade
+   (duração: 400ms troca de página, 1200ms rotação do hero) são setados
+   por setBackdropArt()/route() em app-main.js. Reaproveita a mesma
+   imagem do hero já carregada — sem pedido de rede novo. */
+:root{--backdrop-art:.35;--backdrop-art-game:.55;--backdrop-fade:1200ms}
+#ambientBg,#ambientBg2{
   position:fixed;inset:0;z-index:-2;
   background-size:cover;background-position:center;
-  filter:blur(60px) saturate(1.1);transform:scale(1.15);
-  opacity:.4;
+  filter:blur(40px) saturate(1.4);transform:scale(1.2);
+  opacity:0;
+  transition:opacity var(--backdrop-fade,1200ms) ease;
   pointer-events:none;
 }
-#ambientBg[hidden]{display:none}
+#ambientBg.is-visible,#ambientBg2.is-visible{opacity:var(--backdrop-art,.35)}
+html[data-theme="game"] #ambientBg.is-visible,html[data-theme="game"] #ambientBg2.is-visible{opacity:var(--backdrop-art-game,.55)}
+#ambientBg[hidden],#ambientBg2[hidden]{display:none}
 /* Pacote 2, item 1.3: fonte da capa (vertical) precisa de mais zoom que a
    artwork horizontal pra cobrir o fundo widescreen sem ficar com tarja. */
-#ambientBg.ambient-cover{transform:scale(1.5)}
-@media(max-width:760px),(prefers-reduced-motion:reduce){#ambientBg.ambient-cover{transform:scale(1.9)}}
-/* Degradê de legibilidade: elemento à parte (não ::after de #ambientBg) —
-   se fosse filho de um elemento com opacity:.4, o degradê herdaria essa
-   opacidade de grupo e ficaria fraco demais. */
+#ambientBg.ambient-cover,#ambientBg2.ambient-cover{transform:scale(1.5)}
+@media(max-width:760px),(prefers-reduced-motion:reduce){#ambientBg.ambient-cover,#ambientBg2.ambient-cover{transform:scale(1.9)}}
+/* Película (camada 3): vinheta na cor --hero-base DA PÁGINA (âncora —
+   não muda quando o slide do hero muda, só a arte acima muda) — topo
+   mais escuro (onde ficam cabeçalho/hero) + radial escurecendo as
+   bordas. Elemento à parte do #ambientBg/#ambientBg2 (não ::after deles)
+   pra não herdar a opacity translúcida da arte. */
 #ambientShade{
   position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(10,4,8,.55),rgba(10,4,8,.88));
+  background:
+    linear-gradient(180deg,color-mix(in oklab,var(--hero-base,#1a1512) 80%,transparent) 0%,color-mix(in oklab,var(--hero-base,#1a1512) 38%,transparent) 48%,color-mix(in oklab,var(--hero-base,#1a1512) 72%,transparent) 100%),
+    radial-gradient(130% 130% at 50% 45%,transparent 50%,color-mix(in oklab,var(--hero-base,#1a1512) 55%,transparent) 100%);
 }
 #ambientShade[hidden]{display:none}
 /* Mobile/prefers-reduced-motion: sem blur ao vivo (custo de GPU) — a
    mesma imagem ampliada (scale maior) lê como "miniatura ampliada",
-   sem o filtro de desfoque rodando a cada frame. */
+   sem o filtro de desfoque rodando a cada frame. prefers-reduced-motion
+   também desliga a transição (setBackdropArt já para de acompanhar a
+   rotação do hero nesse caso — ver app-main.js). */
 @media(max-width:760px),(prefers-reduced-motion:reduce){
-  #ambientBg{filter:none;transform:scale(1.6)}
+  #ambientBg,#ambientBg2{filter:none;transform:scale(1.6)}
+}
+@media(prefers-reduced-motion:reduce){
+  #ambientBg,#ambientBg2{transition:none}
 }
 
 /* ============================================================

@@ -15,13 +15,18 @@
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
-<!-- Tema "game" (pacote único, seção 1): camada fixa de keyart desfocada
-     atrás de tudo na ficha do jogo e na comparadora, reaproveitando a arte
-     do hero já carregada (sem pedido novo) — updateAmbientBg() em
-     app-main.js liga o background-image. #ambientShade é o degradê de
-     legibilidade por cima, um elemento à parte pra não herdar a opacidade
-     de #ambientBg (senão o degradê também ficaria translúcido). -->
+<!-- PageBackdrop (pacote5c, item 2): fundo dinâmico atrás de TODA página
+     com hero (home, plataforma, universo, ficha/comparadora do jogo) —
+     reaproveita a mesma arte que o hero já carregou (sem pedido novo).
+     #ambientBg/#ambientBg2 são duas camadas da mesma arte, alternadas por
+     setBackdropArt() (app-main.js) pra fazer crossfade sem esperar uma
+     opacity:0 "apagar" antes da próxima aparecer. #ambientShade é a
+     vinheta de legibilidade por cima, um elemento à parte pra não herdar
+     a opacidade translúcida da arte. A camada 1 (âncora, cor sólida que
+     nunca muda na página) é o --page-bg do próprio tema — sem elemento
+     dedicado, já é o fundo do <html>/<body>. -->
 <div id="ambientBg" aria-hidden="true" hidden></div>
+<div id="ambientBg2" aria-hidden="true" hidden></div>
 <div id="ambientShade" aria-hidden="true" hidden></div>
 
 <header class="site-header">

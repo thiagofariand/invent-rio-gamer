@@ -86,6 +86,11 @@ function initHomeCarousel(root){
     });
     dots.forEach((dot,i)=>dot.setAttribute('aria-current',String(i===current)));
     if(counter)counter.textContent=`${current+1}/${slides.length}`;
+    // Pacote5c, item 2.3: fundo dinâmico acompanha o hero de universo
+    // também — a imagem já carregada do slide (hydrateUniverseHero roda
+    // em todos os slides, não só o eager).
+    const img=slides[current]?.querySelector('.uh-art-img');
+    if(img?.src&&typeof setBackdropArt==='function')setBackdropArt(img.src,'art',true);
   };
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const start=()=>{
@@ -341,6 +346,12 @@ function initHomeHeroWide(root){
       fill.style.animationPlayState=paused?'paused':'running';
     });
     dots.forEach((d,idx)=>{const on=idx===current;d.classList.toggle('is-active',on);d.setAttribute('aria-current',String(on));d.setAttribute('aria-selected',String(on))});
+    // Pacote5c, item 2.3: o fundo dinâmico da página acompanha o slide —
+    // crossfade lento (1200ms), só troca quando a imagem já resolveu.
+    const art=slides[current]?.querySelector('[data-hhw-art],[data-lhw-art]');
+    if(art?.dataset.heroResolvedUrl&&typeof setBackdropArt==='function'){
+      setBackdropArt(art.dataset.heroResolvedUrl,art.classList.contains('cover-fallback')?'cover':'art',true);
+    }
   }
   function show(i){current=(i+slides.length)%slides.length;paint()}
   function advance(){if(!paused&&!document.hidden)show(current+1)}
@@ -737,6 +748,12 @@ function legacyInitHomeHeroWide(root){
       fill.style.animationPlayState=paused?'paused':'running';
     });
     dots.forEach((d,idx)=>{const on=idx===current;d.classList.toggle('is-active',on);d.setAttribute('aria-current',String(on));d.setAttribute('aria-selected',String(on))});
+    // Pacote5c, item 2.3: o fundo dinâmico da página acompanha o slide —
+    // crossfade lento (1200ms), só troca quando a imagem já resolveu.
+    const art=slides[current]?.querySelector('[data-hhw-art],[data-lhw-art]');
+    if(art?.dataset.heroResolvedUrl&&typeof setBackdropArt==='function'){
+      setBackdropArt(art.dataset.heroResolvedUrl,art.classList.contains('cover-fallback')?'cover':'art',true);
+    }
   }
   function show(i){current=(i+slides.length)%slides.length;paint()}
   function advance(){if(!paused&&!document.hidden)show(current+1)}
@@ -1217,8 +1234,16 @@ function setHeroBackground(el,url,coverMode){
   if(!el||!url)return;
   el.classList.add(coverMode?'cover-fallback':'has-image');
   el.style.setProperty('--hero-img',`url("${url.replace(/"/g,'%22')}")`);
+  el.dataset.heroResolvedUrl=url;
   const ph=el.querySelector('.game-hero-placeholder');
   if(ph&&!coverMode)ph.remove();
+  // Pacote5c, item 2.3: se este hero já é o slide ativo quando a imagem
+  // chega (hidratação terminou antes da próxima rotação), o fundo
+  // dinâmico da página acompanha de cara — sem esperar o próximo show().
+  const slide=el.closest('[data-hhw-slide],[data-lhw-slide]');
+  if(slide?.classList.contains('is-active')&&typeof setBackdropArt==='function'){
+    setBackdropArt(url,coverMode?'cover':'art',true);
+  }
 }
 function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
