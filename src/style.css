@@ -429,7 +429,11 @@ body.dark-surface-route .card .save-btn{background:rgba(10,4,8,.55);color:#fff}
   --want:#FF3366;
   --radius:6px;
 }
-body{background:var(--store)}
+/* Pacote5d, item 1: body fica transparente — a cor sólida da página vive
+   só em #ambientAnchor (camada 1 do PageBackdrop) agora; body opaco
+   pintava POR CIMA dele (z-index negativo entra antes da caixa não
+   posicionada do próprio body na ordem de pintura do CSS). */
+body{background:transparent}
 
 /* cabeçalho: identidade concentrada aqui */
 .site-header{background:rgba(255,255,255,.97);backdrop-filter:blur(12px)}
@@ -1095,7 +1099,7 @@ body.inventory-route .site-footer{background:var(--night);color:#9EA3B0;border-c
   --header-h:82px;
 }
 html{scroll-padding-top:calc(var(--header-h) + 16px)}
-body{background:var(--store);color:var(--ink)}
+body{background:transparent;color:var(--ink)}
 main{max-width:1240px;padding:34px 28px 80px}
 /* Vidro fumê em qualquer largura (não só desktop) — a logo é sempre clara
    agora, então o cabeçalho não pode mais virar claro no mobile. */
@@ -2191,7 +2195,7 @@ body.dark-surface-route{
   --line-strong:rgba(255,255,255,.24);
   --text-1:#fff;
   --text-2:rgba(255,255,255,.68);
-  background:var(--store);
+  background:transparent;
 }
 body.dark-surface-route .row{background:var(--glass-2);border-color:var(--glass-border)}
 body.dark-surface-route .lux-product-card{background:var(--glass-2);border-color:var(--glass-border);box-shadow:none}
@@ -2314,6 +2318,12 @@ body.dark-surface-route .compare-block>h3{color:var(--text-2)}
    por setBackdropArt()/route() em app-main.js. Reaproveita a mesma
    imagem do hero já carregada — sem pedido de rede novo. */
 :root{--backdrop-art:.35;--backdrop-art-game:.55;--backdrop-fade:1200ms}
+/* Camada 1 (âncora, pacote5d 1): cor sólida que nunca muda na página —
+   elemento PRÓPRIO, não mais o background do <body> (ver comentário em
+   index.html sobre por que o de body nunca aparecia atrás de z-index
+   negativo). z-index mais negativo que #ambientBg/#ambientShade, pra
+   ficar sempre por baixo dos dois. */
+#ambientAnchor{position:fixed;inset:0;z-index:-3;background:var(--page-bg);pointer-events:none}
 #ambientBg,#ambientBg2{
   position:fixed;inset:0;z-index:-2;
   background-size:cover;background-position:center;
