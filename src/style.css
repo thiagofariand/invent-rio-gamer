@@ -3107,7 +3107,13 @@ html[data-theme="neutral"] body.dark-surface-route{
 .merch-offer-meta{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--text-2)}
 .merch-offer-price{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:16px;font-weight:700;color:var(--text-1)}
 .merch-offer-price del{font-size:11.5px;font-weight:500;color:var(--text-2)}
+.merch-offer-condicional{font-size:11.5px;font-weight:500;color:var(--text-2)}
 @media(max-width:760px){.merch-offer-row{grid-template-columns:1fr;text-align:left}.merch-offer-price{align-items:flex-start}}
+/* teste-merch2, item 0b: uma linha só de etiquetas (status/tipo/região/
+   etiquetas do item), com wrap — nunca uma pílula por linha. */
+.merch-item-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.merch-price-cond{font-size:13px;font-weight:600;color:var(--text-2)}
+.merch-item-nota{margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--glass-2);border:1px solid var(--glass-border);font-size:12.5px;color:var(--text-1);display:block}
 
 /* 3.12: ritmo vertical compacto da home — dobra cabe hero + Destaques sem
    rolar em 1440x770 (critério de aceite do pacote3). Só aqui: o resto do

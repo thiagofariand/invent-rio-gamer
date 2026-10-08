@@ -339,10 +339,32 @@ try{
 let MERCH_ITEMS=[];
 try{
   const xhrMerch=new XMLHttpRequest();
-  xhrMerch.open('GET','/src/data/merch.json?v=teste-merch-lego',false);
+  xhrMerch.open('GET','/src/data/merch.json?v=teste-merch2-zelda',false);
   xhrMerch.send(null);
   if(xhrMerch.status===200){const parsed=JSON.parse(xhrMerch.responseText);if(Array.isArray(parsed))MERCH_ITEMS=parsed}
 }catch(e){/* mantém [] — telas de merch caem no estado "sem itens" */}
+// teste-merch2, item 0: pra item com ofertas[] (preço por loja/condição), os
+// campos "achatados" preco/loja/url/precoAtualizadoEm/importado NUNCA são
+// gravados no merch.json — são CALCULADOS aqui a partir da oferta mais
+// barata (sem condição de cupom/pagamento — merchCheapestOffer só olha
+// o.preco, nunca o.precoCondicional), uma fonte única de verdade. Item sem
+// ofertas[] (os mocks antigos do Pacote4) mantém os campos como estavam,
+// já vindos prontos do JSON.
+function merchCheapestOffer(it){
+  if(!it.ofertas||!it.ofertas.length)return null;
+  const priced=it.ofertas.filter(o=>o.preco!=null);
+  if(!priced.length)return null;
+  return priced.reduce((a,b)=>b.preco<a.preco?b:a);
+}
+MERCH_ITEMS.forEach(it=>{
+  if(!it.ofertas||!it.ofertas.length)return;
+  const c=merchCheapestOffer(it);
+  it.preco=c?c.preco:null;
+  it.loja=c?c.loja:(it.ofertas[0]?it.ofertas[0].loja:null);
+  it.url=c?c.url:(it.ofertas[0]?it.ofertas[0].url:null);
+  it.precoAtualizadoEm=c?c.atualizadoEm:null;
+  it.importado=c?!!c.importado:false;
+});
 function merchItemsVisible(){
   return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
 }

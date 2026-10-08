@@ -96,17 +96,72 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
   `docs/versoes-candidatas.md` lista outros candidatos achados numa varredura (nenhum aplicado ainda, exceto
   os dois confirmados).
 
-**Merch** (colecionáveis, decoração, casa, iluminação, vestuário, livros e arte — pacote4, seção 4)
+**Merch** (colecionáveis, decoração, casa, iluminação, vestuário, livros e arte — pacote4, seção 4; blocos de montar,
+amiibo e livros/mangás — teste-merch/teste-merch2)
 - Fonte única: `src/data/merch.json` — **não é** `lib/shopee-manual-offers.js` (esse é preço de jogo, schema incompatível).
-  Schema do item: `id,titulo,universo,categoria,origem,tipo,loja,url,preco,precoAtualizadoEm,imagem,imagemFonte,imagemAutorizada,exemplo`.
-- Regra de imagem: só renderiza foto com `imagem` **e** `imagemAutorizada===true` (nunca hospedar/copiar foto de
-  terceiro); sem isso, ícone da categoria (`assets/icons-categoria.svg`) sobre o degradê do universo.
-- Regra de preço: preço + "atualizado há N dias" só com `precoAtualizadoEm` de até 14 dias; passado isso (ou `preco`
-  nulo), "Ver preço na {loja}" sem número.
+- Dois formatos de item convivem no mesmo arquivo: os 25 mocks do Pacote4 (schema "achatado" antigo —
+  `id,titulo,universo,categoria,origem,tipo,loja,url,preco,precoAtualizadoEm,imagem,imagemFonte,imagemAutorizada,exemplo`,
+  `exemplo:true`, preço fake com selo EXEMPLO) e os itens reais de teste (LEGO/amiibo/livros — sem `origem`, com
+  `ofertas[]`; ver abaixo). **Todo item novo usa o schema de ofertas**; o achatado só existe pra não quebrar os mocks.
+- **camelCase sempre** — nenhum campo em snake_case no JSON (`jogosRelacionados`, `regiaoCaixa`, `pecaUnica`,
+  `notaCompra`, `imagemCredito`, `imagemFonte`, `precoAnterior`, `atualizadoEm`, `afiliadoTag`...).
+- **Schema do item** (com `ofertas[]`): `id,titulo,universo,categoria,tipo,exemplo,jogosRelacionados[],etiquetas[],
+  imagem,imagemCredito,imagemFonte,imagemAutorizada,ofertas[]` + campos por categoria (abaixo). **Sem `origem`** — a
+  origem (nacional/importado) é só de cada OFERTA, nunca do item (removido o selo "Nacional" da ficha do item;
+  pré-existente nos 25 mocks antigos, que ainda usam `origem` pro filtro "Origem" da busca de merch).
+  `jogosRelacionados` é lista de **slugs do catálogo** (nunca nome livre) — um item pode ligar a mais de um jogo; sem
+  jogo correspondente no catálogo, a lista fica vazia (sem link, sem texto solto).
+- **Campos calculados, nunca gravados no JSON**: `preco,loja,url,precoAtualizadoEm,importado` do item são calculados
+  ao carregar (`merchCheapestOffer()` em `app-1-core.js`) a partir da oferta **mais barata sem condição de cupom/
+  pagamento** (`ofertas[].preco`, nunca `precoCondicional`) — fonte única, sem duplicar o preço em dois lugares. Item
+  com `ofertas[]` mas nenhuma oferta com preço (ex. set fora de catálogo na loja oficial) mostra "Indisponível".
+- **Campos por categoria**:
+  - `blocos-de-montar` (LEGO e afins): `marca,numeroSet,pecas,ano,faixaEtaria,status` (`status:"aposentado"` vira selo
+    "Aposentado (fora de linha)"; `"a-venda"` não tem selo). Condições de oferta: `novo-lacrado`,`usado-completo`
+    ("Usado (completo, com caixa)"), `usado-sem-caixa`.
+  - `amiibo`: `regiaoCaixa` (`"Ocidental"|"Japonesa"` — japonesa vira etiqueta "Caixa japonesa"; ocidental não mostra
+    nada), `serie` opcional (ex. `"Campeões"`, vira etiqueta). Condições: `novo-lacrado`,`usado-com-caixa`
+    ("Usado (com caixa)"),`usado-sem-caixa`.
+  - `livros-mangas`: `editora,idioma,formato` (`"Capa dura"|"Brochura"|"Box"|"Assinatura"`),`volumes` (só coleção),
+    `isbn` (opcional), `notaCompra` (opcional — texto curto em destaque no card e na página, usado hoje pela
+    assinatura de mangá pra avisar sobre o volume inicial do envio). Condições: `novo`,`usado`.
+  - Ícone próprio por categoria em `assets/icons-categoria.svg` (`#cat-blocos-de-montar`, `#cat-amiibo`,
+    `#cat-livros-mangas`) — nunca o logotipo da marca (LEGO/amiibo só em texto).
+- **Schema da oferta** (`ofertas[]`): `loja,vendedor,anuncio,condicao,preco,precoAnterior,condicaoPagamento,
+  precoCondicional,condicaoCondicional,freteGratis,importado,conferido,pecaUnica,atualizadoEm,url,afiliadoTag`.
+  - `condicaoPagamento` é sufixo do PRÓPRIO `preco` quando ele já exige uma forma de pagamento específica (ex. "no
+    Pix" — `preco` já É o valor no Pix, mostrado "R$ 438,84 no Pix", com `precoAnterior` riscado do valor cheio ao
+    lado, no mesmo padrão de uma promoção comum).
+  - `precoCondicional`+`condicaoCondicional` é um preço **menor** que exige mais (cupom) — mostrado como nota à
+    parte ("R$ 252,70 no Pix com cupom"), nunca entra no cálculo de "a partir de"/preço calculado do item (regra de
+    honestidade: nunca anunciar um valor que depende de ação do comprador).
+  - `conferido:false` = vendedor/anúncio ainda não verificado manualmente; nesta fase de testes a oferta aparece
+    normal (sem selo), só fica registrada pra triagem antes do lançamento (decisão futura: ocultar ou não).
+  - `pecaUnica:true` = anúncio de unidade única (comum em usado de pessoa física) — mostra a nota "Peça única: pode
+    já ter sido vendida".
+  - `afiliadoTag` sempre criado vazio (`""`), pro dono preencher quando tiver o programa de afiliado da loja.
+  - Preço da oferta SEMPRE com a condição escrita (`MERCH_COND_LABEL` em `app-3-views.js`); na página do item, o
+    preço de destaque é da condição mais barata ("Novo (lacrado) a partir de R$ 899,40 · Importado"); as demais
+    condições aparecem nos grupos abaixo (`merchOffersByCondition`).
+  - Data do preço sempre "Preço visto em dd/mm/aaaa" (ou "hoje"/"ontem") — nunca finge um preço "ao vivo".
+- Regra de imagem oficial (teste-merch2, item 4 — substitui a regra antiga "merch sem foto de terceiro"): item PODE
+  ter foto oficial do fabricante/editora (Nintendo, LEGO, Panini, Dark Horse etc., direto do site/sala de imprensa
+  deles) — foto de vendedor/anúncio/marketplace **nunca**. Hospedagem **sempre local**, nunca hotlink: dono deposita
+  o arquivo original em `public/img/merch/originais/{id}.{ext}` + uma linha em
+  `public/img/merch/originais/fontes.txt` (`"{id} | {URL da página oficial} | {crédito}"`); Code converte pra
+  `.webp` 800px no lado maior (fundo transparente preservado) em `public/img/merch/{id}.webp` e preenche
+  `imagem,imagemCredito,imagemFonte` (os três juntos — sem crédito e fonte, a imagem não aparece). Exibição:
+  `object-fit:contain` sobre fundo da paleta do universo (produto inteiro visível), crédito em 11px `--text-2`
+  abaixo da imagem na página do item. Sem arquivo em `originais/`: fica o fallback de ícone de categoria (não dá
+  pra buscar imagem na internet neste ambiente).
 - Regra fixa (vale pro site inteiro): nunca link direto pra loja a partir de card/lista — o clique abre `#/item/{id}`;
   só lá tem o botão de verdade pra loja (`rel="sponsored noopener"`) e o link "Pedir remoção de conteúdo".
 - Busca (`#/busca`) migrada pro merch.json desde o pacote5 (`merchRows`/`priceCell`/`rowMarkup` em
-  `app-2-search.js` leem `merchItemsVisible()`, não mais `M.items`).
+  `app-2-search.js` leem `merchItemsVisible()`, não mais `M.items`); indexa também marca, número do set, editora e
+  ISBN (campos que só os itens reais têm).
+- **Colecionáveis de {jogo}** (teste-merch2, item 1): seção na página do jogo, logo abaixo de "Comprar este jogo" —
+  fileira de até 12 itens de merch ligados ao jogo via `jogosRelacionados`, "Ver todos →" abre `#/merch` filtrado
+  por esse jogo. Sem item ligado, a seção não aparece (nunca mostra vazia).
 
 **Página de plataforma e diretório de universos** (pacote5) · **Home** voltou pro desenho do Pacote 4 (pedido do
 dono, pacote5b final — ver nota abaixo)
