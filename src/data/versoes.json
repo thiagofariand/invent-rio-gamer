@@ -1,0 +1,11 @@
+{
+  "_leia-me": "Pacote5e, item 3.1. Chave = slug da OBRA no catálogo (catalog-data.js/collections, ex. 'majoras-mask'). Valor = lista de VERSÕES: {plataformas[] (quais plataformas da obra essa versão cobre), nome_completo (título real dessa versão — vira alias de busca e, sem igdb_id, é o texto mandado pra IGDB), igdb_id (número do jogo na IGDB; null quando ainda não confirmado), ano, tipo (original|hd|3d|remaster|deluxe|definitive|edition|port)}. Regra do pacote: a capa de cada versão deve vir do igdb_id, nunca de busca por nome — mas este ambiente de execução não tem rede pra IGDB, então não dá pra confirmar o ID numérico real sem inventar dado (CLAUDE.md: nunca inventar dado). Os dois exemplos abaixo (confirmados pelo dono) ficam com igdb_id:null e nome_completo como fallback de busca (mesmo mecanismo que já existia pro 3º item de variants) até alguém confirmar o ID certo no IGDB.com ou no preview com rede de verdade — ver nota no resumo do commit. Remake (jogo refeito do zero, ex. Ocarina of Time 2026) NÃO entra aqui — já é obra separada no catálogo, com remake_de apontando pra obra original.",
+  "majoras-mask": [
+    { "plataformas": ["Nintendo 64"], "nome_completo": "The Legend of Zelda: Majora's Mask", "igdb_id": null, "ano": 2000, "tipo": "original" },
+    { "plataformas": ["3DS"], "nome_completo": "The Legend of Zelda: Majora's Mask 3D", "igdb_id": null, "ano": 2015, "tipo": "3d" }
+  ],
+  "twilight-princess": [
+    { "plataformas": ["GameCube", "Wii"], "nome_completo": "The Legend of Zelda: Twilight Princess", "igdb_id": null, "ano": 2006, "tipo": "original" },
+    { "plataformas": ["Wii U"], "nome_completo": "The Legend of Zelda: Twilight Princess HD", "igdb_id": null, "ano": 2016, "tipo": "hd" }
+  ]
+}

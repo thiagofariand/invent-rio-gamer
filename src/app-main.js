@@ -39,34 +39,64 @@ brandLogo.src=MONO_LOGO_WHITE;
 function syncHeaderScroll(){
   siteHeader.classList.toggle('is-scrolled',window.scrollY>40);
 }
-// Fase 6, fundo ambiente (atrás da flag AMBIENT_BG): reaproveita a MESMA
-// imagem do hero já carregada (sem pedido novo). Estático — nada de scroll
-// ou animação — e desligado no mobile/prefers-reduced-motion (CSS cuida
-// disso; aqui só liga/desliga a camada e troca a url quando muda o hero).
+// PageBackdrop (pacote5c, item 2): fundo dinâmico atrás de toda página com
+// hero (home, plataforma, universo, ficha/comparadora do jogo) — reaproveita
+// a MESMA imagem que o hero já carregou (sem pedido novo). Duas divs
+// (#ambientBg/#ambientBg2) alternam pra fazer crossfade de verdade: a nova
+// imagem entra na camada de TRÁS, só então sobe a opacity (nunca apaga a
+// de cima antes de acender a de baixo). #ambientShade é a película —
+// elemento à parte, não herda a opacity translúcida da arte.
 const ambientBgEl=document.getElementById('ambientBg');
+const ambientBg2El=document.getElementById('ambientBg2');
 const ambientShadeEl=document.getElementById('ambientShade');
-// Pacote único, seção 1 (tema [game]): a camada de keyart desfocada passa a
-// ser sempre ligada na ficha do jogo/comparadora (force=true, chamado do
-// route() abaixo) — AMBIENT_BG continua só pra qualquer outro uso opcional
-// que venha a existir fora do tema game.
-// Pacote 2, item 1.3: mode='art' (artwork horizontal, scale 1.15) ou
-// mode='cover' (capa ampliada, scale 1.5 — precisa de mais zoom pra
-// cobrir o fundo já que a capa é vertical/quadrada, não widescreen).
-function updateAmbientBg(url,force,mode){
-  if(!(force||AMBIENT_BG)||!ambientBgEl){
-    if(ambientBgEl)ambientBgEl.hidden=true;
-    if(ambientShadeEl)ambientShadeEl.hidden=true;
-    return;
-  }
-  if(!url){
-    ambientBgEl.hidden=true;ambientBgEl.style.backgroundImage='';
-    if(ambientShadeEl)ambientShadeEl.hidden=true;
-    return;
-  }
-  ambientBgEl.style.backgroundImage=`url("${url}")`;
-  ambientBgEl.classList.toggle('ambient-cover',mode==='cover');
-  ambientBgEl.hidden=false;
+let ambientFrontEl=ambientBgEl;
+let ambientBackdropOn=false;
+// 2.3: prefers-reduced-motion trava no PRIMEIRO slide (o 1º setBackdropArt
+// da rota) e ignora as trocas seguintes causadas pela rotação do hero —
+// mas uma troca de PÁGINA de verdade (navegação) ainda é aplicada.
+const prefersReducedMotionMQ=matchMedia('(prefers-reduced-motion:reduce)');
+let ambientHasFirstArt=false;
+// Pacote 2, item 1.3: mode='art' (artwork horizontal) ou mode='cover'
+// (capa ampliada — precisa de mais zoom, a capa é vertical/quadrada).
+// slow=true (rotação do hero, crossfade 1200ms) · slow=false (troca de
+// página/primeiro slide da rota, 400ms).
+function setBackdropArt(url,mode,slow){
+  if(!url||!ambientBackdropOn||!ambientBgEl||!ambientBg2El)return;
+  if(document.hidden)return;
+  if(slow&&ambientHasFirstArt&&prefersReducedMotionMQ.matches)return;
+  const back=ambientFrontEl===ambientBgEl?ambientBg2El:ambientBgEl;
+  back.style.setProperty('--backdrop-fade',slow?'1200ms':'400ms');
+  back.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`;
+  back.classList.toggle('ambient-cover',mode==='cover');
+  back.hidden=false;
+  void back.offsetWidth; // força o navegador a registrar o background antes de animar opacity
+  back.classList.add('is-visible');
+  ambientFrontEl.classList.remove('is-visible');
+  ambientFrontEl=back;
+  ambientHasFirstArt=true;
   if(ambientShadeEl)ambientShadeEl.hidden=false;
+}
+// Liga/desliga o PageBackdrop pra rota atual (chamado do route() abaixo) e
+// limpa o estado anterior — cada página começa sem arte até seu próprio
+// hero (hydrateHomeHeroWide/hydrateUniverseHero/hydrateIgdbVisuals) resolver
+// a imagem e chamar setBackdropArt/updateAmbientBg de novo.
+function resetBackdrop(on){
+  ambientBackdropOn=on;
+  ambientHasFirstArt=false;
+  [ambientBgEl,ambientBg2El].forEach(el=>{
+    if(!el)return;
+    el.classList.remove('is-visible');
+    el.hidden=true;el.style.backgroundImage='';
+  });
+  ambientFrontEl=ambientBgEl;
+  if(ambientShadeEl)ambientShadeEl.hidden=!on;
+}
+// Compat: ficha do jogo/comparadora (arte FIXA, sem rotação) ainda chamam
+// esta assinatura antiga — por baixo já usa o crossfade de duas camadas.
+function updateAmbientBg(url,force,mode){
+  if(force)ambientBackdropOn=true;
+  if(!url)return;
+  setBackdropArt(url,mode,false);
 }
 // <meta name="theme-color"> acompanha --page-bg (pacote único, seção 1).
 const themeColorMeta=document.getElementById('themeColorMeta');
@@ -130,7 +160,13 @@ function route(){
   const pageTheme=gameSlug?'game':platformSlug?'platform':isUniverseRoute?'universe':'neutral';
   document.documentElement.setAttribute('data-theme',pageTheme);
   applyUniverseChrome(isUniverseRoute?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?paletteForPlatform(platformSlug):gameSlug?paletteForUniverse(gameUniverse):null);
-  updateAmbientBg(null,pageTheme==='game');
+  // Pacote5c, item 2.2: fundo dinâmico em home/plataforma/universo
+  // (--backdrop-art, .35) e na ficha/comparadora do jogo (tema "game",
+  // --backdrop-art-game, .55, mais presente por ser a página dele). Fora
+  // dessas quatro (busca, diretório, merch, inventário, tema, em-alta),
+  // fica desligado — só a cor sólida de sempre.
+  const isHome=path===''||path==='/';
+  resetBackdrop(isHome||pageTheme!=='neutral');
   syncThemeColorMeta();
   navActive(path);
   // Pacote único, item 4.1: #/multiplataforma (rota antiga, link salvo por
@@ -349,7 +385,7 @@ function openFiltersDrawer(){
 }
 function collectFilterParams(scope){
   const params=new URLSearchParams(location.hash.split('?')[1]||'');
-  ['cat','genre','cond','plat'].forEach(name=>{
+  ['cat','genre','cond','plat','console'].forEach(name=>{
     const vals=$$(`${scope} [data-filter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
   });
@@ -453,7 +489,7 @@ document.addEventListener('click',e=>{
   if(act==='rm-filter'){
     const p=new URLSearchParams(location.hash.split('?')[1]||'');
     const k=btn.dataset.k;
-    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'){
+    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'||k==='console'){
       const vals=(p.get(k)||'').split(',').filter(v=>v&&v!==btn.dataset.v);
       if(vals.length)p.set(k,vals.join(','));else p.delete(k);
     }else p.delete(k);

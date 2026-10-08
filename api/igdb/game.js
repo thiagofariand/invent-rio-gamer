@@ -13,6 +13,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const result = await findGame({
+      id: req.query.id,
       query: req.query.q || req.query.title,
       platform: req.query.platform,
       year: req.query.year,

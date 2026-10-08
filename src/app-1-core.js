@@ -280,6 +280,10 @@ const catalogBySlug=new Map(catalog.map(p=>[p.slug,p]));
 // busca de capa sem mudar o título que aparece pro usuário no site.
 function igdbTitleFor(p,platform){
   if(!p)return '';
+  // Pacote5e, item 3.1: "versão oculta" (versoes.json) tem prioridade —
+  // nome_completo da versão certa pra essa plataforma, quando existe.
+  const verTitle=versionIgdbTitle(p,platform);
+  if(verTitle)return verTitle;
   const v=platform&&p.variants?p.variants.find(x=>x[1]===platform):null;
   return (v&&v[2])||p.title;
 }
@@ -335,12 +339,116 @@ try{
 let MERCH_ITEMS=[];
 try{
   const xhrMerch=new XMLHttpRequest();
-  xhrMerch.open('GET','/src/data/merch.json?v=Pacote4',false);
+  xhrMerch.open('GET','/src/data/merch.json?v=teste-merch2-zelda',false);
   xhrMerch.send(null);
   if(xhrMerch.status===200){const parsed=JSON.parse(xhrMerch.responseText);if(Array.isArray(parsed))MERCH_ITEMS=parsed}
 }catch(e){/* mantém [] — telas de merch caem no estado "sem itens" */}
+// teste-merch2, item 0: pra item com ofertas[] (preço por loja/condição), os
+// campos "achatados" preco/loja/url/precoAtualizadoEm/importado NUNCA são
+// gravados no merch.json — são CALCULADOS aqui a partir da oferta mais
+// barata (sem condição de cupom/pagamento — merchCheapestOffer só olha
+// o.preco, nunca o.precoCondicional), uma fonte única de verdade. Item sem
+// ofertas[] (os mocks antigos do Pacote4) mantém os campos como estavam,
+// já vindos prontos do JSON.
+function merchCheapestOffer(it){
+  if(!it.ofertas||!it.ofertas.length)return null;
+  const priced=it.ofertas.filter(o=>o.preco!=null);
+  if(!priced.length)return null;
+  return priced.reduce((a,b)=>b.preco<a.preco?b:a);
+}
+MERCH_ITEMS.forEach(it=>{
+  if(!it.ofertas||!it.ofertas.length)return;
+  const c=merchCheapestOffer(it);
+  it.preco=c?c.preco:null;
+  it.loja=c?c.loja:(it.ofertas[0]?it.ofertas[0].loja:null);
+  it.url=c?c.url:(it.ofertas[0]?it.ofertas[0].url:null);
+  it.precoAtualizadoEm=c?c.atualizadoEm:null;
+  it.importado=c?!!c.importado:false;
+});
 function merchItemsVisible(){
   return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
+}
+// Pacote5 1.5: console -> {familia,ano,rotulo}, usado pra agrupar/ordenar
+// "Comprar por console" (home), a caixa de consoles (plataforma) e as abas
+// de família (diretório de universos/busca). Mesma carga síncrona dos
+// arquivos pequenos acima. Console do catálogo sem entrada aqui vai pro
+// fim da ordenação (por nome) em vez de desaparecer.
+let CONSOLES={};
+try{
+  const xhrConsoles=new XMLHttpRequest();
+  xhrConsoles.open('GET','/src/data/consoles.json?v=Pacote5',false);
+  xhrConsoles.send(null);
+  if(xhrConsoles.status===200)CONSOLES=JSON.parse(xhrConsoles.responseText);
+}catch(e){/* mantém {} — consoles caem todos no fim, ordenados por nome */}
+function consoleInfo(name){return CONSOLES[name]||null}
+function consoleFamily(name){return CONSOLES[name]?.familia||''}
+// Mais novo primeiro; sem entrada em CONSOLES fica ao final, por nome.
+function sortConsoles(names){
+  return [...names].sort((a,b)=>{
+    const ia=CONSOLES[a],ib=CONSOLES[b];
+    if(ia&&ib)return (ib.ano||0)-(ia.ano||0);
+    if(ia)return -1;
+    if(ib)return 1;
+    return a.localeCompare(b);
+  });
+}
+// Pacote5e, item 3.1: "versões ocultas" — obra (p.slug) -> lista de
+// versões por plataforma (nome_completo, igdb_id, ano, tipo). Carregada
+// síncrona, mesmo padrão de CONSOLES/PALETA_UNIVERSOS acima. Jogo sem
+// entrada aqui (a grande maioria do catálogo) não tem versão nenhuma —
+// as funções abaixo devolvem null/os valores de sempre nesse caso.
+let VERSOES={};
+try{
+  const xhrVersoes=new XMLHttpRequest();
+  xhrVersoes.open('GET','/src/data/versoes.json?v=Pacote5e',false);
+  xhrVersoes.send(null);
+  if(xhrVersoes.status===200)VERSOES=JSON.parse(xhrVersoes.responseText);
+}catch(e){/* mantém {} — nenhum jogo tem versão, comportamento de sempre */}
+// Pacote5e, item 3.3: "nome_completo de cada versão vira apelido de
+// busca" — catalog já estava montado (searchText incluído) antes de
+// VERSOES carregar, por isso reconstrói aliases/searchText só pras obras
+// com entrada aqui (maioria do catálogo passa reto, sem custo).
+Object.keys(VERSOES).forEach(slug=>{
+  const p=catalogBySlug.get(slug);
+  if(!p)return;
+  const extra=VERSOES[slug].map(v=>v.nome_completo).filter(Boolean);
+  p.aliases=[...new Set([...(p.aliases||[]),...extra])];
+  p.searchText=normSearch([p.title,...p.aliases,p.franchise].join(' '));
+});
+// Versão da obra p que cobre `platform` — null sem entrada em VERSOES ou
+// sem versão pra essa plataforma específica.
+function versionFor(p,platform){
+  const list=VERSOES[p?.slug];
+  if(!list)return null;
+  return list.find(v=>v.plataformas.includes(platform))||null;
+}
+// Ano certo pra mostrar com essa plataforma selecionada: o da VERSÃO
+// (quando existe), nunca o p.year genérico da obra (que não distingue
+// 2000 do N64 de 2015 do 3DS, por exemplo).
+function versionYear(p,platform){
+  return versionFor(p,platform)?.ano??p?.year??null;
+}
+// Título que vai pra IGDB: nome_completo da versão tem prioridade sobre
+// o 3º item de variants (mecanismo antigo, ainda usado pros jogos sem
+// entrada em VERSOES) e sobre p.title puro.
+function versionIgdbTitle(p,platform){
+  return versionFor(p,platform)?.nome_completo||null;
+}
+// ID numérico da IGDB da versão — quando existe, a busca deixa de ser por
+// nome (ver fetchIgdbVisual/findGame). null em todos os exemplos atuais
+// (sem rede pra IGDB neste ambiente pra confirmar o número real — ver
+// _leia-me de versoes.json).
+function versionIgdbId(p,platform){
+  return versionFor(p,platform)?.igdb_id??null;
+}
+// Pacote5e, item 3.3: card genérico (sem plataforma escolhida pelo
+// visitante, ex. fileira de destaques) mostra "capa e ano da versão mais
+// recente" — a versão de maior `ano` entre as que a obra tem. null sem
+// entrada em VERSOES (comportamento de sempre: usa a 1ª variante).
+function versionLatest(p){
+  const list=VERSOES[p?.slug];
+  if(!list||!list.length)return null;
+  return [...list].sort((a,b)=>(b.ano||0)-(a.ano||0))[0];
 }
 // slug-de-franquia normalizado -> lista de apelidos normalizados (pra
 // comparar com normSearch(termo digitado) em scoreTitle). searchAliasIdx

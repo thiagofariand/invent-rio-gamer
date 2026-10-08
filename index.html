@@ -15,13 +15,26 @@
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
-<!-- Tema "game" (pacote único, seção 1): camada fixa de keyart desfocada
-     atrás de tudo na ficha do jogo e na comparadora, reaproveitando a arte
-     do hero já carregada (sem pedido novo) — updateAmbientBg() em
-     app-main.js liga o background-image. #ambientShade é o degradê de
-     legibilidade por cima, um elemento à parte pra não herdar a opacidade
-     de #ambientBg (senão o degradê também ficaria translúcido). -->
+<!-- PageBackdrop (pacote5c, item 2 · correção pacote5d 1): fundo dinâmico
+     atrás de TODA página com hero (home, plataforma, universo,
+     ficha/comparadora do jogo). #ambientAnchor é a camada 1 (cor sólida
+     que nunca muda na página, --page-bg do tema atual) — precisa de
+     ELEMENTO PRÓPRIO: <body> tinha `background:var(--store)` opaco
+     (dark-surface-route e as regras de tema antigas) e, como <body> não
+     cria stacking context próprio, esse background pintava por CIMA dos
+     filhos de z-index negativo (ordem de pintura do CSS: descendentes de
+     z-index negativo entram ANTES das caixas não-posicionadas do próprio
+     elemento, mesmo sendo filhas dele) — por isso o fundo dinâmico nunca
+     aparecia, só a cor chapada do body. Fix: body (e qualquer contêiner
+     entre ele e #app) ficou transparente; só #ambientAnchor carrega a cor.
+     #ambientBg/#ambientBg2 são duas camadas da mesma arte, alternadas por
+     setBackdropArt() (app-main.js) pra fazer crossfade sem esperar uma
+     opacity:0 "apagar" antes da próxima aparecer. #ambientShade é a
+     vinheta de legibilidade por cima, um elemento à parte pra não herdar
+     a opacidade translúcida da arte. -->
+<div id="ambientAnchor" aria-hidden="true"></div>
 <div id="ambientBg" aria-hidden="true" hidden></div>
+<div id="ambientBg2" aria-hidden="true" hidden></div>
 <div id="ambientShade" aria-hidden="true" hidden></div>
 
 <header class="site-header">

@@ -1,0 +1,22 @@
+{
+  "PS1": {"familia": "playstation", "ano": 1994, "rotulo": "PlayStation"},
+  "PS2": {"familia": "playstation", "ano": 2000, "rotulo": "PlayStation 2"},
+  "PS3": {"familia": "playstation", "ano": 2006, "rotulo": "PlayStation 3"},
+  "PS4": {"familia": "playstation", "ano": 2013, "rotulo": "PlayStation 4"},
+  "PS5": {"familia": "playstation", "ano": 2020, "rotulo": "PlayStation 5"},
+  "PSP": {"familia": "playstation", "ano": 2004, "rotulo": "PSP"},
+  "NES": {"familia": "nintendo", "ano": 1983, "rotulo": "NES"},
+  "SNES": {"familia": "nintendo", "ano": 1990, "rotulo": "Super NES"},
+  "Nintendo 64": {"familia": "nintendo", "ano": 1996, "rotulo": "Nintendo 64"},
+  "GameCube": {"familia": "nintendo", "ano": 2001, "rotulo": "GameCube"},
+  "Wii": {"familia": "nintendo", "ano": 2006, "rotulo": "Wii"},
+  "Wii U": {"familia": "nintendo", "ano": 2012, "rotulo": "Wii U"},
+  "Switch": {"familia": "nintendo", "ano": 2017, "rotulo": "Switch"},
+  "Switch 2": {"familia": "nintendo", "ano": 2025, "rotulo": "Switch 2"},
+  "Game Boy": {"familia": "nintendo", "ano": 1989, "rotulo": "Game Boy"},
+  "Game Boy Color": {"familia": "nintendo", "ano": 1998, "rotulo": "Game Boy Color"},
+  "Game Boy Advance": {"familia": "nintendo", "ano": 2001, "rotulo": "Game Boy Advance"},
+  "3DS": {"familia": "nintendo", "ano": 2011, "rotulo": "Nintendo 3DS"},
+  "Xbox One": {"familia": "xbox", "ano": 2013, "rotulo": "Xbox One"},
+  "Xbox Series X|S": {"familia": "xbox", "ano": 2020, "rotulo": "Xbox Series X|S"}
+}
