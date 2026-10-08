@@ -166,12 +166,26 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
 **Página de plataforma e diretório de universos** (pacote5) · **Home** voltou pro desenho do Pacote 4 (pedido do
 dono, pacote5b final — ver nota abaixo)
 - **Hero largo** (`.hhw-*`, componente único reaproveitado só na plataforma agora, função `homeHeroWideMarkup`):
-  altura fixa 340px, arte numa janela de 70% de largura (degradê pra `--hero-base`, a cor da paleta do
-  jogo/universo do slide — não mais hash aleatório), texto no topo-esquerda, rotação automática (7s, pausa no
-  hover/foco, indicadores finos + botão de pausa no canto **superior** direito — os ladrilhos cobrem a base).
-  Pílulas só informativas (PRÉ-VENDA/EM BREVE reaproveita `releaseState` do pacote4; "Só em console X" quando o
-  jogo só sai numa única plataforma — heurística best-effort). A home tem seu **próprio** hero, independente
-  deste (ver nota "Home volta pro Pacote 4" abaixo).
+  altura fixa 340px, texto no topo-esquerda, rotação automática (7s, pausa no hover/foco, indicadores finos +
+  botão de pausa no canto **superior** direito — os ladrilhos cobrem a base). Pílulas só informativas
+  (PRÉ-VENDA/EM BREVE reaproveita `releaseState` do pacote4; "Só em console X" quando o jogo só sai numa única
+  plataforma — heurística best-effort). A home tem seu **próprio** hero, independente deste (ver nota "Home volta
+  pro Pacote 4" abaixo).
+- **HERO ADAPTATIVO** (teste-merch2, item 0b — substitui a janela fixa `var(--hero-art-w)`/`var(--hero-fade)`,
+  removidos): 3 camadas da MESMA arte, aplicadas em `.hhw-*` (plataforma) e, só a camada 3, em `.lhw-*` (home —
+  a 1 já é full-bleed ali, redundante repetir). Camada 1 **fundo** (`.hhw-bg`): a arte ampliada/desfocada
+  (`blur(30px) saturate(1.3) brightness(.55)`) cobrindo o hero inteiro — nunca cor chapada atrás do texto.
+  Camada 2 **arte nítida** (`.hhw-art`): ancorada à direita, altura 100%, largura pela proporção NATURAL da
+  imagem (medida com um `Image()` off-screen em `setHeroBackground`, `app-3-views.js` — sem conseguir medir, cai
+  no fallback CSS de 70%/100% mobile); borda esquerda dissolve no fundo via `mask-image`. Capa (sem key art)
+  joga o mesmo papel agora (antes era só borrada). Camada 3 **película de leitura** (`.hhw-film`/`.lhw-film`):
+  degradê de `--hero-base` (hhw) ou de um tom escuro fixo (lhw, que não tem `--hero-base` por slide) até
+  transparente, largura = bloco de texto real do slide (maior entre pílulas/título/botão) + 28px + 64px,
+  calculada em `hhwUpdateFilm()` e aplicada só via `transform:scaleX` (nunca `width`) — anima com o crossfade
+  (500ms), sem transição com `prefers-reduced-motion:reduce`. Contraste sobe pela OPACIDADE (até .9), nunca pela
+  largura — hoje fixo em .75-.78, **não medido por pixel real** (sem artwork de verdade neste ambiente; conferir
+  no preview). `hhwUpdateFilm` roda em `paint()` (toda troca de slide) e no resize (debounce 150ms) das duas
+  inicializações (`initHomeHeroWide`/`legacyInitHomeHeroWide`).
 - **Regra de preço pra jogo não lançado ou `semDisco`, em QUALQUER componente novo** (hero, cards, painel lateral,
   linhas): nunca "Usado a partir de". Com oferta física de exemplo (sempre Novo — `sampleOffers` nunca gera Usado
   pra jogo não lançado): "Pré-venda a partir de R$X". Sem oferta: "Em breve" (+ data se houver). Função central:

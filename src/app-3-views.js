@@ -275,7 +275,9 @@ function homeHeroWideMarkup(slides,opts={}){
         else if(s.exclusivePill)pills.push(s.exclusivePill);
       }else if(s.statePill)pills.push(s.statePill);
       return `<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}" style="--hero-base:${esc(s.baseColor||'#1a1512')}">
+      <div class="hhw-bg" aria-hidden="true"></div>
       <div class="hhw-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="hhw-film" aria-hidden="true"></div>
       <div class="hhw-copy">
         ${pills.length?`<div class="hhw-pills">${pills.map(p=>`<span class="hhw-pill">${p}</span>`).join('')}</div>`:''}
         <h1 class="${sizeClass}" aria-label="${esc(s.title)}">${esc(displayTitle)}</h1>
@@ -352,11 +354,14 @@ function initHomeHeroWide(root){
     if(art?.dataset.heroResolvedUrl&&typeof setBackdropArt==='function'){
       setBackdropArt(art.dataset.heroResolvedUrl,art.classList.contains('cover-fallback')?'cover':'art',true);
     }
+    hhwUpdateFilm(slides[current]);
   }
   function show(i){current=(i+slides.length)%slides.length;paint()}
   function advance(){if(!paused&&!document.hidden)show(current+1)}
   function startInterval(){clearInterval(intervalId);if(userDisabled)return;intervalId=setInterval(advance,DURATION)}
   function disableAuto(){if(userDisabled)return;userDisabled=true;clearInterval(intervalId);paint()}
+  let resizeT=null;
+  window.addEventListener('resize',()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>hhwUpdateFilm(slides[current]),150)});
   const track=$('[data-hhw-track]',root);
   function scrollToSlide(i){
     const el=slides[i];
@@ -712,6 +717,7 @@ function legacyHomeHeroWideMarkup(slides){
     <div class="lhw-track" data-lhw-track>
     ${slides.map((s,i)=>`<article class="lhw-slide ${i===0?'is-active':''}" data-lhw-slide aria-hidden="${i!==0}">
       <div class="lhw-art" data-lhw-art data-lhw-title="${esc(s.igdbTitle)}" data-lhw-platform="${esc(s.igdbPlatform)}" data-lhw-year="${esc(s.igdbYear)}" data-lhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="lhw-film" aria-hidden="true"></div>
       <div class="lhw-copy">
         <span class="lhw-pill">${esc(s.pill)}</span>
         <h1>${esc(s.title)}</h1>
@@ -783,11 +789,14 @@ function legacyInitHomeHeroWide(root){
     if(art?.dataset.heroResolvedUrl&&typeof setBackdropArt==='function'){
       setBackdropArt(art.dataset.heroResolvedUrl,art.classList.contains('cover-fallback')?'cover':'art',true);
     }
+    hhwUpdateFilm(slides[current]);
   }
   function show(i){current=(i+slides.length)%slides.length;paint()}
   function advance(){if(!paused&&!document.hidden)show(current+1)}
   function startInterval(){clearInterval(intervalId);if(userDisabled)return;intervalId=setInterval(advance,DURATION)}
   function disableAuto(){if(userDisabled)return;userDisabled=true;clearInterval(intervalId);paint()}
+  let resizeT2=null;
+  window.addEventListener('resize',()=>{clearTimeout(resizeT2);resizeT2=setTimeout(()=>hhwUpdateFilm(slides[current]),150)});
   const track=$('[data-lhw-track]',root);
   function scrollToSlide(i){
     const el=slides[i];
@@ -1291,9 +1300,57 @@ function setHeroBackground(el,url,coverMode){
   // chega (hidratação terminou antes da próxima rotação), o fundo
   // dinâmico da página acompanha de cara — sem esperar o próximo show().
   const slide=el.closest('[data-hhw-slide],[data-lhw-slide]');
+  // teste-merch2, item 0b — HERO ADAPTATIVO, camada 1 (fundo): espelha a
+  // mesma --hero-img na camada de fundo desfocado (.hhw-bg/.lhw-bg, irmã
+  // de .hhw-art/.lhw-art dentro do slide), quando ela existir. Heróis de
+  // 1 camada só (ficha do jogo, universo) não têm essa irmã — no-op.
+  const bg=slide?slide.querySelector(':scope>.hhw-bg,:scope>.lhw-bg'):null;
+  if(bg){
+    bg.classList.add(coverMode?'cover-fallback':'has-image');
+    bg.style.setProperty('--hero-img',`url("${url.replace(/"/g,'%22')}")`);
+  }
+  // teste-merch2, item 0b — HERO ADAPTATIVO, camada 2 (arte nítida): a
+  // largura vem da proporção NATURAL da imagem (altura 100% do hero),
+  // não mais de uma janela fixa — mede com uma Image() off-screen; capa
+  // (coverMode) faz o mesmo papel agora (ver CSS). Sem carregar (ex. sem
+  // rede neste ambiente), fica no fallback CSS (70%, ou 100% no mobile).
+  if(el.classList.contains('hhw-art')||el.classList.contains('lhw-art')){
+    const isMobile=typeof matchMedia==='function'&&matchMedia('(max-width:899px)').matches;
+    if(!isMobile&&el.classList.contains('hhw-art')){
+      const probe=new Image();
+      probe.onload=()=>{
+        if(!el.isConnected||el.dataset.heroResolvedUrl!==url||!probe.naturalHeight)return;
+        const h=el.getBoundingClientRect().height||1;
+        const ratio=probe.naturalWidth/probe.naturalHeight;
+        const maxW=el.parentElement?el.parentElement.getBoundingClientRect().width:h*ratio;
+        el.style.width=Math.min(maxW||h*ratio,h*ratio)+'px';
+      };
+      probe.src=url;
+    }
+  }
   if(slide?.classList.contains('is-active')&&typeof setBackdropArt==='function'){
     setBackdropArt(url,coverMode?'cover':'art',true);
   }
+  if(slide&&typeof hhwUpdateFilm==='function')hhwUpdateFilm(slide);
+}
+// teste-merch2, item 0b — HERO ADAPTATIVO, camada 3 (película de
+// leitura): largura = bloco de texto REAL do slide (maior entre pílulas,
+// título e botão) + 28px de margem esquerda + 64px de transição,
+// aplicada só via transform:scaleX (nunca width) pra animar junto do
+// crossfade (500ms). reduced-motion: sem animação (CSS já zera a
+// transition; aqui só evita medir à toa).
+function hhwUpdateFilm(slide){
+  if(!slide)return;
+  const copy=slide.querySelector('.hhw-copy,.lhw-copy');
+  const film=slide.querySelector('.hhw-film,.lhw-film');
+  if(!copy||!film)return;
+  let w=0;
+  $$('.hhw-pills,.lhw-pill,h1,.hhw-cta,.lhw-cta',copy).forEach(k=>{w=Math.max(w,k.scrollWidth)});
+  if(!w)w=copy.scrollWidth;
+  const heroW=slide.getBoundingClientRect().width||1;
+  const target=Math.min(heroW,w+28+64);
+  const scale=Math.max(.25,Math.min(1,target/heroW));
+  film.style.transform=`scaleX(${scale})`;
 }
 function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
