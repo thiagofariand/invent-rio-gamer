@@ -1204,22 +1204,36 @@ const igdbVisualMemo=new Map();
 // resolvida pra cada jogo — o banner de universo na busca só mostra
 // imagem se já tiver passado por aqui (nunca dispara pedido novo).
 const heroImageCache=new Map();
+async function fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW){
+  try{
+    const qs=new URLSearchParams({q:title});
+    if(platform)qs.set('platform',platform);
+    if(year)qs.set('year',year);
+    if(heroRatio)qs.set('ratio',heroRatio);
+    if(heroW)qs.set('heroW',String(Math.round(heroW)));
+    const r=await fetch('/api/igdb/game?'+qs.toString(),{headers:{Accept:'application/json'}});
+    if(!r.ok)return null;
+    const d=await r.json();
+    return d&&d.ok&&d.found?d:null;
+  }catch{return null}
+}
 async function fetchIgdbVisual(title,platform='',year='',heroRatio='',heroW=0){
   const key=[title,platform,year,heroRatio,heroW].join('|');
   if(igdbVisualMemo.has(key))return igdbVisualMemo.get(key);
 
   const p=(async()=>{
-    try{
-      const qs=new URLSearchParams({q:title});
-      if(platform)qs.set('platform',platform);
-      if(year)qs.set('year',year);
-      if(heroRatio)qs.set('ratio',heroRatio);
-      if(heroW)qs.set('heroW',String(Math.round(heroW)));
-      const r=await fetch('/api/igdb/game?'+qs.toString(),{headers:{Accept:'application/json'}});
-      if(!r.ok)return null;
-      const d=await r.json();
-      return d&&d.ok&&d.found?d:null;
-    }catch{return null}
+    const d=await fetchIgdbVisualOnce(title,platform,year,heroRatio,heroW);
+    if(d)return d;
+    // Pacote5d, item 2: título de pacote combo ("Super Mario Galaxy +
+    // Super Mario Galaxy 2") não bate com nada na IGDB — mesma armadilha
+    // já documentada pra sufixo nosso colado no título ("(2023)", nome da
+    // plataforma): sem resultado, tenta de novo só com o jogo antes do
+    // " + " (o primeiro título do pacote, que a IGDB reconhece).
+    if(title.includes(' + ')){
+      const base=title.split(' + ')[0].trim();
+      if(base&&base!==title)return await fetchIgdbVisualOnce(base,platform,year,heroRatio,heroW);
+    }
+    return null;
   })();
 
   igdbVisualMemo.set(key,p);
