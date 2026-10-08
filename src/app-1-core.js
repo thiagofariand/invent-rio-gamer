@@ -339,7 +339,7 @@ try{
 let MERCH_ITEMS=[];
 try{
   const xhrMerch=new XMLHttpRequest();
-  xhrMerch.open('GET','/src/data/merch.json?v=Pacote4',false);
+  xhrMerch.open('GET','/src/data/merch.json?v=teste-merch-lego',false);
   xhrMerch.send(null);
   if(xhrMerch.status===200){const parsed=JSON.parse(xhrMerch.responseText);if(Array.isArray(parsed))MERCH_ITEMS=parsed}
 }catch(e){/* mantém [] — telas de merch caem no estado "sem itens" */}

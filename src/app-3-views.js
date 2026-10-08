@@ -545,9 +545,14 @@ function merchPriceState(it){
   const days=Math.floor((Date.now()-new Date(it.precoAtualizadoEm+'T00:00:00').getTime())/86400000);
   return{fresh:days>=0&&days<=14,days};
 }
+// teste-merch: oferta mais barata importada (it.importado) ganha a
+// etiqueta "· Importado" junto do preço — ex. "Novo a partir de R$
+// 899,40 · Importado" — pra quem está só passando o olho já saber antes
+// de abrir a ficha do item.
 function merchPriceLine(it){
   const{fresh,days}=merchPriceState(it);
-  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}</b></span><span class="merch-price-meta">${esc(it.loja)} · atualizado ${days===0?'hoje':`há ${days} dia${days===1?'':'s'}`}</span>`;
+  const importadoTag=it.importado?' <span class="merch-price-importado">· Importado</span>':'';
+  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}</b>${importadoTag}</span><span class="merch-price-meta">${esc(it.loja)} · atualizado ${days===0?'hoje':`há ${days} dia${days===1?'':'s'}`}</span>`;
   return `<span class="merch-price-cta">Ver preço na ${esc(it.loja)}</span>`;
 }
 // Pacote4 4.2: só renderiza foto com imagem+imagemAutorizada===true (nunca
@@ -2761,8 +2766,10 @@ function renderPlatform(slug,params,token){
 }
 
 /* ---------- pacote4 4.6: merch, colecionáveis e fan-made ---------- */
-const MERCH_CATEGORIA_LABEL={colecionaveis:'Colecionáveis',decoracao:'Decoração',casa:'Casa',iluminacao:'Iluminação',vestuario:'Vestuário','livros-arte':'Livros e arte'};
-const MERCH_CATEGORIA_ORDER=['colecionaveis','decoracao','casa','iluminacao','vestuario','livros-arte'];
+// teste-merch: nova categoria "blocos-de-montar" (LEGO e afins), ícone
+// próprio em assets/icons-categoria.svg (#cat-blocos-de-montar).
+const MERCH_CATEGORIA_LABEL={colecionaveis:'Colecionáveis',decoracao:'Decoração',casa:'Casa',iluminacao:'Iluminação',vestuario:'Vestuário','livros-arte':'Livros e arte','blocos-de-montar':'Blocos de montar'};
+const MERCH_CATEGORIA_ORDER=['colecionaveis','decoracao','casa','iluminacao','vestuario','livros-arte','blocos-de-montar'];
 function readMerchFilters(params){
   const list=k=>(params.get(k)||'').split(',').map(s=>s.trim()).filter(Boolean);
   const num=k=>{const v=parseFloat(String(params.get(k)||'').replace(',','.'));return Number.isFinite(v)?v:null};
@@ -2848,6 +2855,43 @@ function renderMerch(params){
   ${filtered.length?`<div class="merch-square-grid">${filtered.map(merchSquareCard).join('')}</div>`:`<div class="empty"><h2>Nenhum item com estes filtros</h2><p>Tire algum filtro para ver mais opções.</p><p style="margin-top:12px"><button class="btn btn-outline btn-sm" data-act="merch-clear-filters">Limpar filtros</button></p></div>`}
   <p class="fine" style="margin-top:12px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>`;
 }
+// teste-merch: condições aceitas pra blocos de montar (LEGO e afins) —
+// mesma ideia de COND_LABEL pros jogos, cada oferta carrega a sua.
+const MERCH_COND_LABEL={'novo-lacrado':'Novo (lacrado)','usado-completo':'Usado (completo, com caixa)','usado-sem-caixa':'Usado (sem caixa)'};
+function ddmmyyyy(iso){
+  const d=new Date(iso+'T00:00:00');
+  if(isNaN(d))return iso;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+// teste-merch: 1 linha de oferta dentro do grupo por condição — nunca tem
+// selo EXEMPLO (são preços reais, capturados numa data, nunca "ao vivo"),
+// "Preço visto em DD/MM/YYYY" no lugar de uma promessa de preço atual.
+function merchOfferRow(o){
+  const fonte=o.vendedor||o.anuncio;
+  return `<div class="merch-offer-row">
+    <div class="merch-offer-source"><b>${esc(o.loja)}</b>${fonte?`<span class="merch-offer-sub">${esc(fonte)}</span>`:''}${o.importado?'<span class="chip-glass merch-offer-importado">Importado</span>':''}</div>
+    <div class="merch-offer-meta">
+      <span>Preço visto em ${ddmmyyyy(o.atualizadoEm)} · confira na loja</span>
+      ${o.fretGratis===true?'<span>Frete grátis</span>':''}
+      ${o.importado?'<span>Prazo e impostos podem variar</span>':''}
+    </div>
+    <div class="merch-offer-price">${o.precoAnterior?`<del>${brl(o.precoAnterior)}</del>`:''}<b>${brl(o.preco)}</b></div>
+    <a class="btn btn-primary btn-sm" href="${esc(safeUrl(o.url))}" target="_blank" rel="sponsored noopener">Ver na loja ↗</a>
+  </div>`;
+}
+// Agrupa por condição (ordem: aparece na ordem em que MERCH_COND_LABEL
+// lista); dentro do grupo, mais barata primeiro.
+function merchOffersByCondition(ofertas){
+  const groups=new Map();
+  ofertas.forEach(o=>{
+    if(!groups.has(o.condicao))groups.set(o.condicao,[]);
+    groups.get(o.condicao).push(o);
+  });
+  return Object.keys(MERCH_COND_LABEL).filter(k=>groups.has(k)).map(k=>{
+    const list=[...groups.get(k)].sort((a,b)=>a.preco-b.preco);
+    return {condicao:k,label:MERCH_COND_LABEL[k],offers:list};
+  });
+}
 // Pacote4 4.7: página do item (#/item/{id}) — nunca link direto a partir
 // de card/lista (regra fixa do pacote); o card inteiro (4.4) abre aqui, e
 // só aqui tem o botão de verdade pra loja.
@@ -2864,22 +2908,46 @@ function renderMerchItem(id,token){
     ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
     :`<svg class="merch-cat-icon" width="96" height="96" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
   const{fresh}=merchPriceState(it);
+  // teste-merch: ficha do produto (set LEGO etc.) — só aparece quando o
+  // item tem esses campos (a maioria do catálogo de merch não tem).
+  const fichaRows=[
+    it.marca?['Marca',esc(it.marca)]:null,
+    it.numeroSet?['Número do set',esc(String(it.numeroSet))]:null,
+    it.pecas?['Peças',esc(String(it.pecas))]:null,
+    it.ano?['Ano',esc(String(it.ano))]:null,
+    it.faixaEtaria?['Faixa etária',esc(it.faixaEtaria)]:null,
+  ].filter(Boolean);
+  const jogoLink=it.jogoRelacionado?(it.jogoRelacionadoSlug?`<a href="#/jogo/${esc(it.jogoRelacionadoSlug)}">${esc(it.jogoRelacionado)}</a>`:esc(it.jogoRelacionado)):null;
   setTitle(it.titulo);
   main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/merch">Colecionáveis e merch</a> › <span>${esc(it.titulo)}</span></nav>
   <div class="merch-item-layout">
     <div class="merch-item-media ${hasPhoto?'has-photo':(art?'has-art':'')}" style="${style}">${media}</div>
     <div class="merch-item-body">
-      <div class="merch-square-chips" style="position:static;margin-bottom:10px"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.exemplo?mockChip():''}</div>
+      <div class="merch-square-chips" style="position:static;margin-bottom:10px"><span class="chip-glass">${esc(MERCH_ORIGEM_LABEL[it.origem]||it.origem)}</span><span class="chip-glass">${esc(MERCH_TIPO_LABEL[it.tipo]||it.tipo)}</span>${it.status==='aposentado'?'<span class="chip-glass">Aposentado (fora de linha)</span>':''}${it.exemplo?mockChip():''}</div>
       <h1 class="page-h" style="font-size:28px">${esc(it.titulo)}</h1>
       ${u?`<p class="lede">${esc(pal?.nome||u.name)}</p>`:''}
+      ${it.etiquetas?.length?`<div class="merch-square-chips" style="position:static;margin:8px 0">${it.etiquetas.map(t=>`<span class="chip-glass">${esc(t)}</span>`).join('')}</div>`:''}
+      ${fichaRows.length?`<dl class="merch-item-ficha">${fichaRows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`:''}
+      ${jogoLink?`<p class="fine" style="margin-top:4px">Relacionado a ${jogoLink}</p>`:''}
       <div class="merch-item-price">${merchPriceLine(it)}</div>
       <p class="fine" style="margin-top:4px">Preço do produto; frete e impostos calculados na loja pelo seu CEP.</p>
       ${it.origem==='importado'?'<p class="fine">Compra internacional: pode haver ICMS e prazo maior.</p>':''}
       <p class="fine" style="margin-top:10px">Alguns links são de afiliado. Se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra para você.</p>
+      ${it.ofertas?.length?`
+      <div class="merch-item-offers">
+        ${merchOffersByCondition(it.ofertas).map(g=>`
+          <section class="merch-offer-group">
+            <h3>${esc(g.label)} <span class="merch-offer-group-from">a partir de ${brl(g.offers[0].preco)}</span></h3>
+            ${g.offers.map(merchOfferRow).join('')}
+          </section>`).join('')}
+      </div>
+      <div class="merch-item-actions">
+        <a class="btn btn-ghost btn-sm" href="#/contato?assunto=remocao">Pedir remoção de conteúdo</a>
+      </div>`:`
       <div class="merch-item-actions">
         <a class="btn btn-primary" href="${esc(safeUrl(it.url))}" target="_blank" rel="sponsored noopener">Ver na ${esc(it.loja)} ↗</a>
         <a class="btn btn-ghost btn-sm" href="#/contato?assunto=remocao">Pedir remoção de conteúdo</a>
-      </div>
+      </div>`}
     </div>
   </div>`;
 }

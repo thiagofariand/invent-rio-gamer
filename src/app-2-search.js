@@ -83,7 +83,9 @@ function merchRows(raw){
   const q=norm(raw),tokens=q.split(' ').filter(Boolean);
   return merchItemsVisible().map(it=>{
     const u=it.universo?uMap.get(it.universo):null;
-    const hay=' '+norm([it.titulo,u?u.name:'',MERCH_CATEGORIA_LABEL[it.categoria]||'',MERCH_TIPO_LABEL[it.tipo]||''].join(' '));
+    // teste-merch: marca (LEGO) e número do set (71438) também pesquisáveis
+    // — sem isso, "71438"/"lego mario" não achava o item.
+    const hay=' '+norm([it.titulo,u?u.name:'',MERCH_CATEGORIA_LABEL[it.categoria]||'',MERCH_TIPO_LABEL[it.tipo]||'',it.marca||'',it.numeroSet!=null?String(it.numeroSet):''].join(' '));
     const ok=!tokens.length||tokens.every(t=>hay.includes(' '+t));
     return ok?{kind:'merch',item:it,cat:merchRowCat(it),score:tokens.length?40:0}:null;
   }).filter(Boolean);
