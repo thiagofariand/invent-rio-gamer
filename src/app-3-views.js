@@ -480,7 +480,7 @@ function universeTileMoreMarkup(href,count,fam,fanPool){
       <span class="ut-fan-cover" data-ut-fan="1"></span>
       <span class="ut-fan-cover" data-ut-fan="2"></span>
     </span>
-    <span class="ut-body"><b class="ut-name">Ver todos →</b><small class="ut-count">${count} universo${count===1?'':'s'}</small></span>
+    <span class="ut-body"><b class="ut-name">Ver todos os universos →</b><small class="ut-count">${count} no total</small></span>
   </a>`;
 }
 // Pacote5c, item 4: tenta, em ordem, cada universo de data-ut-more-cands
@@ -618,10 +618,17 @@ function initStaggerEntrance(root){
 // seta, sem link) e o ladrilho fica como único caminho. Sem ladrilho (6 ou
 // menos universos), o rótulo volta a ser link com seta — único jeito de
 // chegar no diretório nesse caso.
+// Pacote5e, item 1: com o ladrilho "Ver todos" (extraTileHtml, 6+
+// universos), o rótulo some de cima da fileira de vez — o próprio
+// ladrilho já diz "Ver todos os universos → / {N} no total" (pacote5d 3
+// só tirava o LINK do rótulo, mas ele continuava ocupando a linha como
+// texto solto, duplicando a mesma informação do ladrilho). Sem ladrilho
+// (6 ou menos), o rótulo volta a ser o único link pro diretório, como
+// na home.
 function universeTilesOverlapMarkup(label,href,list,extraTileHtml){
   if(!list.length)return '';
   const labelHtml=extraTileHtml
-    ?`<span class="universe-tiles-label">${esc(label)}</span>`
+    ?''
     :`<a class="universe-tiles-label" href="${esc(href)}">${esc(label)} →</a>`;
   return `<div class="universe-tiles-overlap">
     ${labelHtml}
