@@ -2054,7 +2054,9 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .poster-info{padding-top:8px;display:flex;flex-direction:column;gap:2px}
 .poster-title{color:var(--text-1);font:500 14px/1.3 var(--font-ui);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .poster-title:hover{text-decoration:underline}
-.poster-meta{color:var(--text-2);font-size:12px}
+/* Pacote5b, item 4: 1 linha só, nunca empurra o preço pra fora do card
+   ("PS5 · Xbox Series X|S · 2026" quebrava em 2 antes). */
+.poster-meta{color:var(--text-2);font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .poster-price{color:var(--text-1);font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .poster-price:hover{text-decoration:underline}
 .poster-price.is-quiet{color:var(--text-2);font-weight:500}
@@ -2807,6 +2809,13 @@ html[data-theme="neutral"] body.dark-surface-route{
 @media(max-width:1100px){.peek-grid>*{flex-basis:calc((100% - 48px)/4)}}
 @media(max-width:899px){.peek-grid>*{flex-basis:46%}}
 @media(max-width:560px){.peek-grid>*{flex-basis:76%}}
+/* Pacote5b, item 4: home/plataforma — 5 cards INTEIROS + a capa do 6º
+   espiando na coluna de 784px (gap 16 * 4 entre os 5 = 64px). Card com
+   altura fixa (capa 3/4 + título 1 linha + meta 1 linha + chip). */
+.home-cards>*{flex:0 0 calc((100% - 64px)/5)}
+@media(max-width:1100px){.home-cards>*{flex-basis:calc((100% - 48px)/4)}}
+@media(max-width:899px){.home-cards>*{flex-basis:46%}}
+@media(max-width:560px){.home-cards>*{flex-basis:76%}}
 /* rodada11, item 5: setas únicas pra qualquer fileira horizontal (peek-grid,
    home-offer-grid, universe-offer-grid) — faixa de gradiente de 64px nas
    bordas, com o círculo de 40px (.hfn-circle) dentro; só no hover da
@@ -2911,51 +2920,56 @@ html[data-theme="neutral"] body.dark-surface-route{
   .universe-tiles-row>.universe-tile{width:120px;scroll-snap-align:start}
 }
 
-/* Pacote5, seção 2 — home nova: coluna principal (784px) + painel lateral
-   (var(--side-w)), topo alinhado à barra lateral existente (.app-sidebar);
-   main já tem margin-left reservando o espaço da barra — ver --sidebar-w. */
-.home-grid{display:grid;grid-template-columns:minmax(0,1fr) var(--side-w);gap:16px;align-items:start}
-.home-main{min-width:0}
-.home-side{display:flex;flex-direction:column;gap:12px;min-width:0}
-/* Abas (item 2.1): sem pílula, ativa com sublinhado reto. */
-.home-tabs{display:flex;gap:24px;border-bottom:1px solid var(--glass-border);margin:16px 0 14px;overflow-x:auto}
-.home-tab{position:relative;flex:none;padding:0 0 10px;color:var(--text-2);font:500 14px var(--font-ui);text-decoration:none;white-space:nowrap}
-.home-tab.is-active{color:var(--text-1)}
-.home-tab.is-active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--action,var(--red))}
-/* Cartões do painel lateral — --glass-2, radius 18, padding 14/16. */
-.side-card{display:block;background:var(--glass-2);border:1px solid var(--glass-border);border-radius:18px;padding:14px 16px;text-decoration:none;color:inherit}
-.side-card h3{font:500 16px/1.2 var(--font-ui);color:var(--text-1);margin:0}
-.side-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-.side-see-all{font-size:12px;color:var(--text-2);text-decoration:none;white-space:nowrap}
-.side-card-copy{font-size:13px;color:var(--text-2);margin:8px 0 12px}
-.side-chip-row{display:flex;flex-wrap:wrap;gap:8px}
-.side-chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--glass-3,rgba(255,255,255,.08));border:1px solid var(--glass-border);color:var(--text-1);font-size:12.5px;font-weight:600;text-decoration:none}
-.side-game-list{display:flex;flex-direction:column;gap:10px}
-.side-game-row,.side-upcoming-row{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
-.side-row-cover{flex:none;width:28px;height:38px;display:block}
-.side-row-cover .cover{width:28px;height:38px;aspect-ratio:auto;border-radius:5px!important}
-.side-game-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.side-game-title{font-size:13px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.side-game-ctx{font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.side-row-price{flex:none;font-size:12px;font-weight:700;color:var(--text-1)}
-.side-row-price.is-quiet{font-weight:500;color:var(--text-2)}
-.side-upcoming-date{flex:none;width:36px;height:36px;border-radius:9px;background:var(--glass-3,rgba(255,255,255,.08));display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
-.side-upcoming-date b{font-size:14px;color:var(--text-1)}
-.side-upcoming-date small{font-size:9.5px;text-transform:uppercase;color:var(--text-2)}
-.side-console-block{margin-top:12px}
-.side-console-block:first-of-type{margin-top:0}
-.side-console-name{display:block;font:500 14px var(--font-ui);color:var(--text-1);text-decoration:none;margin-bottom:8px}
-.side-console-chips{display:flex;flex-wrap:wrap;gap:6px}
-.side-console-chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--glass-border);color:var(--text-1);font-size:12px;text-decoration:none}
-.side-console-chip b{font-weight:700;color:var(--text-2)}
-.home-guide-card{display:flex;align-items:center;gap:12px}
-.side-guide-icon{flex:none;width:36px;height:36px;border-radius:10px;background:var(--glass-3,rgba(255,255,255,.08));display:flex;align-items:center;justify-content:center;color:var(--text-1)}
-.side-guide-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-.side-guide-body b{font-size:13px;color:var(--text-1);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.side-guide-body small{font-size:11.5px;color:var(--text-2)}
+/* Volta ao pacote4 (pedido do dono): hero próprio da home (prefixo lhw-,
+   "legacy hero wide") — miniaturas no canto, pílula única, título em 2
+   linhas com clamp. Independente do hero compartilhado (.hhw-*) que a
+   página de plataforma usa (pacote5/5b, não mexido aqui). */
+.lhw{position:relative;width:100%;height:clamp(260px,39vh,300px);border-radius:18px;overflow:hidden;background:#1a1512}
+.lhw-track{position:absolute;inset:0}
+.lhw-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility 0s linear .5s;z-index:1}
+.lhw-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .5s ease,visibility 0s linear;z-index:2}
+.lhw-art{position:absolute;inset:0;background:linear-gradient(135deg,#2a2622,#57433B);background-size:cover;background-position:center}
+.lhw-art.has-image{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.55) 42%,rgba(14,10,8,.12) 78%),var(--hero-img)}
+.lhw-art.cover-fallback{background-image:linear-gradient(90deg,rgba(14,10,8,.92) 0%,rgba(14,10,8,.72) 55%),var(--hero-img);filter:blur(28px) saturate(1.1);transform:scale(1.2)}
+.lhw-art .game-hero-placeholder{opacity:.12}
+.lhw-copy{position:relative;z-index:3;height:100%;width:min(560px,62%);padding:28px 32px;display:flex;flex-direction:column;justify-content:center;gap:12px;color:#fff;container-type:inline-size}
+.lhw-pill{display:inline-block;align-self:flex-start;background:rgba(0,0,0,.4);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px}
+.lhw-copy h1{color:#fff;font:700 clamp(28px,2.8vw,40px)/1.08 var(--font-ui);letter-spacing:-.02em;max-width:18ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lhw-cta{margin-top:4px}
+.lhw-thumbs{position:absolute;right:24px;bottom:24px;z-index:6;display:flex;gap:10px}
+.lhw-thumb{width:112px;height:63px;border-radius:9px;overflow:hidden;position:relative;border:1.5px solid rgba(255,255,255,.3);background:#2a2420;opacity:.75;cursor:pointer;padding:0;transition:opacity 150ms ease,border-color 150ms ease}
+.lhw-thumb:hover,.lhw-thumb:focus-visible{opacity:.92}
+.lhw-thumb.is-active{opacity:1;border-color:#fff}
+.lhw-thumb-img{position:absolute;inset:0;background-size:cover;background-position:center;background-color:hsl(var(--hero-h,0) 20% 22%)}
+.lhw-thumb-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25)}
+.lhw-thumb-fill{display:block;height:100%;width:100%;background:var(--action);transform-origin:left;transform:scaleX(0)}
+@keyframes lhw-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.lhw-pause{position:absolute;left:24px;bottom:24px;z-index:6;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lhw-pause:hover{background:rgba(0,0,0,.6)}
+.lhw-dots{display:none}
 @media(max-width:899px){
-  .home-grid{grid-template-columns:1fr}
-  .home-side{flex-direction:column}
+  .lhw{height:auto;min-height:320px}
+  .lhw-track{position:static;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .lhw-track::-webkit-scrollbar{display:none}
+  .lhw-slide{position:relative;inset:auto;flex:0 0 100%;scroll-snap-align:start;opacity:1;visibility:visible;pointer-events:auto;transition:none}
+  .lhw-copy{width:100%;padding:24px 20px 76px}
+  .lhw-thumbs{display:none}
+  .lhw-pause{display:none}
+  .lhw-dots{display:flex;gap:8px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
+  .lhw-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
+  .lhw-dot.is-active{background:#fff;width:20px;border-radius:4px}
+}
+@media(prefers-reduced-motion:reduce){
+  .lhw-slide{transition:none}
+  .lhw-thumb-fill{animation:none!important}
+}
+.lhw.is-entering .lhw-slide.is-active .lhw-art{animation:lhw-art-in 400ms ease-out}
+.lhw.is-entering .lhw-slide.is-active .lhw-copy{animation:lhw-copy-in 300ms ease-out 100ms both}
+@keyframes lhw-art-in{from{transform:scale(1.03)}to{transform:scale(1)}}
+@keyframes lhw-copy-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+  .lhw.is-entering .lhw-slide.is-active .lhw-art,
+  .lhw.is-entering .lhw-slide.is-active .lhw-copy{animation:none}
 }
 
 /* 3.8: colecionáveis/merch em quadrados */

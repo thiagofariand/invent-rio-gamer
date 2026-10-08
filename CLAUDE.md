@@ -93,27 +93,35 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
 - Busca (`#/busca`) migrada pro merch.json desde o pacote5 (`merchRows`/`priceCell`/`rowMarkup` em
   `app-2-search.js` leem `merchItemsVisible()`, não mais `M.items`).
 
-**Home, página de plataforma e diretório de universos** (pacote5)
-- **Hero largo** (`.hhw-*`, componente único reaproveitado na home e na plataforma, função `homeHeroWideMarkup`):
+**Página de plataforma e diretório de universos** (pacote5) · **Home** voltou pro desenho do Pacote 4 (pedido do
+dono, pacote5b final — ver nota abaixo)
+- **Hero largo** (`.hhw-*`, componente único reaproveitado só na plataforma agora, função `homeHeroWideMarkup`):
   altura fixa 340px, arte numa janela de 70% de largura (degradê pra `--hero-base`, a cor da paleta do
   jogo/universo do slide — não mais hash aleatório), texto no topo-esquerda, rotação automática (7s, pausa no
   hover/foco, indicadores finos + botão de pausa no canto **superior** direito — os ladrilhos cobrem a base).
-  Pílulas só informativas (EM ALTA/UNIVERSO só na home via `opts.showTypePill`; PRÉ-VENDA/EM BREVE reaproveita
-  `releaseState` do pacote4; "Só em console X" quando o jogo só sai numa única plataforma — heurística best-effort).
+  Pílulas só informativas (PRÉ-VENDA/EM BREVE reaproveita `releaseState` do pacote4; "Só em console X" quando o
+  jogo só sai numa única plataforma — heurística best-effort). A home tem seu **próprio** hero, independente
+  deste (ver nota "Home volta pro Pacote 4" abaixo).
 - **Regra de preço pra jogo não lançado ou `semDisco`, em QUALQUER componente novo** (hero, cards, painel lateral,
   linhas): nunca "Usado a partir de". Com oferta física de exemplo (sempre Novo — `sampleOffers` nunca gera Usado
   pra jogo não lançado): "Pré-venda a partir de R$X". Sem oferta: "Em breve" (+ data se houver). Função central:
   `heroWidePriceCta`/`sideRowPriceChip` — não reimplementar em paralelo.
-- **UniverseTile** (`universeTileMarkup`, item 1.3): ladrilho único usado na home (sobreposto ao hero, 5 da lista
-  curada), na plataforma (sobreposto, até 6 + "ver todos") e no diretório (`#/universos`, em grade, sem
-  sobreposição). Capa do jogo principal saltando acima do ladrilho — **só** com `naturalWidth>=200` medido de
-  verdade (`hydrateUniverseTiles`); sem capa válida, a sigla (campo `sigla`) é o **plano B**, nunca o padrão.
-- **Home** (`renderHome`): coluna principal (hero → ladrilhos → abas Em alta/Mais novos/Menor preço/Pré-venda,
-  sem pílula, sublinhado reto → 5 cards) + painel lateral `--side-w` (300px) com até 4 cartões: a) Comece/Para a
-  sua coleção (fonte única `invList()` — Tenho/Quero/Alerta; **sem contador nem barra de progresso aqui**, já
-  existem no rodapé da sidebar); b) Em breve (ou Mais novos, sem lançamento futuro); c) Comprar por console,
-  **sempre agrupado por plataforma** (nunca consoles de famílias diferentes juntos); d) Guia do dia (só com
-  `guias.json` não vazio). "Colecionáveis e merch" **saiu** da home nesta versão (fica em `#/merch` e no menu).
+- **UniverseTile** (`universeTileMarkup`, item 1.3): ladrilho único usado na plataforma (sobreposto ao hero, até 6
+  + "ver todos") e no diretório (`#/universos`, em grade, sem sobreposição). A home **não usa mais** esse
+  componente (voltou aos cards `universeDestaqueBig`/`universeDestaqueCompact` do Pacote 4). Capa do jogo
+  principal saltando acima do ladrilho — **só** com `naturalWidth>=200` medido de verdade (`hydrateUniverseTiles`);
+  sem capa válida, a sigla (campo `sigla`) é o **plano B**, nunca o padrão.
+- **Home volta pro Pacote 4 (pedido do dono, pacote5b final)**: o dono pediu explicitamente pra manter os layouts
+  do pacote5/5b no resto do site mas devolver a Home ao desenho de antes do pacote5 — hero com miniaturas
+  (thumbnails) de preview no canto inferior direito + abas em pílula "Destaques" (Em alta/Mais novos/Menor
+  preço/Pré-venda) → "Universos em destaque" (1 card grande + 3 compactos) → "Retrô" (fileira de clássicos em
+  preço de usado) → "Colecionáveis e merch" (vitrine de `merch.json`, de volta na home nesta versão). Pra isso,
+  `renderHome` e sua cadeia de hero usam um fork **legacy**, prefixo `legacy*` nas funções
+  (`legacyLoadHomeHeroSlides`, `legacyHomeHeroWideMarkup`, `legacyInitHomeHeroWide`, `legacyHydrateHomeHeroWide`
+  etc.) e `.lhw-*` no CSS (em vez de `.hhw-*`) — **não é** o mesmo componente do hero largo da plataforma, é uma
+  cópia independente pra não colidir com o CSS/JS que a plataforma ainda usa. Não reaproveite `legacy*`/`.lhw-*`
+  em telas novas (é código congelado do Pacote 4); extensões de hero/ladrilho entram no componente `.hhw-*`
+  (plataforma) e, se um dia a home for redesenhada de novo, decida com o dono antes de trocar.
 - **Página de plataforma** (`renderPlatform`, `#/plataforma/:slug`): hero largo **sem** pílula de tipo/plataforma
   (slide = mais em alta daquela família) → ladrilhos (até 6 + "ver todos os universos") → 1 linha "Jogos em
   destaque"/"Jogos de {console}" com botão em pílula "Ver todos (N) →" → caixa de consoles (`--side-w`,
@@ -126,7 +134,8 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
   reimplementado contra `consoles.json`). Ordem: lista curada (`SIDEBAR_FEATURED_UNIVERSES`) primeiro, depois
   alfabética. Parâmetro `?plat=` (não mais `?casa=`).
 - **`consoles.json`**: `{console: {familia, ano, rotulo}}`, `familia` ∈ nintendo\|playstation\|xbox. Usado em
-  home (2.2c), plataforma (seção 3), diretório e busca. Console do catálogo sem entrada aqui vai pro fim da
+  plataforma (seção 3), diretório e busca (não mais na home, que voltou ao desenho do Pacote 4). Console do
+  catálogo sem entrada aqui vai pro fim da
   ordenação (`sortConsoles`), por nome — nunca desaparece. Fora das 3 famílias (sem entrada, de propósito): PC,
   PC VR, PS VR2, Meta Quest 2/3, Android, iOS, Dreamcast, Game Gear, Master System, Mega Drive/Genesis.
 - **Parâmetros da busca** (`#/busca`): `plat` = família (nintendo\|playstation\|xbox, via `consoleFamily()`);
@@ -157,11 +166,15 @@ Feito: catálogo base (Mario, Zelda, CoD, RE, Spider-Man, GoW…), IGDB com 4 he
 token com renovação automática + `painel.html`, RAWG isolada (ainda não ligada a páginas), filtro de gênero,
 selos Oficial/Varejo, comparador "Todos", página Games em bento (Multi+Retrô lado a lado). Pacote4 completo (vistoria,
 formato físico/pré-venda, links diretos de loja, merch com fonte única, avisos) + ajuste 4B (prioridade da mensagem
-"sem revenda", "Em breve" no hero de jogo não lançado, bug do link da Steam). Pacote5 completo: home nova (hero largo +
-ladrilhos sobrepostos + abas + painel lateral de 4 cartões), página de plataforma (hero sem pílula + ladrilhos + 1 linha
-de destaques + caixa de consoles), diretório de universos com ladrilhos, busca lendo merch.json + parâmetros
-plat (família)/console (exato), consoles.json. Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis validados
-com fallback de sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4 heurísticas de capa.
+"sem revenda", "Em breve" no hero de jogo não lançado, bug do link da Steam). Pacote5 completo: página de plataforma
+(hero sem pílula + ladrilhos + 1 linha de destaques + caixa de consoles), diretório de universos com ladrilhos, busca
+lendo merch.json + parâmetros plat (família)/console (exato), consoles.json. Pacote5B: ajustes finos do hero largo e
+dos ladrilhos (preenchimento de arte, pílulas, espaçamento/altura fixa) — ainda na plataforma/diretório. Pedido do dono
+depois do pacote5B: **manter os layouts do pacote5/5B no resto do site, mas devolver a Home ao desenho do Pacote 4**
+(hero com thumbnails + abas em pílula "Destaques" + "Universos em destaque" + "Retrô" + "Colecionáveis e merch") — feito
+via fork `legacy*`/`.lhw-*` isolado, sem mexer no que a plataforma/diretório/busca usam (ver seção "Home volta pro
+Pacote 4" acima). Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis validados com fallback de
+sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4 heurísticas de capa.
 Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes foram feitos primeiro em um e depois portados.
 
 ## Backlog (ordem sugerida)
@@ -173,7 +186,7 @@ Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes f
    e abaixo dois blocos **Colecionáveis** e **Fã-made** (cards de categoria, como hoje) · fileira dos jogos da franquia com preço e setas. Mobile empilhado.
 3. **Cor por universo**: tabela semente (~25) → paleta tonal (fundo escuro, painel, acento) com contraste ≥ 4.5:1. Dá para usar
    `@material/material-color-utilities` num script (rodar com npm aqui, o que o chat não conseguia). Cor **fixa por franquia**.
-4. ~~Hubs de plataforma~~ — feito no pacote5 (seção "Home, página de plataforma e diretório de universos" acima), com
+4. ~~Hubs de plataforma~~ — feito no pacote5 (seção "Página de plataforma e diretório de universos" acima), com
    um desenho diferente do descrito aqui (hero + ladrilhos + 1 linha de destaques + caixa de consoles, não a vitrine
    segmentada franquias→ofertas→retrô→merch original).
 5. **Cabeçalho por universo**: transparente sobre o bloco de cor, sólido neutro ao rolar; botões brancos; "Meu Inventário" como
