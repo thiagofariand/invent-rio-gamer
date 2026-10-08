@@ -2510,15 +2510,64 @@ function platformPool(plats){
 }
 function platformConsoleBoxMarkup(fam,label,consolesInfo,totalGames,selectedConsole){
   const logo=PLATFORM_LOGO[fam]?`<img src="${PLATFORM_LOGO[fam]}" alt="${esc(label)}" class="plat-box-logo">`:`<span class="plat-box-logo-fallback">${esc(label)}</span>`;
-  return `<aside class="platform-console-box">
+  // Pacote5c, item 3: a caixa renderiza TODOS os chips de console (altura
+  // natural, sem corte) — hydratePlatformConsoleBox() mede o espaço de
+  // verdade (altura da fileira de cards) depois do primeiro paint e decide
+  // quais ficam, removendo primeiro os consoles com MENOS jogos (empate:
+  // o mais antigo), nunca o selecionado. data-plat-console/data-plat-count
+  // guardam o que a hidratação precisa sem reconsultar CONSOLES/counts.
+  return `<aside class="platform-console-box" data-plat-console-box data-plat-fam="${fam}">
     <div class="plat-box-head">${logo}<span class="plat-box-count">${totalGames} jogo${totalGames===1?'':'s'} · ${consolesInfo.length} console${consolesInfo.length===1?'':'s'}</span></div>
     <hr class="plat-box-divider">
     <div class="plat-box-label">Console</div>
-    <div class="plat-box-chips">
-      <a class="plat-chip ${!selectedConsole?'is-active':''}" href="#/plataforma/${fam}">Todos</a>
-      ${consolesInfo.map(c=>`<a class="plat-chip ${selectedConsole===c.name?'is-active':''}" href="#/plataforma/${fam}?console=${enc(c.name)}">${esc(c.name)} <b>${c.count}</b></a>`).join('')}
+    <div class="plat-box-chips" data-plat-chips>
+      <a class="plat-chip ${!selectedConsole?'is-active':''}" href="#/plataforma/${fam}" data-plat-console="">Todos</a>
+      ${consolesInfo.map(c=>`<a class="plat-chip ${selectedConsole===c.name?'is-active':''}" href="#/plataforma/${fam}?console=${enc(c.name)}" data-plat-console="${esc(c.name)}" data-plat-count="${c.count}" data-plat-ano="${(consoleInfo(c.name)?.ano)||0}">${esc(c.name)} <b>${c.count}</b></a>`).join('')}
     </div>
   </aside>`;
+}
+// Pacote5c, item 3: "cabe ou sai" — a caixa nunca cresce além da altura da
+// fileira de cards ao lado. Remove, um a um, o console com menos jogos
+// (empate: o mais antigo) até os chips caberem; o selecionado nunca sai.
+// Quando sobra algum oculto, o último chip vira "+N →" pro /busca.
+function hydratePlatformConsoleBox(root){
+  // só no desktop (>899px): no mobile a caixa fica abaixo dos cards, com
+  // os chips em scroll horizontal — não precisa esconder nenhum.
+  if(window.innerWidth<900)return;
+  const box=$('[data-plat-console-box]',root);
+  const row=$('[data-carousel-row="plat-destaques"]',root);
+  if(!box||!row)return;
+  const card=row.querySelector('.poster-card');
+  const targetH=card?card.getBoundingClientRect().height:row.getBoundingClientRect().height;
+  if(!targetH)return;
+  box.style.height=targetH+'px';
+  const chips=$('[data-plat-chips]',box);
+  const fam=box.dataset.platFam;
+  const consoleChips=$$('[data-plat-console]:not([data-plat-console=""])',chips);
+  const selectedEl=consoleChips.find(c=>c.classList.contains('is-active'));
+  const selectedName=selectedEl?selectedEl.dataset.platConsole:'';
+  // ordem de remoção: menos jogos primeiro; empate, o mais antigo primeiro.
+  const removalOrder=[...consoleChips].sort((a,b)=>{
+    const ca=+a.dataset.platCount,cb=+b.dataset.platCount;
+    if(ca!==cb)return ca-cb;
+    return (+a.dataset.platAno)-(+b.dataset.platAno);
+  });
+  const hidden=[];
+  let guard=consoleChips.length+1;
+  while(guard-->0 && chips.scrollHeight>(targetH-(chips.getBoundingClientRect().top-box.getBoundingClientRect().top)-16)){
+    const next=removalOrder.find(el=>el.dataset.platConsole!==selectedName && !hidden.includes(el));
+    if(!next)break;
+    next.style.display='none';
+    hidden.push(next);
+  }
+  if(hidden.length){
+    const more=document.createElement('a');
+    more.className='plat-chip plat-chip-more';
+    more.href=`#/busca?plat=${fam}`;
+    more.textContent=`+${hidden.length} →`;
+    more.setAttribute('aria-label',`Ver mais ${hidden.length} consoles de ${FAMILY_LABEL[fam]||fam}`);
+    chips.appendChild(more);
+  }
 }
 const FAMILY_LABEL={playstation:'PlayStation',nintendo:'Nintendo',xbox:'Xbox'};
 function consoleGameCounts(){
@@ -2572,6 +2621,7 @@ function renderPlatform(slug,params,token){
   hydrateIgdbCovers(main,heroSlides.length*2+tileUnis.length+12);
   hydrateHoverExpandPrices(pool.slice(0,12));
   initHoverExpand(main);
+  hydratePlatformConsoleBox(main);
   // Item 3.5: console selecionado rola suavemente até a linha de
   // destaques quando ela está abaixo da dobra.
   if(selectedConsole){

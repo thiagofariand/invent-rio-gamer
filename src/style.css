@@ -2123,7 +2123,12 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .pill-see-all{display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;border:1px solid var(--glass-border);color:var(--text-1);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
 .pill-see-all:hover{background:var(--glass-2)}
 .platform-destaques-grid{display:grid;grid-template-columns:minmax(0,1fr) var(--side-w);gap:16px;align-items:start}
-.platform-console-box{min-height:238px;background:var(--glass-2);border:1px solid var(--glass-border);border-radius:18px;padding:16px}
+/* Pacote5c, item 3: altura FIXA (nunca cresce além da fileira de cards ao
+   lado — hydratePlatformConsoleBox mede a altura de verdade e ajusta
+   height inline; 238px aqui é só o valor inicial antes da hidratação,
+   pra não ter salto). overflow:hidden some com qualquer chip que a
+   hidratação ainda não teve tempo de remover. */
+.platform-console-box{height:238px;overflow:hidden;background:var(--glass-2);border:1px solid var(--glass-border);border-radius:18px;padding:16px}
 .plat-box-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .plat-box-logo{height:28px;width:auto;max-width:140px;object-fit:contain;filter:brightness(0) invert(1)}
 .plat-box-logo-fallback{color:var(--text-1);font:700 18px/1 var(--font-ui)}
@@ -2135,10 +2140,11 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
 .plat-chip b{font-weight:700;color:var(--text-2)}
 .plat-chip.is-active{background:var(--action);border-color:transparent;color:var(--on-action)}
 .plat-chip.is-active b{color:inherit;opacity:.8}
+.plat-chip-more{flex-shrink:0}
 .platform-cta-row3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:40px}
 @media(max-width:899px){
   .platform-destaques-grid{grid-template-columns:minmax(0,1fr)}
-  .platform-console-box{min-height:0}
+  .platform-console-box{height:auto;overflow:visible}
   .plat-box-chips{overflow-x:auto;flex-wrap:nowrap}
 }
 @media(max-width:760px){.platform-cta-row3{grid-template-columns:1fr}}
