@@ -80,6 +80,21 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
   3º item da variante `[eco, plataforma, tituloAlternativoIGDB]`.
 - Ano do jogo vem de `collections` por **título exato**; sem entrada lá, não mostra ano.
 - Gêneros: lista curta editorial em `catalog-data.js` (Ação, Aventura, RPG, Luta, Tiro, Corrida, Esporte, Plataforma, Família, Terror).
+- **Versões ocultas** (pacote5e, item 3): quando uma obra tem edições diferentes por plataforma (HD, 3D,
+  Remaster, Deluxe...), **uma só obra** no catálogo (slug/título normais) com `src/data/versoes.json` guardando,
+  por plataforma, a versão real: `{plataformas[],nome_completo,igdb_id,ano,tipo}`. Funções em `app-1-core.js`:
+  `versionFor(p,platform)`, `versionYear`, `versionIgdbTitle`, `versionIgdbId`, `versionLatest` (a de maior
+  `ano`, usada quando não há plataforma escolhida). `igdbTitleFor()` já prefere `nome_completo` da versão sobre
+  o 3º item de `variants`. Busca: `nome_completo` de cada versão vira alias (merge automático em `p.aliases`
+  pra obras com entrada em `versoes.json`); `matchCatalog` reconhece o nome da versão no texto digitado e já
+  filtra pra aquela plataforma (mesmo mecanismo do nome de console). `fetchIgdbVisual`/`findGame`
+  (`lib/igdb.js`) aceitam `igdb_id` com prioridade total sobre busca por nome (`getGameById`, `where id = X`)
+  — regra do pacote: "a capa de cada versão vem do `igdb_id`, nunca de busca pelo nome". **Hoje só
+  `majoras-mask` e `twilight-princess` têm entrada**, ambos com `igdb_id:null` (sem rede pra IGDB neste
+  ambiente pra confirmar o número real sem inventar dado — `nome_completo` serve de busca por nome enquanto
+  isso). Remake (jogo refeito do zero, "(ano)" no título) **não** é versão — fica obra separada, como já era.
+  `docs/versoes-candidatas.md` lista outros candidatos achados numa varredura (nenhum aplicado ainda, exceto
+  os dois confirmados).
 
 **Merch** (colecionáveis, decoração, casa, iluminação, vestuário, livros e arte — pacote4, seção 4)
 - Fonte única: `src/data/merch.json` — **não é** `lib/shopee-manual-offers.js` (esse é preço de jogo, schema incompatível).
@@ -110,7 +125,11 @@ dono, pacote5b final — ver nota abaixo)
   + "ver todos") e no diretório (`#/universos`, em grade, sem sobreposição). A home **não usa mais** esse
   componente (voltou aos cards `universeDestaqueBig`/`universeDestaqueCompact` do Pacote 4). Capa do jogo
   principal saltando acima do ladrilho — **só** com `naturalWidth>=200` medido de verdade (`hydrateUniverseTiles`);
-  sem capa válida, a sigla (campo `sigla`) é o **plano B**, nunca o padrão.
+  sem capa válida, a sigla (campo `sigla`, 28px) é o **plano B**, nunca o padrão — fica **centralizada no lugar
+  da capa** (mesma área que `.ut-cover-wrap` ocuparia, nunca "ao lado" do nome — pacote5e, item 2). Ladrilho
+  "Ver todos" (7+ universos): o rótulo "Universos {plataforma}" **some** de cima da fileira (pacote5e, item 1)
+  — a info mora só no próprio ladrilho ("Ver todos os universos → / {N} no total"); com 6 ou menos, sem
+  ladrilho, o rótulo volta a ser o único link ("Universos {plataforma} →"), como na home.
 - **Home volta pro Pacote 4 (pedido do dono, pacote5b final)**: o dono pediu explicitamente pra manter os layouts
   do pacote5/5b no resto do site mas devolver a Home ao desenho de antes do pacote5 — hero com miniaturas
   (thumbnails) de preview no canto inferior direito + abas em pílula "Destaques" (Em alta/Mais novos/Menor
@@ -173,8 +192,10 @@ dono, pacote5b final — ver nota abaixo)
   outras "eras" de regra que setavam o mesmo background) ficou transparente.
 
 ## Arquivos de prompt (`docs/`)
-- `docs/prompt-pacote-5d-correcoes.md`: pacote atual (4 correções sobre o 5C — fundo dinâmico que não aparecia,
-  hero da ficha do jogo sem arte, "Ver todos" duplicado, pílula branca vazia — os 4 itens feitos).
+- `docs/prompt-pacote-5e-versoes.md`: pacote atual (rótulo "Ver todos" vai pro ladrilho, sigla centralizada,
+  versões ocultas — os 3 itens feitos). `docs/versoes-candidatas.md`: varredura de obras candidatas (item 3.2).
+- `docs/prompt-pacote-5d-correcoes.md`: pacote anterior, completo (4 correções sobre o 5C — fundo dinâmico que
+  não aparecia, hero da ficha do jogo sem arte, "Ver todos" duplicado, pílula branca vazia).
 - `docs/prompt-pacote-5c.md`: pacote anterior, completo (hero ancorado à direita, fundo dinâmico, caixa de
   consoles "cabe ou sai", ladrilho "Ver todos" com leque de capas, contagem de universos corrigida).
 - `docs/prompt-pacote-5b-ajustes.md`: pacote anterior, completo.
@@ -211,10 +232,19 @@ era o título composto não bater com nada na IGDB — `fetchIgdbVisual` agora t
 todos" existe (os dois levavam pro mesmo lugar); selo "Varejo/revenda" de oferta real (Shopee/Gamer Hut) tinha
 dois bugs de CSS empilhados dentro de `.compare-source` (coluna flex sem `align-self:flex-start` esticava o
 chip pra largura inteira + `.compare-source>span` com especificidade maior pintava o texto quase-branco em
-cima do fundo branco do próprio chip) — lia como "pílula branca vazia", corrigido. Sem rede pra IGDB neste
-ambiente de execução: ladrilhos/heróis validados com fallback de sigla/degradê, não com capa real — conferir
-no preview antes de confiar nas 4 heurísticas de capa, no crossfade do PageBackdrop, no leque de capas do
-"Ver todos" e se o retry sem sufixo da IGDB realmente acha os jogos de pacote combo.
+cima do fundo branco do próprio chip) — lia como "pílula branca vazia", corrigido. Pacote5E completo (3
+itens): rótulo "Universos {plataforma}" sai de cima da fileira quando o ladrilho "Ver todos" existe (a info
+já mora só nele — "Ver todos os universos → / {N} no total"); sigla do ladrilho sem capa volta a ficar
+centralizada no lugar da capa (não mais ao lado do nome); **versões ocultas** (ver seção "Catálogo" acima) —
+`src/data/versoes.json` + infra de busca por `igdb_id` (`getGameById` em `lib/igdb.js`, nunca por nome quando
+o id existe) aplicada a Majora's Mask e Twilight Princess (ambos já eram obra única no catálogo, só faltava o
+ano/título por plataforma); `docs/versoes-candidatas.md` lista mais 8 grupos achados numa varredura (1
+candidato real não aplicado — Marvel's Spider-Man + Remastered —, 4 já cobertos pela convenção de remake, 3
+falsos positivos). Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis validados com fallback de
+sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4 heurísticas de capa, no
+crossfade do PageBackdrop, no leque de capas do "Ver todos", se o retry sem sufixo da IGDB acha os jogos de
+pacote combo e se a capa de Majora's Mask/Twilight Princess muda de verdade ao trocar de plataforma (o
+`igdb_id` de ambos está `null` — precisa ser confirmado com rede de verdade antes).
 Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes foram feitos primeiro em um e depois portados.
 
 ## Backlog (ordem sugerida)
