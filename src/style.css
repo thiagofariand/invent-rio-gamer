@@ -2928,7 +2928,7 @@ html[data-theme="neutral"] body.dark-surface-route{
    isso centraliza nome+contagem nesse espaço sobrando, simétrico, sempre
    >=12px dos dois lados nas medidas atuais (tile-h:112/tile-pop:44). */
 .universe-tile{position:relative;width:var(--tile-w);flex:none;height:var(--tile-h);border-radius:20px;text-decoration:none;overflow:visible;
-  display:flex;align-items:center;justify-content:center;gap:8px;
+  display:flex;align-items:stretch;justify-content:center;
   background:linear-gradient(145deg,var(--ut-base,#1f0b14),color-mix(in oklab,var(--ut-base,#1f0b14) 55%,#000 45%));
   box-shadow:0 10px 22px rgba(0,0,0,.4)}
 .ut-cover-wrap{display:none;position:absolute;top:calc(-1 * var(--tile-pop));left:50%;width:60px;height:80px;z-index:2}
@@ -2938,18 +2938,17 @@ html[data-theme="neutral"] body.dark-surface-route{
   border:1.5px solid rgba(255,255,255,.5);box-shadow:0 8px 16px rgba(0,0,0,.45);
   transform:translateX(-50%) rotate(-6deg);transition:transform 200ms var(--ease-spring)}
 .universe-tile:hover .ut-cover-slot,.universe-tile:focus-visible .ut-cover-slot{transform:translateX(-50%) translateY(-6px) rotate(-3deg)}
-/* Sem capa válida, a sigla fica DENTRO do ladrilho (plano B, nunca
-   "salta" como a capa) — ao lado do nome, os dois centralizados como
-   grupo na caixa inteira do ladrilho. */
-.ut-sigla{flex:none;color:#fff;font:700 22px/1 var(--font-ui);opacity:.9}
-.ut-body{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 8px;text-align:center;min-width:0}
-/* Com capa: a capa poke acima do ladrilho (ut-cover-wrap, acima) e o
-   texto passa a ocupar só o espaço ABAIXO do ponto mais baixo da capa
-   já girada (80px - tile-pop + ~3px de folga da rotação -6deg) até a
-   base — centralizado nesse espaço, nunca menos de 12px dos dois lados
-   nas medidas atuais (tile-h:112/tile-pop:44). */
-.has-cover.universe-tile{align-items:stretch}
-.has-cover .ut-body{position:absolute;left:0;right:0;top:calc(80px - var(--tile-pop) + 3px);bottom:0;justify-content:center;padding:0 8px}
+/* Pacote5e, item 2: sem capa válida, a sigla fica CENTRALIZADA no lugar
+   da capa (mesma área que .ut-cover-wrap ocuparia dentro do ladrilho —
+   nunca "salta" pra fora, só a capa de verdade faz isso), acima do
+   nome — não mais ao lado dele (como o pacote5b tinha deixado). */
+.ut-sigla{position:absolute;left:0;right:0;top:0;height:calc(80px - var(--tile-pop) + 3px);z-index:1;display:flex;align-items:center;justify-content:center;color:#fff;font:700 28px/1 var(--font-ui);opacity:.9}
+/* Espaçamento vertical simétrico do 5B, agora válido pros dois casos
+   (com ou sem capa): o texto ocupa só o espaço ABAIXO do ponto mais
+   baixo da capa já girada / da área da sigla (80px - tile-pop + ~3px de
+   folga) até a base — centralizado nesse espaço, nunca menos de 12px
+   dos dois lados nas medidas atuais (tile-h:112/tile-pop:44). */
+.ut-body{position:absolute;left:0;right:0;top:calc(80px - var(--tile-pop) + 3px);bottom:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 8px;text-align:center;min-width:0}
 .ut-name{color:#fff;font:500 13px/16px var(--font-ui);max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;hyphens:none;text-wrap:balance}
 .ut-count{color:rgba(255,255,255,.72);font-size:11px}
 /* Pacote5c, item 4: "Ver todos" deixa de ser transparente/tracejado (parecia
