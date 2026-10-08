@@ -448,10 +448,58 @@ function universeTileMarkup(u,opts={}){
 // (mesma largura/altura dos outros, sem capa) quando a plataforma tem
 // mais de 6 universos; substitui a faixa de largura total do pacote5
 // (item 3.2 antigo).
-function universeTileMoreMarkup(href,count){
-  return `<a class="universe-tile universe-tile-more" href="${esc(href)}">
+// Pacote5c, item 4: fundo sólido na cor da plataforma (em vez de
+// transparente/borda tracejada, que parecia ladrilho quebrado) + leque de
+// 3 mini-capas dos próximos universos da lista. `fanPool` é a lista
+// INTEIRA de universos depois do 6º (não só os 3 seguintes) — se um não
+// tiver capa válida, hydrateUniverseTileMoreFan() pula pro próximo até
+// achar 3 (ou a lista acabar).
+function universeTileMoreMarkup(href,count,fam,fanPool){
+  const pal=paletteForPlatform(fam);
+  const base=pal?.fundo||'#1f0b14';
+  const cands=(fanPool||[]).map(u=>{
+    const titles=titlesOf(u.slug);
+    const rep=representativeFranchiseGame(titles);
+    const platform=rep?.variants?.[0]?.[1]||'';
+    return {title:rep?igdbTitleFor(rep,platform):u.name,platform,year:rep?.year||''};
+  });
+  return `<a class="universe-tile universe-tile-more" href="${esc(href)}" style="--ut-base:${esc(base)}" data-ut-more data-ut-more-cands='${esc(JSON.stringify(cands))}' aria-label="Ver todos os ${count} universos ${esc(FAMILY_LABEL[fam]||fam)}">
+    <span class="ut-fan" aria-hidden="true">
+      <span class="ut-fan-cover" data-ut-fan="0"></span>
+      <span class="ut-fan-cover" data-ut-fan="1"></span>
+      <span class="ut-fan-cover" data-ut-fan="2"></span>
+    </span>
     <span class="ut-body"><b class="ut-name">Ver todos →</b><small class="ut-count">${count} universo${count===1?'':'s'}</small></span>
   </a>`;
+}
+// Pacote5c, item 4: tenta, em ordem, cada universo de data-ut-more-cands
+// até preencher as 3 capas do leque (pula o que não tiver artwork válida
+// de verdade — mesma checagem naturalWidth>=200 de hydrateUniverseTiles).
+async function hydrateUniverseTileMoreFan(root){
+  const tile=$('[data-ut-more]',root);
+  if(!tile)return;
+  let cands=[];
+  try{cands=JSON.parse(tile.dataset.utMoreCands||'[]')}catch(e){return}
+  const slots=$$('[data-ut-fan]',tile);
+  let filled=0;
+  for(const cand of cands){
+    if(filled>=slots.length)break;
+    const d=await fetchIgdbVisual(cand.title||'',cand.platform||'',cand.year||'');
+    const url=d?.cover?.url;
+    if(!url)continue;
+    const ok=await new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>res(img.naturalWidth>=200);
+      img.onerror=()=>res(false);
+      img.src=url;
+    });
+    if(!ok)continue;
+    const slot=slots[filled];
+    slot.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`;
+    slot.classList.add('has-cover');
+    filled++;
+  }
+  if(!filled)tile.querySelector('.ut-fan')?.remove();
 }
 async function hydrateUniverseTiles(root){
   const nodes=$$('[data-ut-tile]',root).filter(el=>!el.dataset.utState);
@@ -2594,7 +2642,7 @@ function renderPlatform(slug,params,token){
   // Pacote5b, item 5: "Ver todos →" entra na MESMA fileira (7º ladrilho,
   // mesma largura/altura) quando a plataforma tem mais de 6 universos —
   // nunca mais uma faixa de largura total abaixo dos ladrilhos.
-  const moreTile=unisAll.length>6?universeTileMoreMarkup(`#/universos?plat=${fam}`,unisAll.length):'';
+  const moreTile=unisAll.length>6?universeTileMoreMarkup(`#/universos?plat=${fam}`,unisAll.length,fam,unisAll.slice(6)):'';
   const counts=consoleGameCounts();
   const consolesInfo=sortConsoles(plats.filter(c=>counts.get(c))).map(c=>({name:c,count:counts.get(c)}));
   const totalGames=catalog.filter(p=>p.variants.some(v=>plats.includes(v[1]))).length;
@@ -2621,6 +2669,7 @@ function renderPlatform(slug,params,token){
   initHomeHeroWide(hero);
   hydrateHomeHeroWide(hero);
   hydrateUniverseTiles(main);
+  hydrateUniverseTileMoreFan(main);
   initCarouselRows(main);
   hydrateIgdbCovers(main,heroSlides.length*2+tileUnis.length+12);
   hydrateHoverExpandPrices(pool.slice(0,12));

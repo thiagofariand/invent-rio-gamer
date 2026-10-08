@@ -2907,9 +2907,27 @@ html[data-theme="neutral"] body.dark-surface-route{
 .has-cover .ut-body{position:absolute;left:0;right:0;top:calc(80px - var(--tile-pop) + 3px);bottom:0;justify-content:center;padding:0 8px}
 .ut-name{color:#fff;font:500 13px/16px var(--font-ui);max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;white-space:normal;hyphens:none;text-wrap:balance}
 .ut-count{color:rgba(255,255,255,.72);font-size:11px}
-.universe-tile.universe-tile-more{background:var(--glass-2);border:1px dashed var(--glass-border)}
-.universe-tile.universe-tile-more .ut-name{color:var(--text-1);-webkit-line-clamp:1}
+/* Pacote5c, item 4: "Ver todos" deixa de ser transparente/tracejado (parecia
+   ladrilho que não carregou) — herda o MESMO gradiente sólido dos outros
+   ladrilhos (--ut-base, aqui a cor da plataforma, paleta-plataformas.json)
+   e a mesma sombra; só o conteúdo (leque de capas em vez de uma só) muda. */
+.universe-tile.universe-tile-more{align-items:stretch}
+.universe-tile.universe-tile-more .ut-name{color:var(--text-1)}
 .universe-tile.universe-tile-more .ut-count{color:var(--text-2)}
+/* Mesma lógica de espaçamento simétrico do 5B (.has-cover .ut-body): o
+   texto ocupa só o espaçoABAIXO do ponto mais baixo do leque já girado
+   (58px - tile-pop + folga da rotação) até a base, centralizado nesse
+   espaço sobrando. */
+.universe-tile.universe-tile-more .ut-body{position:absolute;left:0;right:0;top:calc(58px - var(--tile-pop) + 8px);bottom:0;justify-content:center;padding:0 8px}
+.ut-fan{display:block;position:absolute;top:calc(-1 * var(--tile-pop));left:50%;transform:translateX(-50%);width:92px;height:58px;z-index:2;pointer-events:none}
+.ut-fan-cover{position:absolute;top:0;width:44px;height:58px;border-radius:7px;background-size:cover;background-position:center;background-color:#2a1019;
+  border:1.5px solid rgba(255,255,255,.5);box-shadow:0 8px 16px rgba(0,0,0,.45);transition:transform 200ms var(--ease-spring)}
+.ut-fan-cover[data-ut-fan="0"]{left:0;transform:rotate(-12deg);z-index:1}
+.ut-fan-cover[data-ut-fan="1"]{left:24px;transform:rotate(-2deg);z-index:3}
+.ut-fan-cover[data-ut-fan="2"]{left:48px;transform:rotate(8deg);z-index:2}
+.universe-tile-more:hover .ut-fan-cover[data-ut-fan="0"],.universe-tile-more:focus-visible .ut-fan-cover[data-ut-fan="0"]{transform:rotate(-16deg) translateY(-4px)}
+.universe-tile-more:hover .ut-fan-cover[data-ut-fan="2"],.universe-tile-more:focus-visible .ut-fan-cover[data-ut-fan="2"]{transform:rotate(12deg) translateY(-4px)}
+@media(prefers-reduced-motion:reduce){.ut-fan-cover{transition:none}}
 @media(hover:none){.universe-tile:hover .ut-cover-slot{transform:translateX(-50%) rotate(-6deg)}}
 @media(prefers-reduced-motion:reduce){.ut-cover-slot{transition:none}}
 /* Fileira sobreposta ao hero largo (home/plataforma): o topo da fileira
