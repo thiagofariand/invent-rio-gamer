@@ -154,9 +154,23 @@ dono, pacote5b final — ver nota abaixo)
   paleta própria, cai no bloco "padrao" dos tokens `--page-bg`/`--panel-base`/`--action`.
 - Paleta por universo: `src/data/paleta-universos.json` (fundo/painel/ação por franquia, cor **fixa**, sem entrada ali
   cai no "padrao"); `src/data/paleta-plataformas.json` equivalente para Nintendo/PlayStation/Xbox.
+- **PageBackdrop** (pacote5c, item 2): fundo dinâmico atrás de home, plataforma, universo e ficha/comparadora do jogo
+  (`#ambientBg`/`#ambientBg2`, duas camadas que se alternam pra fazer crossfade de verdade, controladas por
+  `setBackdropArt()` em `app-main.js`; `#ambientShade` é a vinheta por cima, tingida com `--hero-base` **global**
+  — novo fallback em `:root`, deriva de `--page-bg`, pra um elemento irmão do `<body>` também saber a cor da
+  página). Opacidade por tema via CSS (`--backdrop-art:.35` padrão, `--backdrop-art-game:.55`). Acompanha a
+  rotação do hero (home/plataforma/universo, crossfade 1200ms) via `paint()`/`show()` de `initHomeHeroWide`,
+  `legacyInitHomeHeroWide` e `initHomeCarousel`; troca de página usa 400ms. `resetBackdrop()` liga/desliga por
+  rota (ligado nessas 4; desligado em busca/diretório/merch/inventário/tema/em-alta). `updateAmbientBg(url,force,mode)`
+  continua existindo (usado pela ficha do jogo e pelo hero de universo) — por baixo, hoje é só uma casca fina
+  sobre `setBackdropArt()`. **Não validado com artwork real neste ambiente** (sem rede pra IGDB) — conferir
+  crossfade, opacidade e contraste dos títulos soltos no preview antes de confiar.
 
 ## Arquivos de prompt (`docs/`)
-- `docs/prompt-pacote-5-final.md`: pacote atual em execução (seções 1-5 feitas; 6 é este commit).
+- `docs/prompt-pacote-5c.md`: pacote atual (hero ancorado à direita, fundo dinâmico, caixa de consoles "cabe ou
+  sai", ladrilho "Ver todos" com leque de capas, contagem de universos corrigida — os 5 itens feitos).
+- `docs/prompt-pacote-5b-ajustes.md`: pacote anterior, completo.
+- `docs/prompt-pacote-5-final.md`: pacote anterior, completo (seções 1-6).
 - `docs/prompt-pacote-4.md`: pacote anterior, completo (1B, 2, 3, 4, 5).
 - `docs/antigos/prompt-pacote-4 (2).md`: duplicado do pacote 4, arquivado (mesmo conteúdo do atual, mantido só por histórico).
 - `docs/franquias-sem-universo.md`: lista de franquias de 1–2 jogos (não viram universo ainda).
@@ -173,8 +187,15 @@ dos ladrilhos (preenchimento de arte, pílulas, espaçamento/altura fixa) — ai
 depois do pacote5B: **manter os layouts do pacote5/5B no resto do site, mas devolver a Home ao desenho do Pacote 4**
 (hero com thumbnails + abas em pílula "Destaques" + "Universos em destaque" + "Retrô" + "Colecionáveis e merch") — feito
 via fork `legacy*`/`.lhw-*` isolado, sem mexer no que a plataforma/diretório/busca usam (ver seção "Home volta pro
-Pacote 4" acima). Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis validados com fallback de
-sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4 heurísticas de capa.
+Pacote 4" acima). Pacote5C completo (5 itens): hero largo da plataforma ancorado à direita de verdade (o bug do
+"bloco escuro chapado" era a classe `game-hero-art` puxando CSS de um componente antigo não relacionado, não a
+posição — removida do markup do `.hhw-art`/`.lhw-art`); fundo dinâmico da página (PageBackdrop, ver seção
+"Visual" acima) em home/plataforma/universo/jogo; caixa de consoles "cabe ou sai" (altura fixa, esconde os
+consoles com menos jogos primeiro até caber, nunca o selecionado, "+N →" quando sobra oculto); ladrilho "Ver
+todos" sólido com leque de 3 mini-capas; contagem de universos corrigida (só conta universo de verdade, 3+
+jogos — Nintendo 115→27, PlayStation 203→24). Sem rede pra IGDB neste ambiente de execução: ladrilhos/heróis
+validados com fallback de sigla/degradê, não com capa real — conferir no preview antes de confiar nas 4
+heurísticas de capa, no crossfade do PageBackdrop e no leque de capas do "Ver todos".
 Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes foram feitos primeiro em um e depois portados.
 
 ## Backlog (ordem sugerida)
