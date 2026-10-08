@@ -2744,7 +2744,11 @@ html[data-theme="neutral"] body.dark-surface-route{
 .hhw-track{position:absolute;inset:0}
 .hhw-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .5s ease,visibility 0s linear .5s;z-index:1}
 .hhw-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .5s ease,visibility 0s linear;z-index:2}
-.hhw-art{position:absolute;top:0;right:0;bottom:0;width:var(--hero-art-w);background:linear-gradient(145deg,var(--hero-base,#1a1512),color-mix(in oklab,var(--hero-base,#1a1512) 55%,#000 45%));background-size:cover;background-position:center 30%}
+/* Pacote5c, item 1: a janela da arte encosta na borda DIREITA do hero
+   (right:0, left:auto explícito pra nunca herdar left de outra regra),
+   nunca na esquerda — nenhum pedaço de --hero-base liso pode sobrar à
+   direita da arte. */
+.hhw-art{position:absolute;top:0;right:0;left:auto;bottom:0;width:var(--hero-art-w);background:linear-gradient(145deg,var(--hero-base,#1a1512),color-mix(in oklab,var(--hero-base,#1a1512) 55%,#000 45%));background-size:cover;background-position:center 30%}
 /* Pacote5b, item 1: a arte preenche 100% da janela (background-size:cover
    nos dois eixos, sem repetir); único degradê é --hero-fade, por cima,
    só na esquerda. Nunca deixar o gradiente-placeholder "liso" aparecer

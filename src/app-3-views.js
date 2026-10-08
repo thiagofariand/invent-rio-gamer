@@ -270,7 +270,7 @@ function homeHeroWideMarkup(slides,opts={}){
         else if(s.exclusivePill)pills.push(s.exclusivePill);
       }else if(s.statePill)pills.push(s.statePill);
       return `<article class="hhw-slide ${i===0?'is-active':''}" data-hhw-slide aria-hidden="${i!==0}" style="--hero-base:${esc(s.baseColor||'#1a1512')}">
-      <div class="hhw-art game-hero-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="hhw-art" data-hhw-art data-hhw-title="${esc(s.igdbTitle)}" data-hhw-platform="${esc(s.igdbPlatform)}" data-hhw-year="${esc(s.igdbYear)}" data-hhw-slug="${esc(s.heroSlug||'')}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="hhw-copy">
         ${pills.length?`<div class="hhw-pills">${pills.map(p=>`<span class="hhw-pill">${p}</span>`).join('')}</div>`:''}
         <h1 class="${sizeClass}" aria-label="${esc(s.title)}">${esc(displayTitle)}</h1>
@@ -623,7 +623,7 @@ function legacyHomeHeroWideMarkup(slides){
   return `<section class="lhw" aria-roledescription="carrossel" aria-label="Destaques" data-lhw>
     <div class="lhw-track" data-lhw-track>
     ${slides.map((s,i)=>`<article class="lhw-slide ${i===0?'is-active':''}" data-lhw-slide aria-hidden="${i!==0}">
-      <div class="lhw-art game-hero-art" data-lhw-art data-lhw-title="${esc(s.igdbTitle)}" data-lhw-platform="${esc(s.igdbPlatform)}" data-lhw-year="${esc(s.igdbYear)}" data-lhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
+      <div class="lhw-art" data-lhw-art data-lhw-title="${esc(s.igdbTitle)}" data-lhw-platform="${esc(s.igdbPlatform)}" data-lhw-year="${esc(s.igdbYear)}" data-lhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="lhw-copy">
         <span class="lhw-pill">${esc(s.pill)}</span>
         <h1>${esc(s.title)}</h1>
