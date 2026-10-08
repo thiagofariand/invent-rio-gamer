@@ -613,10 +613,18 @@ function initStaggerEntrance(root){
    listado na nova composição do pacote5; continua acessível por #/merch
    e pelo menu).
    ============================================================ */
+// Pacote5d, item 3: com ladrilho "Ver todos" (extraTileHtml, 6+ universos),
+// o rótulo e o ladrilho levavam pro MESMO lugar — rótulo vira só texto (sem
+// seta, sem link) e o ladrilho fica como único caminho. Sem ladrilho (6 ou
+// menos universos), o rótulo volta a ser link com seta — único jeito de
+// chegar no diretório nesse caso.
 function universeTilesOverlapMarkup(label,href,list,extraTileHtml){
   if(!list.length)return '';
+  const labelHtml=extraTileHtml
+    ?`<span class="universe-tiles-label">${esc(label)}</span>`
+    :`<a class="universe-tiles-label" href="${esc(href)}">${esc(label)} →</a>`;
   return `<div class="universe-tiles-overlap">
-    <a class="universe-tiles-label" href="${esc(href)}">${esc(label)} →</a>
+    ${labelHtml}
     <div class="universe-tiles-row">${list.map(u=>universeTileMarkup(u)).join('')}${extraTileHtml||''}</div>
   </div>`;
 }
