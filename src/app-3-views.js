@@ -2482,7 +2482,11 @@ function renderUniverses(params){
 // Ordem: casa === plataforma primeiro, depois por nº de jogos NESSA
 // plataforma (não o total da franquia).
 function platformUniverses(casa){
-  return universes.filter(u=>u.hasCatalog&&u.plataformas.includes(casa))
+  // Pacote5c, item 5: "universo de verdade" = 3+ jogos (mesma regra do
+  // diretório, sortUniversesCurated) — sem o filtro de titlesOf.length>=3,
+  // franquia de 1-2 jogos (que no resto do site é "jogo avulso", nunca
+  // universo) também contava aqui, inflando o número do "Ver todos".
+  return universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3&&u.plataformas.includes(casa))
     .sort((a,b)=>{
       const aHome=a.casa===casa?0:1,bHome=b.casa===casa?0:1;
       if(aHome!==bHome)return aHome-bHome;
