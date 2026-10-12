@@ -3073,10 +3073,16 @@ html[data-theme="neutral"] body.dark-surface-route{
 .merch-square-card{display:block;border-radius:14px;overflow:hidden;background:var(--glass-2);border:1px solid rgba(255,255,255,.14);text-decoration:none;color:inherit}
 .merch-square-media{position:relative;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:var(--ms-base,#1f0b14)}
 .merch-square-media.has-art::before{content:"";position:absolute;inset:-10%;background-image:var(--ms-img);background-size:cover;background-position:center;filter:blur(16px) saturate(1.1);transform:scale(1.3)}
-.merch-square-media::after{content:"";position:absolute;inset:0;background:color-mix(in oklab,var(--page-bg,#17090e) 45%,transparent)}
+.merch-square-media:not(.has-photo)::after{content:"";position:absolute;inset:0;background:color-mix(in oklab,var(--page-bg,#17090e) 45%,transparent)}
 .merch-cat-icon{position:relative;z-index:1;color:#fff;opacity:.9;stroke-width:3}
-.merch-square-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+/* teste-merch2, item 4: foto oficial sempre inteira (object-fit:contain,
+   com uma margem) sobre o fundo da paleta do universo — nunca cortada. */
+.merch-square-photo{position:absolute;inset:10%;width:80%;height:80%;object-fit:contain;z-index:1}
 .merch-photo-credit{position:absolute;z-index:2;bottom:8px;right:8px;font-size:9px;font-weight:600;padding:2px 6px;border-radius:999px;background:var(--glass-overlay);color:#fff;backdrop-filter:var(--glass-overlay-blur)}
+/* Página do item: crédito vira linha de texto abaixo da imagem (11px,
+   --text-2), não mais selo por cima — only o card mantém o selo. */
+.merch-item-photo-credit{display:block;margin-top:8px;font-size:11px;color:var(--text-2)}
+.merch-item-photo-credit a{color:inherit}
 .merch-square-chips{position:absolute;z-index:2;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .chip-glass{font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:999px;background:var(--glass-overlay);color:#fff;backdrop-filter:var(--glass-overlay-blur);white-space:nowrap}
 .merch-square-body{padding:12px 14px;display:flex;flex-direction:column;gap:4px}
@@ -3097,9 +3103,10 @@ html[data-theme="neutral"] body.dark-surface-route{
 .merch-item-layout{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:28px;align-items:start;margin-top:18px}
 .merch-item-media{position:relative;aspect-ratio:1/1;border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--ms-base,#1f0b14);border:1px solid rgba(255,255,255,.14)}
 .merch-item-media.has-art::before{content:"";position:absolute;inset:-10%;background-image:var(--ms-img);background-size:cover;background-position:center;filter:blur(16px) saturate(1.1);transform:scale(1.3)}
-.merch-item-media::after{content:"";position:absolute;inset:0;background:color-mix(in oklab,var(--page-bg,#17090e) 45%,transparent)}
+/* teste-merch2, item 4: foto oficial nunca é cortada (::after escurecido
+   só serve de contraste pro ícone de categoria do fallback). */
+.merch-item-media:not(.has-photo)::after{content:"";position:absolute;inset:0;background:color-mix(in oklab,var(--page-bg,#17090e) 45%,transparent)}
 .merch-item-media .merch-cat-icon{position:relative;z-index:1;color:#fff;opacity:.9}
-.merch-item-media .merch-square-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .merch-item-price{margin-top:14px;font-size:20px}
 .merch-item-price .merch-price b{font-size:22px}
 .merch-price-importado{color:var(--text-2);font-size:12px;font-weight:500}

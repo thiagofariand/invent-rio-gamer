@@ -578,7 +578,7 @@ function merchSquareCard(it){
   const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
   const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
   const media=hasPhoto
-    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">${esc(it.imagemCredito||'Foto oficial')}</span>`
     :`<svg class="merch-cat-icon" width="66" height="66" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
   // teste-merch2, item 0b: item não tem mais "origem" própria (só a
   // oferta tem Importado) — o chip Nacional/Importado só aparece pros
@@ -3014,9 +3014,12 @@ function renderMerchItem(id,token){
   const art=it.universo?heroImageCache.get(it.universo):null;
   const hasPhoto=!!(it.imagem&&it.imagemAutorizada===true);
   const style=`--ms-base:${esc(base)}${!hasPhoto&&art?`;--ms-img:url("${art.replace(/"/g,'%22')}")`:''}`;
+  // teste-merch2, item 4: crédito na página do item é texto abaixo da
+  // imagem (nunca selo por cima), linkando pra página oficial de origem.
   const media=hasPhoto
-    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="" loading="lazy"><span class="merch-photo-credit">Foto: ${esc(it.imagemFonte||'loja')}</span>`
+    ?`<img class="merch-square-photo" src="${esc(safeUrl(it.imagem))}" alt="">`
     :`<svg class="merch-cat-icon" width="96" height="96" aria-hidden="true"><use href="assets/icons-categoria.svg#cat-${esc(it.categoria)}"></use></svg>`;
+  const photoCredit=hasPhoto&&it.imagemCredito?`<p class="merch-item-photo-credit">${it.imagemFonte?`<a href="${esc(safeUrl(it.imagemFonte))}" target="_blank" rel="noopener">${esc(it.imagemCredito)}</a>`:esc(it.imagemCredito)}</p>`:'';
   const{fresh}=merchPriceState(it);
   // teste-merch/teste-merch2: ficha do produto — só aparece quando o item
   // tem esses campos (a maioria do catálogo de merch não tem). Cada
@@ -3057,7 +3060,7 @@ function renderMerchItem(id,token){
   setTitle(it.titulo);
   main.innerHTML=`<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a> › <a href="#/merch">Colecionáveis e merch</a> › <span>${esc(it.titulo)}</span></nav>
   <div class="merch-item-layout">
-    <div class="merch-item-media ${hasPhoto?'has-photo':(art?'has-art':'')}" style="${style}">${media}</div>
+    <div class="merch-item-media-col"><div class="merch-item-media ${hasPhoto?'has-photo':(art?'has-art':'')}" style="${style}">${media}</div>${photoCredit}</div>
     <div class="merch-item-body">
       ${tagsLine.length?`<div class="merch-item-tags">${tagsLine.map(t=>`<span class="chip-glass">${esc(t)}</span>`).join('')}</div>`:''}
       <h1 class="page-h" style="font-size:28px">${esc(it.titulo)}</h1>
