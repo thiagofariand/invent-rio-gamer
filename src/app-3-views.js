@@ -1646,6 +1646,23 @@ function collectibleRowCard({title,copy,kind='collectibles',href='#'}){
     <span class="crc-cta">Explorar →</span>
   </a>`;
 }
+// teste-merch2, item 1: "Colecionáveis de {jogo}" na ficha do jogo, logo
+// abaixo de "Comprar este jogo" — fileira (carrossel de seta lateral já
+// existente, peek-grid/carouselEdgesMarkup) com os itens de merch ligados
+// a este jogo via jogosRelacionados. Até 12 itens; "Ver todos →" abre a
+// merch do universo filtrada por ?jogo={slug}. Sem item ligado, a seção
+// não aparece (nunca mostra vazia).
+function gameMerchRowMarkup(p){
+  const items=merchItemsVisible().filter(it=>(it.jogosRelacionados||[]).includes(p.slug));
+  if(!items.length)return '';
+  const rowId='game-merch-'+p.slug;
+  return `<section class="lux-section" aria-labelledby="${rowId}-title">
+    <div class="lux-section-head"><div><h2 id="${rowId}-title">Colecionáveis de ${esc(p.title)}</h2></div>
+      ${items.length>12?`<a class="btn btn-ghost btn-sm" href="#/merch?universo=${esc(p.universe)}&jogo=${esc(p.slug)}">Ver todos →</a>`:''}
+    </div>
+    <div class="carousel-row-wrap"><div class="peek-grid" data-carousel-row="${rowId}">${items.slice(0,12).map(merchSquareCard).join('')}</div>${carouselEdgesMarkup(rowId)}</div>
+  </section>`;
+}
 function renderProduct(slug,params,token){
   const p=catalogBySlug.get(slug);
   if(!p)return renderNotFound();
@@ -1681,6 +1698,7 @@ function renderProduct(slug,params,token){
   ${gameHeroMarkup({title:p.title,pillsHtml:productHeroPillsMarkup(p,u),copy:heroCopy,image:heroImage,actions:heroActions,heroClass:'product-hero'})}
   ${purchaseModuleHorizontalMarkup(p,platform)}
   <p class="fine purchase-module-note">Preços de exemplo até a conexão das fontes oficiais.</p>
+  ${gameMerchRowMarkup(p)}
   <div class="collectible-row-grid">
     ${collectibleRowCard({title:'Colecionáveis e merch',copy:'Amiibo, figures, livros, guias e itens oficiais relacionados ao jogo.',kind:'collectibles',href:`#/merch?universo=${p.universe}&tipo=${enc('oficial,licenciado,nao-confirmado')}`})}
     ${collectibleRowCard({title:'Fan-made e artesanais',copy:'Peças artesanais, decoração e criações de fãs relacionadas ao universo.',kind:'fanmade',href:`#/merch?universo=${p.universe}&tipo=fan-made`})}
@@ -1694,6 +1712,7 @@ function renderProduct(slug,params,token){
     slug:p.slug,
     igdbId:versionIgdbId(p,platform)
   });
+  initCarouselRows(main);
   ['used','new'].forEach(async cond=>{
     await fetchCond(p.title,platform,cond);
     if(token!==viewToken)return;
@@ -2844,6 +2863,7 @@ function readMerchFilters(params){
     categoria:new Set(list('categoria')),
     origem:new Set(list('origem')),
     tipo:new Set(list('tipo')),
+    jogo:params.get('jogo')||'',
     min:num('min'),max:num('max'),
     sort:params.get('sort')||'relevancia'
   };
@@ -2854,6 +2874,10 @@ function applyMerchFilters(items,F){
     if(F.categoria.size&&!F.categoria.has(it.categoria))return false;
     if(F.origem.size&&!F.origem.has(it.origem))return false;
     if(F.tipo.size&&!F.tipo.has(it.tipo))return false;
+    // teste-merch2, item 1: ?jogo={slug} filtra pelos itens ligados a um
+    // jogo específico (jogosRelacionados) — usado pelo "Ver todos →" da
+    // seção "Colecionáveis de {jogo}" na ficha do jogo.
+    if(F.jogo&&!(it.jogosRelacionados||[]).includes(F.jogo))return false;
     if(F.min!=null||F.max!=null){
       if(it.preco==null)return false;
       if(F.min!=null&&it.preco<F.min)return false;
@@ -2873,6 +2897,7 @@ function merchActiveChips(F){
   F.categoria.forEach(v=>chips.push(['categoria',v,MERCH_CATEGORIA_LABEL[v]||v]));
   F.origem.forEach(v=>chips.push(['origem',v,MERCH_ORIGEM_LABEL[v]||v]));
   F.tipo.forEach(v=>chips.push(['tipo',v,MERCH_TIPO_LABEL[v]||v]));
+  if(F.jogo){const p=catalogBySlug.get(F.jogo);chips.push(['jogo',F.jogo,p?p.title:F.jogo])}
   if(F.min!=null||F.max!=null)chips.push(['preco','','Preço: '+(F.min!=null?brl(F.min):'R$0')+' – '+(F.max!=null?brl(F.max):'∞')]);
   return chips;
 }
