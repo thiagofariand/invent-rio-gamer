@@ -1747,8 +1747,21 @@ function purchaseSinglePriceMarkup(p,platform){
     return `<div class="ppanel-single-price">${best?`<span class="ppanel-from">${esc(COND_LABEL[best.cond])} a partir de</span><strong>${esc(best.minDisplay)}</strong>${best.mock?mockChip():''}`:'<span class="ppanel-from">Sem oferta ainda</span>'}</div><p class="fine" style="margin-top:4px">Físico vem com código de download — sem revenda (uso único).</p>`;
   }
   const best=gameCheapestOffer(p,platform);
-  if(!best)return `<div class="ppanel-single-price"><span class="ppanel-from">Nenhuma oferta encontrada ainda</span></div>`;
+  if(!best)return noOfferMarkup(p);
   return `<div class="ppanel-single-price"><span class="ppanel-from">${esc(COND_LABEL[best.cond])} a partir de</span><strong>${esc(best.minDisplay)}</strong>${best.mock?mockChip():''}</div>`;
+}
+// pacote6, item 3: jogo lançado sem NENHUMA oferta real em produção (sem
+// EXEMPLO pra cair de volta — mockOn() já travado em false por
+// isProductionEnv()) troca o preço pelo botão de alerta (reaproveita o
+// estado Alerta do "Salvar" que já existe — data-act="open-save" abre o
+// mesmo modal Quero/Tenho/Alerta). Fora de produção, mensagem genérica
+// (localhost/preview sempre têm EXEMPLO pra cair, então é raríssimo
+// chegar aqui fora de produção — só catálogo genuinamente sem nada).
+function noOfferMarkup(p){
+  if(!isProductionEnv())return `<div class="ppanel-single-price"><span class="ppanel-from">Nenhuma oferta encontrada ainda</span></div>`;
+  const id=regRef(gameRef(p));
+  return `<div class="ppanel-single-price"><span class="ppanel-from">Sem ofertas ainda</span></div>
+  <button class="btn btn-outline" data-act="open-save" data-id="${esc(id)}">Avisar quando tiver</button>`;
 }
 function purchaseSinglePanelMarkup(p,platform){
   const n=gameOfferCount(p,platform);

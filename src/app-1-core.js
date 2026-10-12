@@ -159,7 +159,16 @@ const ico=(n,s=18,cls='')=>`<svg class="ico ${cls}" width="${s}" height="${s}" v
     try{history.replaceState(null,'',location.pathname+location.hash)}catch{}
   }
 })();
-const mockOn=()=>{const s=LS.get(KEYS.mock,null);return s===null?!!M.config.enabled:s===1};
+// pacote6, item 3: EXEMPLO fora de produção — window.__SITE_ENV__ (gerado
+// no build, scripts/build.js, a partir de VERCEL_ENV) manda sempre que
+// isProduction===true, nem o toggle manual (localStorage, "Desligar modo
+// demonstração") consegue ligar de volta. Em localhost/preview (ou sem
+// build, o fallback committado), continua como sempre era.
+const isProductionEnv=()=>typeof window!=='undefined'&&window.__SITE_ENV__&&window.__SITE_ENV__.isProduction===true;
+const mockOn=()=>{
+  if(isProductionEnv())return false;
+  const s=LS.get(KEYS.mock,null);return s===null?!!M.config.enabled:s===1;
+};
 const mockOffers=()=>mockOn()&&!!M.config.offers;
 const mockMerch=()=>mockOn()&&!!M.config.merch;
 const GENRES=D.genreList||[];

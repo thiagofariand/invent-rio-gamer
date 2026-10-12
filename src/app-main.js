@@ -564,9 +564,16 @@ document.addEventListener('change',e=>{
 $('#filterApply').addEventListener('click',()=>{applyParams(collectFilterParams('#filterBody'));closeOverlay('filterOverlay')});
 
 /* ---------- rodapé: modo demonstração ---------- */
-function updateMockToggleLabel(){$('#mockToggle').textContent=mockOn()?'Desligar modo demonstração':'Ligar modo demonstração'}
-$('#mockToggle').addEventListener('click',()=>{LS.set(KEYS.mock,mockOn()?0:1);updateMockToggleLabel();route();toast(mockOn()?'Modo demonstração ligado: preços e itens de exemplo aparecem com a etiqueta EXEMPLO.':'Modo demonstração desligado.')});
-updateMockToggleLabel();
+// pacote6, item 3: em produção (window.__SITE_ENV__.isProduction, gerado
+// no build) o botão nem aparece — mockOn() já está travado em false, um
+// clique nele seria um toggle morto (LS.set não muda nada, só confunde).
+if(isProductionEnv()){
+  $('#mockToggle')?.closest('span')?.remove();
+}else{
+  function updateMockToggleLabel(){$('#mockToggle').textContent=mockOn()?'Desligar modo demonstração':'Ligar modo demonstração'}
+  $('#mockToggle').addEventListener('click',()=>{LS.set(KEYS.mock,mockOn()?0:1);updateMockToggleLabel();route();toast(mockOn()?'Modo demonstração ligado: preços e itens de exemplo aparecem com a etiqueta EXEMPLO.':'Modo demonstração desligado.')});
+  updateMockToggleLabel();
+}
 
 /* ---------- observador simples para manter botões de salvar sincronizados ---------- */
 const _origInvSet=invSet;

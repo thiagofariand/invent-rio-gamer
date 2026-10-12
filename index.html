@@ -176,6 +176,11 @@
   </a>
 </nav>
 
+<!-- pacote6, item 3: gerado no build (scripts/build.js) com a env REAL do
+     Vercel — window.__SITE_ENV__.isProduction. Sem build (este ambiente,
+     localhost sem rodar o script), o arquivo committado tem o fallback
+     seguro isProduction:false. -->
+<script src="/src/env-generated.js?v=pacote6"></script>
 <script src="/catalog-data.js?v=Teste-Layout-Beta2"></script>
 <script src="/mock-data.js?v=Teste-Layout-Beta2"></script>
 <script src="/src/app-1-core.js?v=Teste-Layout-Beta2"></script>

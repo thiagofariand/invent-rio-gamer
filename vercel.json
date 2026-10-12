@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node scripts/build.js",
   "crons": [
     {
       "path": "/api/trending",

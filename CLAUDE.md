@@ -24,9 +24,17 @@ retrô, merch e fã-made. Slogan: "Encontre o item que falta no seu Inventário.
 - Preview usa as variáveis do ambiente **Preview** da Vercel (podem faltar lá).
 - Plano Hobby: cron só 1x/dia; mantenha o número de funções em `/api` baixo (hoje 9).
 
-## Stack (sem etapa de build)
+## Stack (build mínimo desde o pacote6 — só gera arquivo estático, nunca function nova)
 HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#/games`,
 `#/universo/:slug`, `#/jogo/:slug`, `#/ofertas/:slug?plat=&cond=`, `#/busca?...`).
+- **Build** (pacote6, item 3; `scripts/build.js`, `vercel.json` → `buildCommand`): roda no build do Vercel (plano
+  Hobby — zero function nova, só arquivo estático). Hoje gera `src/env-generated.js`
+  (`window.__SITE_ENV__={isProduction:bool}`, a partir de `VERCEL_ENV`) — o jeito confiável do cliente saber se
+  está em produção de verdade (nem localhost nem preview conseguem fingir, já que `VERCEL_ENV` só existe no
+  servidor de build). O arquivo fica **committado** com o fallback seguro `isProduction:false` (desenvolvimento),
+  pra localhost e qualquer ambiente sem build (este sandbox incluído) sempre terem um valor — **nunca editar
+  `src/env-generated.js` à mão fora de rodar `node scripts/build.js`**, ele é sobrescrito a cada build de
+  verdade.
 - `index.html`, `painel.html` (painel de saúde), `catalog-data.js` (catálogo, gêneros, anos), `mock-data.js`.
 - `src/app-1-core.js` (utilitários, ícones SVG, `coverTile`, `retailChip`, `GENRES`, `semDisco`/`formato`, `MERCH_ITEMS`) ·
   `app-2-search.js` (busca, filtros, `digitalStores`, `applyDirectStoreLinks`) · `app-3-views.js` (telas, Browse, páginas de merch) · `app-main.js` (roteador, eventos) · `style.css`.
@@ -46,6 +54,17 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
 **Preço e honestidade**
 - Nunca inventar preço. Dado de demonstração aparece com selo **EXEMPLO**.
 - Digital não tem "usado" (licença não se revende).
+- **EXEMPLO fora de produção** (pacote6, item 3): o selo/preço de demonstração continua em localhost e nos
+  previews do Vercel, mas **nunca em produção de verdade** — `mockOn()` (`app-1-core.js`) é travado em `false`
+  sempre que `window.__SITE_ENV__.isProduction===true` (`isProductionEnv()`, gerado no build — ver "Stack"
+  acima), nem o toggle manual (botão "Modo demonstração" do rodapé, que some inteiro em produção) consegue
+  ligar de volta. Jogo lançado sem NENHUMA oferta real em produção: no lugar do preço, "Sem ofertas ainda" +
+  botão "Avisar quando tiver" (`noOfferMarkup()`, página do jogo — reaproveita o estado Alerta do
+  `data-act="open-save"`/modal Quero·Tenho·Alerta que já existe, não um mecanismo novo). Fora de produção, a
+  mesma falta de oferta real cai no preço de EXEMPLO (regra de sempre) — só chega a "Sem ofertas ainda" quando
+  nem isso existe. **Não dá pra saber neste ambiente quantos jogos do catálogo ficam nesse estado em produção**
+  (depende de oferta real da API do Mercado Livre em tempo real, sem rede aqui) — conferir no painel de saúde
+  (`painel.html`) ou direto no ambiente de produção.
 - **PREÇO ÚNICO** (pacote6, item 2 — muda a regra antiga "cada condição com o seu a partir de"): card, hero,
   listas e a página do jogo mostram **1 preço só**, o MENOR entre todas as condições/plataformas do jogo
   (`gameCheapestOffer(p,platform)` em `app-3-views.js` — substitui `bestUsed()`/buscas manuais por "Usado"
