@@ -2981,7 +2981,7 @@ function merchOfferRow(o){
     <div class="merch-offer-meta">
       <span>${precoVistoEm(o.atualizadoEm)} · confira na loja</span>
       ${o.freteGratis===true?'<span>Frete grátis</span>':''}
-      ${o.importado?'<span>Prazo e impostos podem variar</span>':''}
+      ${o.importado?(o.impostosInclusos?'<span>Impostos de importação já incluídos no preço, segundo a loja</span>':'<span>Prazo e impostos podem variar</span>'):''}
       ${o.pecaUnica?'<span>Peça única: pode já ter sido vendida</span>':''}
       ${o.parcelamento?`<span>ou ${o.parcelamento.x}x de ${brl(o.parcelamento.valor)}</span>`:''}
     </div>
@@ -3064,6 +3064,7 @@ function renderMerchItem(id,token){
       ${u?`<p class="lede">${esc(pal?.nome||u.name)}</p>`:''}
       ${fichaRows.length?`<dl class="merch-item-ficha">${fichaRows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`:''}
       ${jogoLinks.length?`<p class="fine" style="margin-top:4px">Relacionado a ${jogoLinks.join(', ')}</p>`:''}
+      ${(()=>{const other=it.edicaoRelacionadaId?MERCH_ITEMS.find(x=>x.id===it.edicaoRelacionadaId):null;return other?`<p class="fine" style="margin-top:4px">Ver também: <a href="#/item/${esc(other.id)}">${esc(other.titulo)}</a></p>`:''})()}
       ${it.notaCompra?`<p class="merch-item-nota">${esc(it.notaCompra)}</p>`:''}
       <div class="merch-item-price">${condLabel&&it.preco!=null?`<span class="merch-price-cond">${esc(condLabel)}</span> `:''}${merchPriceLine(it)}</div>
       <p class="fine" style="margin-top:4px">Preço do produto; frete e impostos calculados na loja pelo seu CEP.</p>
