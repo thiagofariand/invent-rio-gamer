@@ -3,10 +3,65 @@
    ============================================================ */
 
 /* ---------- rotas ---------- */
+// pacote6, item 4 — ENDEREÇOS LIMPOS: o pathname (History API) é a fonte
+// principal agora; o hash (#/...) só é lido quando a página está na raiz
+// (pathname "/") E tem um "#/..." de verdade — cobre um link antigo
+// compartilhado digitado/colado direto na barra (redirectLegacyHash,
+// abaixo, já troca pela URL limpa 1x no carregamento; isto aqui é só um
+// fallback de segurança pro resto do roteador nunca quebrar se algo
+// ainda cair num endereço com #). Todo o resto do código continua
+// gerando href="#/..." nos templates (centenas de lugares — nunca
+// trocados um por um); quem transforma isso em navegação de URL limpa é
+// o interceptador de clique global (ver mais abaixo, initCleanLinks()).
 function parseHash(){
-  let h=location.hash.slice(1)||'/';
-  const [path,qs='']=h.split('?');
-  return {path:path.replace(/\/$/,'')||'/',params:new URLSearchParams(qs)};
+  if(location.pathname==='/'&&location.hash.startsWith('#/')){
+    const h=location.hash.slice(1)||'/';
+    const [path,qs='']=h.split('?');
+    return {path:path.replace(/\/$/,'')||'/',params:new URLSearchParams(qs)};
+  }
+  const path=location.pathname.replace(/\/$/,'')||'/';
+  return {path,params:new URLSearchParams(location.search)};
+}
+// Caminho da rota atual, SEM query string — usado pelos estados "ativo"
+// da sidebar (comparando contra o href="#/..." dos próprios itens).
+function currentPath(){return parseHash().path}
+// Navega preservando o endereço limpo na barra (history.pushState) —
+// chamada no lugar de "location.hash=" em toda navegação por JS
+// (goSearch, filtros, atalhos de teclado etc. — eram só 8 lugares,
+// listados no CLAUDE.md).
+function navigateTo(path){
+  if(location.pathname+location.search===path)return;
+  history.pushState(null,'',path);
+  route();
+  // pushState não dispara popstate (só voltar/avançar do navegador
+  // dispara) — route() cobre a troca de tela; estes dois efeitos
+  // colaterais que antes viviam em listeners de hashchange à parte
+  // (fechar a busca mobile, destacar a aba da barra inferior) precisam
+  // ser chamados aqui também, senão só funcionariam no botão voltar.
+  if(typeof closeMobileSearch==='function')closeMobileSearch();
+  if(typeof syncMobileBottomActive==='function')syncMobileBottomActive();
+}
+// Clique em QUALQUER link do app (href="#/...", do jeito que todo
+// template já gera) vira navegação de URL limpa, sem precisar trocar
+// href por href em centenas de lugares — só intercepta clique "normal"
+// (botão esquerdo, sem modificadora), pra abrir em nova aba/janela
+// continuar funcionando do jeito nativo do navegador.
+function initCleanLinks(){
+  document.addEventListener('click',e=>{
+    if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    const a=e.target.closest('a[href^="#/"]');
+    if(!a)return;
+    e.preventDefault();
+    navigateTo(a.getAttribute('href').slice(1));
+  });
+}
+// Endereço antigo compartilhado (ex. ".../#/jogo/x") carregado direto —
+// troca pela URL limpa 1x, sem dar reload (replaceState, não pushState:
+// não quer dizer "voltar" pra essa versão com #).
+function redirectLegacyHash(){
+  if(location.pathname==='/'&&location.hash.startsWith('#/')){
+    history.replaceState(null,'',location.hash.slice(1));
+  }
 }
 function navActive(path){
   $$('.main-nav a,.inv-link').forEach(a=>a.removeAttribute('aria-current'));
@@ -169,9 +224,13 @@ function route(){
   resetBackdrop(isHome||pageTheme!=='neutral');
   syncThemeColorMeta();
   navActive(path);
-  // Pacote único, item 4.1: #/multiplataforma (rota antiga, link salvo por
+  // Pacote único, item 4.1: /multiplataforma (rota antiga, link salvo por
   // alguém) redireciona pro diretório — "Multi" não é mais categoria própria.
-  if(path==='/multiplataforma'){location.replace('#/universos');return}
+  // pacote6, item 4: location.replace('#/...') só mudava o hash (não
+  // navegava de verdade) agora que a rota mora no pathname — troca por
+  // replaceState (sem empilhar no histórico, igual o replace fazia) +
+  // chama route() nela mesma pra renderizar o diretório sem reload.
+  if(path==='/multiplataforma'){history.replaceState(null,'','/universos');route();return}
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
   else if(path.startsWith('/jogo/'))renderProduct(path.slice(6),params,token);
@@ -211,7 +270,10 @@ function route(){
   // quando a imagem do hero resolve ou o slide muda.
   if(typeof updateContrastDebug==='function')updateContrastDebug();
 }
-window.addEventListener('hashchange',route);
+// pacote6, item 4: troca pra popstate (voltar/avançar do navegador) —
+// navegação normal agora é pushState (initCleanLinks/navigateTo), que
+// não dispara hashchange nenhum.
+window.addEventListener('popstate',route);
 
 /* ---------- busca do cabeçalho + autocomplete ---------- */
 const searchInput=$('#searchInput'),suggestBox=$('#suggest'),searchClearBtn=$('#searchClear');
@@ -229,7 +291,7 @@ searchClearBtn?.addEventListener('click',()=>{
   searchInput.focus();
 });
 let sIndex=-1;
-function goSearch(q){location.hash='#/busca?q='+enc(q)}
+function goSearch(q){navigateTo('/busca?q='+enc(q))}
 function closeSuggest(){suggestBox.hidden=true;sIndex=-1;searchInput.setAttribute('aria-expanded','false')}
 function renderSuggest(raw){
   const list=suggestions(raw);
@@ -389,7 +451,7 @@ function openFiltersDrawer(){
   openOverlay('filterOverlay');
 }
 function collectFilterParams(scope){
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=parseHash().params;
   ['cat','genre','cond','plat','console'].forEach(name=>{
     const vals=$$(`${scope} [data-filter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
@@ -401,14 +463,14 @@ function collectFilterParams(scope){
   if(max&&max.value)params.set('max',max.value);else params.delete('max');
   return params;
 }
-function applyParams(params){params.delete('n');location.hash='#/busca?'+params.toString()}
+function applyParams(params){params.delete('n');navigateTo('/busca?'+params.toString())}
 
 // Pacote4 4.6: filtros da página de merch — mesmo padrão de collectFilterParams/
 // applyParams acima, mas com data-mfilter/data-mprice (nunca data-filter/
 // data-price, pra não disparar o listener da busca, que redireciona pra
 // #/busca) e indo pra #/merch.
 function collectMerchFilterParams(scope){
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=parseHash().params;
   ['universo','categoria','origem','tipo'].forEach(name=>{
     const vals=$$(`${scope} [data-mfilter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
@@ -418,7 +480,7 @@ function collectMerchFilterParams(scope){
   if(max&&max.value)params.set('max',max.value);else params.delete('max');
   return params;
 }
-function applyMerchParams(params){location.hash='#/merch?'+params.toString()}
+function applyMerchParams(params){navigateTo('/merch?'+params.toString())}
 
 /* ---------- item 7 (rodada 5): dropdowns da barra de filtros (desktop) ---------- */
 function closeAllFdrops(){
@@ -479,33 +541,33 @@ document.addEventListener('click',e=>{
   if(act==='mock-item'){openMockItemModal(btn.dataset.id);return}
   if(act==='offer-tab'){offerState.cond=btn.dataset.cond;$$('.otab',$('#offerTabs')).forEach(t=>t.setAttribute('aria-pressed',String(t===btn)));renderOfferBody();return}
   if(act==='pick-platform'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');p.set('plat',btn.dataset.plat);
-    location.hash=`#/jogo/${btn.dataset.slug}?`+p.toString();return;
+    const p=parseHash().params;p.set('plat',btn.dataset.plat);
+    navigateTo(`/jogo/${btn.dataset.slug}?`+p.toString());return;
   }
   if(act==='more-rows'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');p.set('n',btn.dataset.n);
-    location.hash='#/busca?'+p.toString();return;
+    const p=parseHash().params;p.set('n',btn.dataset.n);
+    navigateTo('/busca?'+p.toString());return;
   }
   if(act==='clear-filters'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const q=p.get('q')||'';[...p.keys()].forEach(k=>p.delete(k));if(q)p.set('q',q);
-    location.hash='#/busca'+(q?'?q='+enc(q):'');return;
+    navigateTo('/busca'+(q?'?q='+enc(q):''));return;
   }
   if(act==='rm-filter'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const k=btn.dataset.k;
     if(k==='cat'||k==='genre'||k==='cond'||k==='plat'||k==='console'){
       const vals=(p.get(k)||'').split(',').filter(v=>v&&v!==btn.dataset.v);
       if(vals.length)p.set(k,vals.join(','));else p.delete(k);
     }else p.delete(k);
-    location.hash='#/busca?'+p.toString();return;
+    navigateTo('/busca?'+p.toString());return;
   }
   if(act==='open-filters'){openFiltersDrawer();return}
   if(act==='apply-pricebar'){applyParams(collectFilterParams('.filterbar'));return}
   if(act==='merch-apply-pricebar'){applyMerchParams(collectMerchFilterParams('.merch-filterbar'));return}
-  if(act==='merch-clear-filters'){location.hash='#/merch';return}
+  if(act==='merch-clear-filters'){navigateTo('/merch');return}
   if(act==='merch-rm-filter'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const k=btn.dataset.k;
     if(k==='preco'){p.delete('min');p.delete('max')}
     else if(k==='universo'||k==='categoria'||k==='origem'||k==='tipo'){
@@ -525,7 +587,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:cur&&cur.status===status?null:status});
     refreshSaveButtons();openSaveModal(saveTargetId);
     toast(status==='owned'?'Marcado como Tenho.':status==='saved'?'Anúncio salvo no seu Inventário.':'Adicionado à sua lista de Quero.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='toggle-alert'){
@@ -534,7 +596,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{alert:al,status:(cur&&cur.status)||'wanted'});
     refreshSaveButtons();openSaveModal(saveTargetId);
     toast(al?'Interesse em alerta salvo neste aparelho. Ainda não enviamos notificações.':'Alerta removido.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='clear-status'){
@@ -542,7 +604,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:null,alert:false});
     refreshSaveButtons();closeOverlay('saveOverlay');
     toast('Removido do seu Inventário.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='save-snapshot'){
@@ -551,7 +613,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:'owned',paid:Number.isFinite(price)?price:null,boughtAt:new Date().toISOString()});
     refreshSaveButtons();closeOverlay('saveOverlay');
     toast('Item pessoal salvo no seu Inventário.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   const closeId=btn.closest('.overlay')?.id;
@@ -628,6 +690,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sidebarDrawer&&!sid
 /* ---------- partida ---------- */
 updateBadge();
 
+// pacote6, item 4: redireciona endereço antigo (#/...) pra URL limpa
+// ANTES do 1º route() — senão parseHash() leria a versão velha.
+redirectLegacyHash();
+initCleanLinks();
 route();
 
 
@@ -650,7 +716,7 @@ function closeMobileSearch(){
 document.querySelector('[data-mobile-search]')?.addEventListener('click',openMobileSearch);
 document.getElementById('mobileSearchClose')?.addEventListener('click',closeMobileSearch);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('mobile-search-open'))closeMobileSearch()});
-window.addEventListener('hashchange',closeMobileSearch);
+window.addEventListener('popstate',closeMobileSearch);
 
 /* Destaca a aba ativa da barra inferior (mobile) conforme a rota. */
 function syncMobileBottomActive(){
@@ -662,5 +728,5 @@ function syncMobileBottomActive(){
     else el.removeAttribute('aria-current');
   });
 }
-window.addEventListener('hashchange',syncMobileBottomActive);
+window.addEventListener('popstate',syncMobileBottomActive);
 syncMobileBottomActive();

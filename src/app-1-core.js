@@ -153,10 +153,16 @@ const ico=(n,s=18,cls='')=>`<svg class="ico ${cls}" width="${s}" height="${s}" v
 
 /* ---------- modo demonstração (dados de exemplo) ---------- */
 (function readMockParam(){
-  const qp=new URLSearchParams(location.search).get('mock');
+  const url=new URL(location.href);
+  const qp=url.searchParams.get('mock');
   if(qp==='0'||qp==='1'){
     LS.set(KEYS.mock,qp==='1'?1:0);
-    try{history.replaceState(null,'',location.pathname+location.hash)}catch{}
+    // pacote6, item 4: tira só "mock" da query — antes reconstruía com
+    // pathname+hash sem search nenhum, o que também sumia com os
+    // parâmetros de ROTA de verdade (ex. ?plat=) agora que eles moram no
+    // pathname/search (URL limpa), não mais escondidos dentro do hash.
+    url.searchParams.delete('mock');
+    try{history.replaceState(null,'',url.pathname+url.search+url.hash)}catch{}
   }
 })();
 // pacote6, item 3: EXEMPLO fora de produção — window.__SITE_ENV__ (gerado

@@ -1029,7 +1029,7 @@ function rowTitleLink(id,label,href){
 
 function renderHome(){
   setTitle('');
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=parseHash().params;
   const order=DESTAQUES_ORDERS.some(([k])=>k===params.get('destaques'))?params.get('destaques'):'em-alta';
   const renderId=++homeRenderId;
   const heroSlides=legacyLoadHomeHeroSlides();
@@ -1079,7 +1079,7 @@ function fdrop(id,label,count,panelHtml){
 }
 function sortBarMarkup(sortKey){
   const opts=[['relevancia','Relevância'],['preco-asc','Menor preço'],['preco-desc','Maior preço'],['az','A-Z']];
-  const hrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/busca?'+p.toString()};
+  const hrefFor=key=>{const p=parseHash().params;if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/busca?'+p.toString()};
   const current=opts.find(([k])=>k===sortKey)||opts[0];
   return fdrop('sort','Ordenar por: '+current[1],0,`<div class="fdrop-options">${opts.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===sortKey}">${esc(l)}</a>`).join('')}</div>`);
 }
@@ -1087,7 +1087,7 @@ function sortBarMarkup(sortKey){
 // | Em breve) — single-select como Ordenar por, não checkbox múltiplo.
 const LANC_OPTS=[['','Todos'],['lancado','Lançados'],['pre-venda','Pré-venda'],['anunciado','Em breve']];
 function lancBarMarkup(lanc){
-  const hrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key)p.set('lanc',key);else p.delete('lanc');return '#/busca?'+p.toString()};
+  const hrefFor=key=>{const p=parseHash().params;if(key)p.set('lanc',key);else p.delete('lanc');return '#/busca?'+p.toString()};
   const current=LANC_OPTS.find(([k])=>k===lanc)||LANC_OPTS[0];
   return fdrop('lanc','Lançamento: '+current[1],lanc?1:0,`<div class="fdrop-options">${LANC_OPTS.map(([k,l])=>`<a class="fdrop-link" href="${hrefFor(k)}" aria-current="${k===lanc}">${esc(l)}</a>`).join('')}</div>`);
 }
@@ -2742,7 +2742,7 @@ function renderTheme(slug){
 }
 function renderTrendingPage(){
   setTitle('Em alta');
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=parseHash().params;
   const order=DESTAQUES_ORDERS.some(([k])=>k===params.get('ordem'))?params.get('ordem'):'em-alta';
   const alternator=destaquesAlternatorMarkup(order,'#/em-alta','ordem');
   let body,pool=null;
@@ -2878,7 +2878,7 @@ function renderUniverses(params){
   hydrateUniverseTiles(main);
   const searchEl=$('#uniSearchInput');
   searchEl?.addEventListener('input',()=>{
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     if(searchEl.value)p.set('q',searchEl.value);else p.delete('q');
     history.replaceState(null,'','#/universos'+(p.toString()?'?'+p:''));
     renderUniverses(p);
@@ -3115,7 +3115,7 @@ function merchFilterBarMarkup(F,all){
   const origensComItem=['nacional','importado'].filter(o=>all.some(it=>it.origem===o));
   const tiposComItem=['oficial','licenciado','fan-made','nao-confirmado'].filter(t=>all.some(it=>it.tipo===t));
   const sortOpts=[['relevancia','Relevância'],['menor-preco','Menor preço'],['atualizados','Atualizados recentemente']];
-  const sortHrefFor=key=>{const p=new URLSearchParams(location.hash.split('?')[1]||'');if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/merch?'+p.toString()};
+  const sortHrefFor=key=>{const p=parseHash().params;if(key==='relevancia')p.delete('sort');else p.set('sort',key);return '#/merch?'+p.toString()};
   const current=sortOpts.find(([k])=>k===F.sort)||sortOpts[0];
   return `<div class="filterbar-row merch-filterbar">
     ${fdrop('m-universo','Universo',F.universo.size,universosComItem.length?mdropCheckList('universo',universosComItem,v=>F.universo.has(v)):'<p class="fine">Nenhum item com universo catalogado.</p>')}
@@ -3401,7 +3401,11 @@ function maskIcon(slug){
 }
 function sidebarItem(slug,label,icon){
   const href=goNav(slug);
-  const active=location.hash===href;
+  // pacote6, item 4: compara contra o PATH atual (currentPath(), pathname
+  // agora — não dá mais pra comparar location.hash direto, ele não muda
+  // mais na navegação normal). href continua "#/..." (o interceptador de
+  // clique global cuida da URL limpa), então só tira o # pra comparar.
+  const active=currentPath()===href.slice(1);
   // Pacote2, item 6: Nintendo/PlayStation/Xbox ganham a cor da própria
   // plataforma (paleta-plataformas.json) no hover/estado ativo — as outras
   // linhas da sidebar ficam neutras (ver CSS: só os 3 itens de casa usam
@@ -3418,13 +3422,13 @@ function sidebarItem(slug,label,icon){
 }
 function sidebarUniverseItem(entry){
   const path=`#/universo/${entry.slug}`;
-  const active=location.hash===path||location.hash.startsWith(path+'?');
+  const active=currentPath()===path.slice(1);
   return `<li><a class="sidebar-uni-item" href="${path}"${active?' aria-current="page"':''}><span class="sidebar-uni-dot" aria-hidden="true">${esc(entry.sigla)}</span><span class="sidebar-uni-name">${esc(entry.nome)}</span></a></li>`;
 }
 function sidebarContent(){
   const featured=SIDEBAR_FEATURED_UNIVERSES.filter(entry=>uMap.has(entry.slug));
   const owned=invList().filter(i=>i.kind==='game'&&i.status==='owned').length;
-  const invActive=location.hash==='#/inventario';
+  const invActive=currentPath()==='/inventario';
   return `
     <nav class="sidebar-nav" aria-label="Navegação principal">
       <div class="sidebar-indicator" data-sidebar-indicator aria-hidden="true"></div>

@@ -8,3 +8,15 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# pacote6, item 4: páginas estáticas/sitemap/robots.txt gerados no build
+# (scripts/build.js, buildCommand da Vercel) -- nunca committar, sempre
+# regenerado fresco a cada deploy. Rode "node scripts/build.js" local
+# pra testar (git ignora o resultado). 404.html é a exceção: só é
+# gerado se ainda não existir, então fica committado como baseline.
+/jogo/
+/universo/
+/plataforma/
+/item/
+/sitemap.xml
+/robots.txt

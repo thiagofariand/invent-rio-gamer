@@ -25,8 +25,57 @@ retrô, merch e fã-made. Slogan: "Encontre o item que falta no seu Inventário.
 - Plano Hobby: cron só 1x/dia; mantenha o número de funções em `/api` baixo (hoje 9).
 
 ## Stack (build mínimo desde o pacote6 — só gera arquivo estático, nunca function nova)
-HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#/games`,
-`#/universo/:slug`, `#/jogo/:slug`, `#/ofertas/:slug?plat=&cond=`, `#/busca?...`).
+HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). **Roteamento por endereço limpo** (History API,
+pacote6 item 4 — era por hash antes: `#/games`, `#/jogo/:slug` etc.; hoje `/games`, `/jogo/:slug`,
+`/universo/:slug`, `/plataforma/:slug`, `/item/:id`, `/ofertas/:slug?plat=&cond=`, `/busca?...`).
+- **Endereços limpos** (`app-main.js`): os templates continuam gerando `href="#/..."` em centenas de lugares
+  (nunca trocados um por um — risco alto demais pra pouco ganho) — quem transforma isso em navegação de URL
+  limpa é `initCleanLinks()`, um interceptador de clique GLOBAL (`a[href^="#/"]`, clique normal sem
+  modificadora) que faz `history.pushState` + chama `route()` direto. `navigateTo(path)` substitui todo
+  `location.hash=` imperativo (eram só 8 lugares — `goSearch`, filtros, atalhos). `parseHash()` lê
+  `location.pathname`/`location.search` como fonte principal agora; só cai no hash quando `pathname==='/'` E
+  tem um `#/...` de verdade (compatibilidade — `redirectLegacyHash()` já troca isso por URL limpa 1x no
+  carregamento, via `history.replaceState`, antes do 1º `route()`). `currentPath()` é o path da rota atual
+  (usado pelos estados "ativo" da sidebar, que comparavam `location.hash` antes). `popstate` (não mais
+  `hashchange`) cuida de voltar/avançar do navegador. **Limitação conhecida**: itens de navegação com query
+  string no próprio link (ex. "Retrô" → `#/busca?retro=1`) comparam só o path na sidebar agora, não a query —
+  o estado "ativo" desses 2 itens específicos pode ficar menos preciso que antes (cosmético, não quebra
+  navegação).
+- **Vercel** (`vercel.json`): `cleanUrls:true` (serve `jogo/slug.html` em `/jogo/slug`, sem a extensão) +
+  `trailingSlash:false` + 1 rewrite catch-all (`/(.*)` → `/index.html`, o padrão documentado da Vercel pra SPA —
+  arquivo estático de verdade tem prioridade sobre o rewrite, então as páginas geradas abaixo vencem antes de
+  cair no fallback). Links antigos com `#/` continuam funcionando (`redirectLegacyHash`, acima) — nunca quebra
+  link já compartilhado.
+- **Páginas estáticas + SEO** (pacote6, item 4; `scripts/build.js`): pra cada jogo (`jogo/{slug}.html`), universo
+  com 3+ jogos (`universo/{slug}.html`), plataforma (`plataforma/{nintendo,playstation,xbox}.html`) e item de
+  merch (`item/{id}.html`), o build gera uma cópia de `index.html` — MESMO CSS/JS, o app de verdade assume no
+  navegador — só trocando o bloco `<!-- pacote6-seo:start/end -->` (title, meta description, canonical, Open
+  Graph/Twitter; `og:image` quando o item de merch tem foto autorizada). Motivo: prévia de WhatsApp/Facebook não
+  executa JavaScript, só lê o HTML bruto. Dados vêm de `catalog-data.js` carregado em Node via `vm` (não dá pra
+  `require()` direto, é `window.INV_DATA=(function(){...})()`) — `D.catalog` (array achatado,
+  `{franchise,title,variants}`, sem slug/ano próprio) cruzado com `D.collections` (franquia→`items[]`, tem
+  `slug`/`year` por TÍTULO EXATO) pra achar o slug "oficial" de cada jogo, mesma conta do app-1-core.js
+  (`c?c.slug:slugify(p.title)`) — sem isso os slugs gerados não bateriam com os que o app usa de verdade.
+  Universo só gera página com 3+ jogos (mesma regra de sempre). `sitemap.xml` e `robots.txt` também gerados no
+  build, com `SITE_URL` (env da Vercel; sem ela, cai no domínio de produção conhecido hoje —
+  `inventario-gamer.vercel.app` — trocar pelo `.com.br` é só configurar a env). `404.html` só é gerado se ainda
+  não existir (fica committado como baseline; os outros gerados — `jogo/`, `universo/`, `plataforma/`, `item/`,
+  `sitemap.xml`, `robots.txt` — estão no `.gitignore`, regenerados a cada build, nunca committados). **Rode
+  `node scripts/build.js` local pra testar** (gera tudo na hora, fora do commit).
+  - **noindex pra página sem oferta real — NÃO IMPLEMENTADO**: pedido explícito do pacote6 era meta robots
+    `noindex, follow` pra jogo sem nenhuma oferta real; isso depende de preço AO VIVO (mesma limitação do item
+    3 — sem rede neste ambiente pra checar o Mercado Livre durante o build, e um build que chama a API pra
+    cada um dos 514 jogos também não é desejável de verdade, deixaria o deploy lento). Toda página de jogo sai
+    indexável por padrão hoje. Caminho futuro: um job separado (cron já existe, `/api/trending`) que atualiza
+    um `offers-status.json` pequeno que o build lê, ou mover a decisão pro runtime via o cache que
+    `/api/offers` já populariza — qualquer um dos dois é trabalho novo, ainda não feito.
+  - **Testado** (Playwright, servidor Node que imita `cleanUrls`+rewrite da Vercel — `python -m http.server`
+    não reproduz isso): carregar `/jogo/breath-of-the-wild` direto (sem `#`, sem reload) funciona, `<title>` e
+    `canonical` corretos, o app assume e renderiza a ficha normal; mesmo teste em `/universo/mario` e
+    `/item/lego-71438-...`; `/jogo/inexistente-xyz` cai no 404 do próprio app, sem erro. Console limpo em
+    home/busca/universos/merch/games/em-alta/inventário/plataforma/comparativo. **Não testado num deploy Vercel
+    de verdade** — o comportamento de `cleanUrls`/rewrite em produção precisa ser conferido no preview antes de
+    confiar 100%.
 - **Build** (pacote6, item 3; `scripts/build.js`, `vercel.json` → `buildCommand`): roda no build do Vercel (plano
   Hobby — zero function nova, só arquivo estático). Hoje gera `src/env-generated.js`
   (`window.__SITE_ENV__={isProduction:bool}`, a partir de `VERCEL_ENV`) — o jeito confiável do cliente saber se
@@ -48,7 +97,9 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
   `igdb.js` (também devolve `lojas[]`, ver "Links diretos de loja"), `rawg.js`, `shopee-manual-offers.js` (preço manual
   Shopee **só de jogos** — não confundir com `src/data/merch.json`), `http.js`, `trending.js`.
 - Variáveis: `MELI_CLIENT_ID/SECRET/REDIRECT_URI`, `KV_REST_API_URL/TOKEN` (Redis), `IGDB_CLIENT_ID/SECRET`,
-  `RAWG_API_KEY`, `DIAGNOSTICS_SECRET`, `YOUTUBE_API_KEY`, `OPENAI_*`, `CRON_SECRET`. Nunca imprima segredos.
+  `RAWG_API_KEY`, `DIAGNOSTICS_SECRET`, `YOUTUBE_API_KEY`, `OPENAI_*`, `CRON_SECRET`, `SITE_URL` (pacote6 item 4 —
+  domínio usado no canonical/Open Graph/sitemap das páginas geradas no build; opcional, sem ela cai em
+  `https://inventario-gamer.vercel.app`). Nunca imprima segredos.
 
 ## Regras de produto (decididas)
 **Preço e honestidade**
