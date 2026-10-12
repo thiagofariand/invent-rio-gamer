@@ -2705,35 +2705,19 @@ html[data-theme="neutral"] body.dark-surface-route{
 .purchase-platform-col .plat-btn:hover{background:rgba(255,255,255,.07)}
 .purchase-platform-col .plat-btn[aria-pressed="true"]{background:var(--action);border-color:transparent;color:var(--on-action)}
 
-.ppanel{display:grid;grid-template-columns:repeat(var(--ppanel-cols,3),1fr);grid-auto-rows:min-content;gap:12px;align-content:start}
-.ppanel-group{
-  grid-column:span var(--span,1);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-2);
-  padding-bottom:6px;border-bottom:1px solid var(--glass-border);text-transform:uppercase;
-}
-.ppanel-col{
-  position:relative;display:flex;flex-direction:column;gap:2px;min-height:150px;padding:14px;
-  border-radius:14px;background:var(--glass-3);text-decoration:none;color:var(--text-1);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.04);
-}
-.ppanel-col.is-empty{opacity:.5}
-.ppanel-col.ppanel-no-resale{opacity:.75}
-.ppanel-cond{font-size:13px;font-weight:500}
-.ppanel-price-wrap{display:flex;flex-direction:column;gap:2px;margin-top:auto}
-.ppanel-from{font-size:12px;color:var(--text-2)}
-.ppanel-price{font-size:27px;font-weight:500;line-height:1.1;letter-spacing:-.01em}
-.ppanel-col .mock-chip{align-self:flex-start}
+/* pacote6, item 2 — PREÇO ÚNICO: substitui o grid de colunas por
+   condição (.ppanel/.ppanel-col, removidos) por 1 preço + botão de
+   comparar. */
+.ppanel-single{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;height:100%}
+.ppanel-single-price{display:flex;flex-direction:column;gap:2px}
+.ppanel-single-price .ppanel-from{font-size:13px;color:var(--text-2)}
+.ppanel-single-price strong{font-size:32px;font-weight:500;line-height:1.1;letter-spacing:-.01em;color:var(--text-1)}
+.ppanel-single-price .ppanel-date{font-size:20px}
+.ppanel-single-price .mock-chip{align-self:flex-start;margin-top:2px}
 /* Pacote4 2.1/2.2: selo de formato (disco x código de download). */
 .format-chip{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-2);font-size:10px;font-weight:600;letter-spacing:.02em;vertical-align:middle}
 .format-chip-code{background:rgba(230,66,54,.16);border-color:rgba(230,66,54,.3);color:var(--text-1)}
-.ppanel-format-note{display:block;font-size:10.5px;color:var(--text-2);margin-top:2px}
 .compare-block h3 .format-chip{margin-left:8px}
-.ppanel-arrow{
-  position:absolute;right:12px;bottom:12px;width:30px;height:30px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;background:var(--action);color:var(--on-action);
-  font-weight:700;
-}
-.ppanel-col:hover{background:rgba(255,255,255,.12)}
-.ppanel-col.is-empty:hover{background:var(--glass-3)}
 .purchase-module-note{margin-top:10px}
 
 /* 2.3 — Colecionáveis/Fan-made: cards horizontais de 104px, lado a lado. */
@@ -2764,15 +2748,7 @@ html[data-theme="neutral"] body.dark-surface-route{
   .purchase-module.horizontal{grid-template-columns:96px 1fr;grid-template-rows:auto auto;padding:14px;gap:14px 16px}
   .purchase-module.horizontal .purchase-cover{width:96px}
   .purchase-module.horizontal .purchase-cover .cover{width:96px;height:128px}
-  .ppanel{grid-column:1/-1;grid-template-columns:1fr;gap:8px}
-  .ppanel-group{display:none}
-  .ppanel-col{flex-direction:row;align-items:center;min-height:0;height:56px;gap:10px}
-  .ppanel-cond{flex:none;width:72px}
-  .ppanel-price-wrap{margin-left:auto;margin-top:0;display:flex;flex-direction:row;align-items:baseline;gap:6px}
-  .ppanel-price-wrap .ppanel-from{display:none}
-  .ppanel-from{margin-top:0}
-  .ppanel-price{font-size:20px}
-  .ppanel-arrow{position:static;width:26px;height:26px;flex:none}
+  .ppanel-single{grid-column:1/-1}
   .collectible-row-grid{grid-template-columns:minmax(0,1fr);gap:10px}
   .collectible-row-card{min-height:96px}
 }

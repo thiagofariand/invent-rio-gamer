@@ -45,7 +45,28 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
 ## Regras de produto (decididas)
 **Preço e honestidade**
 - Nunca inventar preço. Dado de demonstração aparece com selo **EXEMPLO**.
-- Novo / Usado / Digital são separados. **Digital não tem "usado"** (licença não se revende).
+- Digital não tem "usado" (licença não se revende).
+- **PREÇO ÚNICO** (pacote6, item 2 — muda a regra antiga "cada condição com o seu a partir de"): card, hero,
+  listas e a página do jogo mostram **1 preço só**, o MENOR entre todas as condições/plataformas do jogo
+  (`gameCheapestOffer(p,platform)` em `app-3-views.js` — substitui `bestUsed()`/buscas manuais por "Usado"
+  espalhadas), sempre com a condição escrita do lado ("a partir de R$ 194,90 · Usado") — preço nunca aparece
+  sem condição. Fonte real primeiro (`summaryOf`/cache de `fetchCond`); sem nenhuma real, cai no preço de
+  exemplo (`sampleOffersBestPhysical`, já escolhe a condição mais barata) com selo EXEMPLO. Digital nunca entra
+  nessa conta (nunca tem valor numérico no catálogo hoje, só "Consultar"/link de loja).
+  - **Página do jogo** (`purchaseModuleHorizontalMarkup`/`purchaseSinglePriceMarkup`/`purchaseSinglePanelMarkup`):
+    o bloco "Comprar este jogo" não tem mais caixa por condição (Novo/Usado/Download lado a lado, removido —
+    `purchasePriceColMarkup`/`.ppanel-col` não existem mais) — vira o preço único acima + botão "Comparar
+    preços ({N} ofertas) →" (`gameOfferCount()`) que abre o comparativo. Seletor de plataforma continua no
+    bloco. Pré-venda/Em breve/semDisco mantêm a mensagem de sempre, só que dentro desse bloco único.
+  - **Página de comparativo** (`renderOfferComparison`, `#/ofertas/:slug`) é o **ÚNICO** lugar que ainda separa
+    por Novo/Usado/Digital (filtros que já existiam). Na aba "Todas as ofertas", condição sem oferta real **não
+    aparece** — a seção inteira some (nunca "sem ofertas"/"consultar nas lojas" como placeholder); com as 3
+    condições vazias, mostra 1 estado vazio geral ("Nenhuma oferta encontrada agora" + atalhos pras lojas).
+    Exceção: semDisco/jogo ainda não lançado continuam com a mensagem fixa de sempre na seção Usado (regra à
+    parte do pacote4/4B, não é "sem oferta encontrada agora" genérico). Abas específicas (usuário clicou
+    Novo/Usado/Digital na mão) continuam podendo mostrar "nenhuma oferta nesta condição" — é resposta direta a
+    um filtro que a pessoa escolheu, não um placeholder automático.
+  - Merch não muda — a página do item **já era** o comparativo (agrupado por condição desde o teste-merch).
 - Selos: **Oficial** só com prova real (Nintendo eShop, PlayStation Store, Steam). Nuuvem = **Varejo autorizado**.
   Mercado Livre, Shopee e Gamer Hut = **Varejo/revenda**, mesmo sendo lojas grandes.
 - Shopee: ofertas **manuais** em `lib/shopee-manual-offers.js` (não é a API). **Gamer Hut = Novo** (decisão do dono);

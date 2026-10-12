@@ -6,13 +6,67 @@ function bestUsed(p){
   for(const v of p.variants){const s=summaryOf('used',p.title,v[1]);if(s&&s.status==='ok'&&s.count&&(best==null||s.min<best.min))best=s}
   return best;
 }
+// pacote6, item 2 — PREÇO ÚNICO: substitui "cada condição com o seu a
+// partir de" (regra fixa antiga). Acha o MENOR preço real entre as
+// condições disponíveis do jogo — Novo e Usado (Digital nunca tem valor
+// numérico no catálogo hoje, só "Consultar", então nunca entra na conta
+// do menor preço); com `platform` passado, olha só essa plataforma
+// (card/hero já sabem qual); sem `platform`, olha TODAS as variantes do
+// jogo (cards fora de contexto de plataforma, ex. Destaques da home) —
+// mesmo escopo que bestUsed() já tinha. Usado nunca entra se o jogo é
+// semDisco (sem revenda) ou ainda não foi lançado (nada pra revender
+// ainda) — mesmas regras de sempre, só centralizadas aqui. Preço NUNCA
+// aparece sem a condição: quem usa isto sempre lê .cond/.minDisplay
+// juntos (COND_LABEL[best.cond] + best.minDisplay).
+function gameCheapestOffer(p,platform){
+  const plats=platform?[platform]:[...new Set(p.variants.map(v=>v[1]))];
+  const usedOk=p.used!==false&&!p.semDisco&&releaseState(p)==='lancado';
+  const newOk=p.new!==false;
+  let best=null;
+  plats.forEach(plat=>{
+    (usedOk?['new','used']:['new']).forEach(cond=>{
+      if(cond==='new'&&!newOk)return;
+      const s=summaryOf(cond,p.title,plat);
+      if(s&&s.status==='ok'&&s.count&&s.min!=null&&(!best||s.min<best.min)){
+        best={cond,min:s.min,minDisplay:s.minDisplay,mock:!!s.mock};
+      }
+    });
+  });
+  if(best)return best;
+  if(mockOn()){
+    const demo=sampleOffersBestPhysical(p.title,{year:p.year});
+    if(demo)return{cond:demo.cond,minDisplay:demo.display,mock:true};
+  }
+  return null;
+}
+// Total de ofertas reais em cache pro jogo (todas as condições/plataformas
+// consideradas acima) — usado pelo botão "Comparar preços ({N} ofertas)"
+// da página do jogo (item 2). Só conta o que já está em cache (não força
+// fetch novo); sobe conforme fetchCond vai respondendo, igual ao resto
+// do site já faz com summaryOf.
+function gameOfferCount(p,platform){
+  const plats=platform?[platform]:[...new Set(p.variants.map(v=>v[1]))];
+  const usedOk=p.used!==false&&!p.semDisco&&releaseState(p)==='lancado';
+  let n=0;
+  plats.forEach(plat=>{
+    (usedOk?['new','used']:['new']).forEach(cond=>{
+      if(cond==='new'&&p.new===false)return;
+      const s=summaryOf(cond,p.title,plat);
+      if(s&&s.status==='ok'&&s.count)n+=s.count;
+    });
+  });
+  return n;
+}
 function gameCard(p,{ctx}={}){
-  const b=bestUsed(p);
+  // pacote6, item 2: preço único (menor entre Novo/Usado), condição
+  // sempre escrita — gameCheapestOffer() no lugar de bestUsed() (que só
+  // olhava Usado).
+  const b=gameCheapestOffer(p);
   const plat=p.variants?.[0]?.[1]||'';
   return `<article class="card"><div class="igdb-cover-slot" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,plat))}" data-igdb-platform="${esc(plat)}" data-igdb-year="${esc(p.year||'')}">${coverTile(p.title,{})}</div>${saveButton(gameRef(p))}
     <div class="card-title"><a href="#/jogo/${p.slug}">${esc(p.title)}</a></div>
     <div class="card-ctx">${esc(ctx||platShort(p))}${!ctx&&p.year?` · ${p.year}`:''}</div>
-    ${b?`<div class="card-price"><small>usado a partir de</small><br>${esc(b.minDisplay)}${b.mock?' '+mockChip():''}</div>`:''}
+    ${b?`<div class="card-price"><small>${esc(COND_LABEL[b.cond])} a partir de</small><br>${esc(b.minDisplay)}${b.mock?' '+mockChip():''}</div>`:''}
     <span class="card-cta">Ver mais →</span></article>`;
 }
 function merchCard(it){
@@ -39,14 +93,14 @@ function shelfCard({title,ctx,href,price,callout,was}){
 function homeOfferCard(p,label){
   if(!p)return '';
   const platform=p.variants?.[0]?.[1]||'';
-  const cached=bestUsed(p);
-  // Pacote3, item 2.1: sem oferta real em cache, cai no preço de exemplo
-  // ÚNICO do jogo (sampleOffers) — pode ser Usado OU Novo (o bucket do
-  // jogo decide, nunca força "Usado" pra quem só tem Novo de exemplo).
-  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
-  const condLabel=cached?'Usado':demo?.label;
-  const value=cached?.minDisplay||demo?.display;
-  const isMock=!!(value&&!cached);
+  // pacote6, item 2: preço único (menor entre Novo/Usado), condição
+  // sempre escrita — gameCheapestOffer() já cobre o fallback de exemplo
+  // (sampleOffersBestPhysical) por dentro, sem precisar buscar os dois
+  // separado aqui como antes.
+  const best=gameCheapestOffer(p,platform);
+  const condLabel=best?COND_LABEL[best.cond]:null;
+  const value=best?.minDisplay;
+  const isMock=!!best?.mock;
   // Item 2 (rodada 5): sem sobretítulo — o rótulo era o único lugar da
   // condição, então o preço nunca aparece sem ela ("Usado R$ X").
   // Pacote4 1B.2: o selo EXEMPLO saiu de dentro do <strong> (cortava em
@@ -149,12 +203,13 @@ function heroWidePriceCta(p,platform){
     if(rel.hasOffer)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}"><span class="hpc-full">Pré-venda a partir de ${esc(rel.offerDisplay)} →</span><span class="hpc-short">Pré-venda ${esc(rel.offerDisplay)} →</span>${mockChip()}</a>`;
     return `<a class="btn btn-ghost hero-price-btn" href="#/jogo/${p.slug}">Em breve${rel.dateDisplay?` · ${esc(rel.dateDisplay)}`:''} →</a>`;
   }
-  const cached=bestUsed(p);
-  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
-  const label=cached?'Usado':demo?.label;
-  const value=cached?.minDisplay||demo?.display;
-  if(!value)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}">Ver detalhes →</a>`;
-  return `<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(p,platform)}"><span class="hpc-full">${esc(label)} a partir de ${esc(value)} →</span><span class="hpc-short">${esc(label)} ${esc(value)} →</span>${!cached?mockChip():''}</a>`;
+  // pacote6, item 2: preço único (menor entre Novo/Usado da plataforma do
+  // slide), condição sempre escrita — gameCheapestOffer() no lugar da
+  // busca manual por "Usado" (bestUsed) + demo em separado.
+  const best=gameCheapestOffer(p,platform);
+  if(!best)return `<a class="btn btn-primary hero-price-btn" href="#/jogo/${p.slug}">Ver detalhes →</a>`;
+  const label=COND_LABEL[best.cond];
+  return `<a class="btn btn-primary hero-price-btn" href="${bestOfferHrefFor(p,platform)}"><span class="hpc-full">${esc(label)} a partir de ${esc(best.minDisplay)} →</span><span class="hpc-short">${esc(label)} ${esc(best.minDisplay)} →</span>${best.mock?mockChip():''}</a>`;
 }
 // Pacote5b, item 2: no máximo 1 pílula de ESTADO (PRÉ-VENDA/EM BREVE),
 // sempre coerente com o botão (heroWideReleaseInfo, acima — mesma
@@ -851,12 +906,11 @@ function legacyInitHomeHeroWide(root){
 }
 /* ---- 3.4/3.5: Destaques (alternador Em alta/Mais novos/Menor preço) ---- */
 function posterPriceChipText(p,platform){
-  const cached=bestUsed(p);
-  const demo=mockOn()?sampleOffersBestPhysical(p.title,{year:p.year}):null;
-  const label=cached?'Usado':demo?.label;
-  const value=cached?.minDisplay||demo?.display;
-  // Item 2.2: "botão do hero" é um dos 4 lugares nomeados pro selo EXEMPLO.
-  return value?heroPriceCtaText(esc(label),esc(value),!cached?mockChip():''):'Ver detalhes';
+  // pacote6, item 2: preço único (menor entre Novo/Usado), condição
+  // sempre escrita junto — gameCheapestOffer() substitui bestUsed() aqui.
+  const best=gameCheapestOffer(p);
+  if(!best)return 'Ver detalhes';
+  return heroPriceCtaText(esc(COND_LABEL[best.cond]),esc(best.minDisplay),best.mock?mockChip():'');
 }
 function destaquesSection(order,heroExclude){
   const pool=destaquesPool(order,heroExclude);
@@ -1675,71 +1729,32 @@ function formatBadgeMarkup(p){
     ?'<span class="format-chip format-chip-code">Físico · código de download</span>'
     :'<span class="format-chip">Disco</span>';
 }
-// Pacote 2, item 2.2: painel de preços em 3 colunas (Novo/Usado/Download),
-// agrupadas por rótulo fino (FÍSICO cobre Novo+Usado; DIGITAL é só
-// Download). Cada coluna é um bloco inteiro clicável (abre a comparadora
-// na aba da condição); sem oferta carregada ainda, esmaece e tira a seta.
-function purchasePriceColMarkup(cond,p,platform){
-  const label=cond==='new'?'Novo':cond==='used'?'Usado':'Download';
-  // Pacote4 2.2/2.3 + ajuste 4B.1: jogo semDisco nunca revende Usado
-  // (código de uso único) — nem chega a consultar oferta, fica sempre
-  // neste estado fixo, com PRIORIDADE sobre "ainda não lançado" (nunca
-  // vai ter Usado de qualquer forma, lançado ou não). Jogo também ainda
-  // não lançado ganha uma segunda linha com a data prevista.
-  if(cond==='used'&&p.semDisco){
-    const notLaunchedYet=releaseState(p)!=='lancado';
-    return `<div class="ppanel-col is-empty ppanel-no-resale"><span class="ppanel-cond">${label}</span><span class="ppanel-price-wrap"><span class="ppanel-from">Sem revenda: esta edição física vem com código de download de uso único, sem disco.</span>${notLaunchedYet?`<span class="ppanel-from">${esc(releaseDateDisplay(p))}.</span>`:''}</span></div>`;
-  }
-  if(cond==='digital'){
-    return `<a class="ppanel-col" href="${offerPageHref(p,platform,'digital')}">
-      <span class="ppanel-cond">${label}</span>
-      <span class="ppanel-price-wrap"><span class="ppanel-from">consultar nas lojas</span></span>
-      <span class="ppanel-arrow">→</span>
-    </a>`;
-  }
-  const formatNote=cond==='new'?`${formatBadgeMarkup(p)}${p.semDisco?'<span class="ppanel-format-note">Caixa com código de download, sem disco</span>':''}`:'';
-  const s=summaryOf(cond,p.title,platform);
-  if(s&&s.status==='ok'&&s.count){
-    return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-      <span class="ppanel-cond">${label}</span>${formatNote}
-      <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}</span>
-      <span class="ppanel-arrow">→</span>
-    </a>`;
-  }
-  if(s&&s.status==='ok'&&!s.count){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
-  }
-  // Pacote3, item 2.1: ainda carregando ou sem fonte real — preço único de
-  // sampleOffers(p.title). Se o bucket do jogo não tem essa condição, vira
-  // "sem ofertas" de verdade (não inventa mais um preço pra toda condição).
-  const demo=sampleOffers(p.title,{year:p.year,semDisco:p.semDisco})[cond];
-  if(!demo){
-    return `<div class="ppanel-col is-empty"><span class="ppanel-cond">${label}</span>${formatNote}<span class="ppanel-price-wrap"><span class="ppanel-from">sem ofertas</span></span></div>`;
-  }
-  return `<a class="ppanel-col" href="${offerPageHref(p,platform,cond)}">
-    <span class="ppanel-cond">${label}</span>${formatNote}
-    <span class="ppanel-price-wrap"><span class="ppanel-from">a partir de</span><strong class="ppanel-price">${esc(demo.display)}</strong>${mockChip()}</span>
-    <span class="ppanel-arrow">→</span>
-  </a>`;
-}
-function purchasePricePanelMarkup(p,platform){
-  const physical=p.physical!==false;
-  const digital=p.digital===true||hasDigital(p,platform);
-  // Pacote4 2.5 + ajuste 4B.1: jogo ainda não lançado não tem coluna Usado
-  // (não existe o que revender ainda) — EXCETO jogo semDisco, que sempre
-  // mostra a coluna (com a mensagem "sem revenda", que tem prioridade
-  // sobre "ainda não lançado" — ver purchasePriceColMarkup).
+// pacote6, item 2 — PREÇO ÚNICO: o bloco "Comprar este jogo" não mostra
+// mais uma caixa por condição (Novo/Usado/Download) — vira 1 preço só
+// (o menor, com a condição escrita) + botão "Comparar preços (N
+// ofertas) →" que abre a página de comparativo (ÚNICO lugar que ainda
+// separa por condição). Pré-venda/Em breve/semDisco continuam com a
+// mensagem de sempre, só que num bloco só em vez de coluna própria.
+function purchaseSinglePriceMarkup(p,platform){
   const notLaunched=releaseState(p)!=='lancado';
-  const cols=[];
-  if(p.new!==false)cols.push(['new']);
-  if(p.semDisco||(!notLaunched&&p.used!==false))cols.push(['used']);
-  if(digital)cols.push(['digital']);
-  if(!cols.length)return `<div class="purchase-empty">Ainda não há formato de compra catalogado para esta versão.</div>`;
-  const fisicoSpan=cols.filter(c=>c[0]!=='digital').length;
-  return `<div class="ppanel" id="purchaseOptions" style="--ppanel-cols:${cols.length}">
-    ${fisicoSpan?`<div class="ppanel-group" style="--span:${fisicoSpan}">FÍSICO</div>`:''}
-    ${digital?`<div class="ppanel-group" style="--span:1">DIGITAL</div>`:''}
-    ${cols.map(([cond])=>purchasePriceColMarkup(cond,p,platform)).join('')}
+  if(notLaunched){
+    const rel=heroWideReleaseInfo(p);
+    if(rel.hasOffer)return `<div class="ppanel-single-price"><span class="ppanel-from">Pré-venda a partir de</span><strong>${esc(rel.offerDisplay)}</strong>${mockChip()}</div>`;
+    return `<div class="ppanel-single-price"><span class="ppanel-from">Em breve</span>${rel.dateDisplay?`<strong class="ppanel-date">${esc(rel.dateDisplay)}</strong>`:''}</div>`;
+  }
+  if(p.semDisco){
+    const best=gameCheapestOffer(p,platform);
+    return `<div class="ppanel-single-price">${best?`<span class="ppanel-from">${esc(COND_LABEL[best.cond])} a partir de</span><strong>${esc(best.minDisplay)}</strong>${best.mock?mockChip():''}`:'<span class="ppanel-from">Sem oferta ainda</span>'}</div><p class="fine" style="margin-top:4px">Físico vem com código de download — sem revenda (uso único).</p>`;
+  }
+  const best=gameCheapestOffer(p,platform);
+  if(!best)return `<div class="ppanel-single-price"><span class="ppanel-from">Nenhuma oferta encontrada ainda</span></div>`;
+  return `<div class="ppanel-single-price"><span class="ppanel-from">${esc(COND_LABEL[best.cond])} a partir de</span><strong>${esc(best.minDisplay)}</strong>${best.mock?mockChip():''}</div>`;
+}
+function purchaseSinglePanelMarkup(p,platform){
+  const n=gameOfferCount(p,platform);
+  return `<div class="ppanel-single" id="purchaseOptions">
+    ${purchaseSinglePriceMarkup(p,platform)}
+    ${n?`<a class="btn btn-outline" href="#/ofertas/${esc(p.slug)}?plat=${enc(platform)}">Comparar preços (${n} oferta${n===1?'':'s'}) →</a>`:''}
   </div>`;
 }
 // Pacote4 1.3b: versão compacta (104px) dos 3 cartões de baixo da página de
@@ -1785,7 +1800,7 @@ function purchaseModuleHorizontalMarkup(p,platform){
       <p class="purchase-platform-label">Escolha a plataforma</p>
       <div class="plat-row" role="group" aria-label="Plataforma">${plats.map(x=>`<button class="plat-btn" aria-pressed="${x===platform}" data-act="pick-platform" data-slug="${p.slug}" data-plat="${esc(x)}">${esc(x)}</button>`).join('')}</div>
     </div>
-    ${purchasePricePanelMarkup(p,platform)}
+    ${purchaseSinglePanelMarkup(p,platform)}
   </article>`;
 }
 // Pacote 2, item 2.3: Colecionáveis/Fan-made viram cards horizontais de
@@ -1870,7 +1885,7 @@ function renderProduct(slug,params,token){
     await fetchCond(p.title,platform,cond);
     if(token!==viewToken)return;
     const slot=$('#purchaseOptions');
-    if(slot)slot.outerHTML=purchasePricePanelMarkup(p,platform);
+    if(slot)slot.outerHTML=purchaseSinglePanelMarkup(p,platform);
   });
 }
 
@@ -1972,13 +1987,23 @@ async function renderOfferComparison(slug,params,token){
     if(stores.length)hydrateDigitalStoreLinks(p,platform,'#cmp-digital',stores,token);
     const [resNew,resUsed]=await Promise.all([fetchCond(p.title,platform,'new'),noUsedMarket?Promise.resolve({offers:[]}):fetchCond(p.title,platform,'used')]);
     if(token!==viewToken)return;
+    // pacote6, item 2: comparativo é o ÚNICO lugar com separação por
+    // condição — e aqui, condição sem oferta real simplesmente NÃO
+    // aparece (a seção inteira some, nunca "sem ofertas"/"consultar nas
+    // lojas"). semDisco/ainda-não-lançado continuam com a mensagem fixa
+    // de sempre (regra à parte, não é "sem oferta encontrada agora").
     const fill=(id,res)=>{
       const list=res.offers||[];
       const box=document.getElementById(id);
-      if(box)box.innerHTML=list.length?list.map(comparisonOfferCard).join(''):`<div class="empty compact"><p>Sem oferta validada agora. Procure direto: <span class="shortcut-links">${physicalLinks(p.title+' '+platform)}</span></p></div>`;
+      if(!box)return 0;
+      if(!list.length){box.closest('.compare-block')?.remove();return 0}
+      box.innerHTML=list.map(comparisonOfferCard).join('');
       return list.length;
     };
     const total=fill('cmp-new',resNew)+(noUsedMarket?0:fill('cmp-used',resUsed));
+    if(!total&&!stores.length&&!noUsedMarket){
+      offers.innerHTML=`<div class="empty"><h2>Nenhuma oferta encontrada agora</h2><p>O Inventário não inventa preço ou disponibilidade. Use os atalhos abaixo para continuar a busca diretamente nas lojas.</p><div class="shortcut-links" style="margin-top:14px">${physicalLinks(p.title+' '+platform)}</div></div>`;
+    }
     const demo=resNew.mock||resUsed.mock;
     status.textContent=`${total?`${total} ${total===1?'oferta':'ofertas'} de preço`:'Nenhuma oferta de preço agora'}${stores.length?` · ${stores.length} ${stores.length===1?'loja digital':'lojas digitais'}`:''}${demo?' · demonstração':''}`;
     comparisonSpinnerOff();
