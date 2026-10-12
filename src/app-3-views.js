@@ -91,6 +91,7 @@ function initHomeCarousel(root){
     // em todos os slides, não só o eager).
     const img=slides[current]?.querySelector('.uh-art-img');
     if(img?.src&&typeof setBackdropArt==='function')setBackdropArt(img.src,'art',true);
+    updateContrastDebug();
   };
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const start=()=>{
@@ -716,6 +717,7 @@ function legacyHomeHeroWideMarkup(slides){
   return `<section class="lhw" aria-roledescription="carrossel" aria-label="Destaques" data-lhw>
     <div class="lhw-track" data-lhw-track>
     ${slides.map((s,i)=>`<article class="lhw-slide ${i===0?'is-active':''}" data-lhw-slide aria-hidden="${i!==0}">
+      <div class="lhw-bg" aria-hidden="true"></div>
       <div class="lhw-art" data-lhw-art data-lhw-title="${esc(s.igdbTitle)}" data-lhw-platform="${esc(s.igdbPlatform)}" data-lhw-year="${esc(s.igdbYear)}" data-lhw-slug="${esc(s.heroSlug||'')}" style="--hero-h:${hashStr(s.title)%360}" aria-hidden="true"><div class="game-hero-placeholder"><b>${esc(initialsOf(s.title))}</b></div></div>
       <div class="lhw-film" aria-hidden="true"></div>
       <div class="lhw-copy">
@@ -1309,29 +1311,37 @@ function setHeroBackground(el,url,coverMode){
     bg.classList.add(coverMode?'cover-fallback':'has-image');
     bg.style.setProperty('--hero-img',`url("${url.replace(/"/g,'%22')}")`);
   }
-  // teste-merch2, item 0b — HERO ADAPTATIVO, camada 2 (arte nítida): a
-  // largura vem da proporção NATURAL da imagem (altura 100% do hero),
-  // não mais de uma janela fixa — mede com uma Image() off-screen; capa
-  // (coverMode) faz o mesmo papel agora (ver CSS). Sem carregar (ex. sem
-  // rede neste ambiente), fica no fallback CSS (70%, ou 100% no mobile).
+  // pacote6, item 1 / teste-merch2, item 0b — HERO ADAPTATIVO, camada 2
+  // (arte nítida): a largura vem da proporção NATURAL da imagem (altura
+  // 100% do hero), não mais de uma janela fixa — applyNaturalArtWidth()
+  // é o MESMO helper usado pelo hero de universo (hydrateUniverseHero),
+  // sem duplicar a lógica de medição. Home (lhw-art) ganhou isso agora
+  // (antes só a plataforma media).
   if(el.classList.contains('hhw-art')||el.classList.contains('lhw-art')){
-    const isMobile=typeof matchMedia==='function'&&matchMedia('(max-width:899px)').matches;
-    if(!isMobile&&el.classList.contains('hhw-art')){
-      const probe=new Image();
-      probe.onload=()=>{
-        if(!el.isConnected||el.dataset.heroResolvedUrl!==url||!probe.naturalHeight)return;
-        const h=el.getBoundingClientRect().height||1;
-        const ratio=probe.naturalWidth/probe.naturalHeight;
-        const maxW=el.parentElement?el.parentElement.getBoundingClientRect().width:h*ratio;
-        el.style.width=Math.min(maxW||h*ratio,h*ratio)+'px';
-      };
-      probe.src=url;
-    }
+    applyNaturalArtWidth(el,url);
   }
   if(slide?.classList.contains('is-active')&&typeof setBackdropArt==='function'){
     setBackdropArt(url,coverMode?'cover':'art',true);
   }
   if(slide&&typeof hhwUpdateFilm==='function')hhwUpdateFilm(slide);
+}
+// pacote6, item 1: largura da "arte nítida" (camada 2 do hero adaptativo)
+// pela proporção NATURAL da imagem, altura 100% do elemento — mede com
+// uma Image() off-screen (sem rede, como neste ambiente, nunca chama o
+// onload e o CSS fica no fallback de largura fixa). Único lugar que faz
+// essa conta; hhw/lhw (via setHeroBackground) e o hero de universo
+// (hydrateUniverseHero) chamam esta mesma função.
+function applyNaturalArtWidth(el,url){
+  if(typeof matchMedia==='function'&&matchMedia('(max-width:899px)').matches)return;
+  const probe=new Image();
+  probe.onload=()=>{
+    if(!el.isConnected||el.dataset.heroResolvedUrl!==url||!probe.naturalHeight)return;
+    const h=el.getBoundingClientRect().height||1;
+    const ratio=probe.naturalWidth/probe.naturalHeight;
+    const maxW=el.parentElement?el.parentElement.getBoundingClientRect().width:h*ratio;
+    el.style.width=Math.min(maxW||h*ratio,h*ratio)+'px';
+  };
+  probe.src=url;
 }
 // teste-merch2, item 0b — HERO ADAPTATIVO, camada 3 (película de
 // leitura): largura = bloco de texto REAL do slide (maior entre pílulas,
@@ -1351,6 +1361,149 @@ function hhwUpdateFilm(slide){
   const target=Math.min(heroW,w+28+64);
   const scale=Math.max(.25,Math.min(1,target/heroW));
   film.style.transform=`scaleX(${scale})`;
+  updateContrastDebug();
+}
+/* pacote6, item 1 — MODO DE DEPURAÇÃO DE CONTRASTE: ativado só por
+   ?debug=contraste na query string (location.search, independente da
+   rota em hash — funciona em qualquer página). Sem o parâmetro, nenhuma
+   das funções abaixo roda e nada aparece na tela; com ele, um painel no
+   canto inferior direito mostra o contraste medido (WCAG, texto branco)
+   do título e do botão de cada hero visível na página (plataforma, home,
+   universo), reamostrando toda vez que o hero muda (hhwUpdateFilm já
+   roda em paint()/resize/resolução de imagem — ver ali).
+   Mede de verdade (canvas, pixels da própria arte) quando a imagem
+   permite leitura (CORS); a IGDB não garante isso (armadilha já
+   documentada no CLAUDE.md) — nesse caso cai numa ESTIMATIVA pela cor
+   conhecida da película/legibilidade no ponto do texto, marcada como tal
+   no painel, nunca apresentada como medição real. */
+function contrastDebugActive(){
+  try{return new URLSearchParams(location.search).get('debug')==='contraste'}catch{return false}
+}
+function relLuminance(r,g,b){
+  const f=c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4)};
+  return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);
+}
+function contrastRatio(rgbA,rgbB){
+  const La=relLuminance(...rgbA),Lb=relLuminance(...rgbB);
+  const hi=Math.max(La,Lb),lo=Math.min(La,Lb);
+  return (hi+0.05)/(lo+0.05);
+}
+function cssColorToRgb(str){
+  const m=/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/.exec(str||'');
+  return m?[+m[1],+m[2],+m[3]]:[255,255,255];
+}
+// Recorte "cover" manual (mesma conta do CSS background-size:cover) pra
+// achar, dentro da imagem de origem, o retângulo que corresponde à
+// janela do hero visível na tela -- sem isso a amostra pegaria o pixel
+// errado (a imagem é maior/cortada na tela).
+function sampleArtColor(url,heroRect,textRect){
+  return new Promise(resolve=>{
+    if(!url){resolve(null);return}
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try{
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(heroRect.width));c.height=Math.max(1,Math.round(heroRect.height));
+        const ctx=c.getContext('2d');
+        const scale=Math.max(c.width/img.naturalWidth,c.height/img.naturalHeight);
+        const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+        const dx=(c.width-dw)/2,dy=(c.height-dh)/2;
+        ctx.drawImage(img,dx,dy,dw,dh);
+        const x=Math.min(c.width-1,Math.max(0,Math.round(textRect.x-heroRect.x)));
+        const y=Math.min(c.height-1,Math.max(0,Math.round(textRect.y-heroRect.y)));
+        const w=Math.max(1,Math.min(c.width-x,Math.round(textRect.width)));
+        const h=Math.max(1,Math.min(c.height-y,Math.round(textRect.height)));
+        const data=ctx.getImageData(x,y,w,h).data;
+        let r=0,g=0,b=0,n=0;
+        for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];n++}
+        resolve(n?[r/n,g/n,b/n]:null);
+      }catch(e){resolve(null)}
+    };
+    img.onerror=()=>resolve(null);
+    img.src=url;
+  });
+}
+// Composita a cor conhecida da película/legibilidade (ex. --hero-base a
+// ~78%) por cima da cor de arte amostrada -- ou, sem amostra (CORS),
+// usa só a cor da película como estimativa (pior caso otimista: assume
+// que a arte por baixo não escurece nem clareia o resultado).
+function blendFilmOverArt(artRgb,filmRgb,filmAlpha){
+  if(!artRgb)return{rgb:filmRgb,estimate:true};
+  return{rgb:[0,1,2].map(i=>filmRgb[i]*filmAlpha+artRgb[i]*(1-filmAlpha)),estimate:false};
+}
+async function measureHeroContrast(heroEl,titleEl,btnEl,imgUrl,filmColor,filmAlpha){
+  const heroRect=heroEl.getBoundingClientRect();
+  const titleRect=titleEl.getBoundingClientRect();
+  const artRgb=await sampleArtColor(imgUrl,heroRect,titleRect);
+  const titleBlend=blendFilmOverArt(artRgb,filmColor,filmAlpha);
+  const titleColor=cssColorToRgb(getComputedStyle(titleEl).color);
+  const titleRatio=contrastRatio(titleColor,titleBlend.rgb);
+  let btnRatio=null,btnEstimate=titleBlend.estimate;
+  if(btnEl){
+    const btnStyle=getComputedStyle(btnEl);
+    const btnBg=cssColorToRgb(btnStyle.backgroundColor);
+    const btnFg=cssColorToRgb(btnStyle.color);
+    // botão tem fundo opaco próprio (--action/rgba(0,0,0,.4)) -- contraste
+    // dele é texto-sobre-botão, não depende da arte por trás.
+    btnRatio=contrastRatio(btnFg,btnBg);
+    btnEstimate=false;
+  }
+  return{titleRatio,btnRatio,estimate:titleBlend.estimate,btnEstimate};
+}
+let contrastDebugBox=null,contrastDebugBusy=false;
+async function updateContrastDebug(){
+  if(!contrastDebugActive())return;
+  if(contrastDebugBusy)return;
+  contrastDebugBusy=true;
+  try{
+    if(!contrastDebugBox){
+      contrastDebugBox=document.createElement('div');
+      contrastDebugBox.id='contrastDebugBox';
+      contrastDebugBox.setAttribute('aria-hidden','true');
+      document.body.appendChild(contrastDebugBox);
+    }
+    const jobs=[];
+    // Plataforma/home (.hhw-*/.lhw-*): película = --hero-base (hhw) ou
+    // rgba(14,10,8,.88) fixo (lhw), ~.78/.88 de opacidade no ponto do
+    // título (perto da borda esquerda, onde a película está no pico).
+    const hhwSlide=$('.hhw-slide.is-active,.lhw-slide.is-active');
+    if(hhwSlide){
+      const hero=hhwSlide.closest('.hhw,.lhw');
+      const titleEl=hhwSlide.querySelector('h1');
+      const btnEl=hhwSlide.querySelector('.hhw-cta .btn,.lhw-cta .btn');
+      const art=hhwSlide.querySelector('.hhw-art,.lhw-art');
+      const url=art?.dataset.heroResolvedUrl||null;
+      const isHhw=hhwSlide.classList.contains('hhw-slide');
+      const baseVar=getComputedStyle(hhwSlide).getPropertyValue('--hero-base').trim();
+      const filmRgb=isHhw&&baseVar?hexToRgb(baseVar):[14,10,8];
+      if(hero&&titleEl)jobs.push(measureHeroContrast(hero,titleEl,btnEl,url,filmRgb,.78).then(r=>({label:(isHhw?'Plataforma':'Home')+' (hero)',...r})));
+    }
+    // Universo (card grande): legibilidade = --hero-base a ~90% perto da
+    // esquerda (onde o título fica).
+    const uSlide=$('.universe-hero .home-feature-slide.is-active');
+    if(uSlide){
+      const hero=uSlide.closest('.universe-hero');
+      const titleEl=uSlide.querySelector('h1');
+      const btnEl=uSlide.querySelector('.game-hero-actions .btn');
+      const art=uSlide.querySelector('.uh-art-img');
+      const url=art?.dataset.heroResolvedUrl||null;
+      const baseVar=hero?getComputedStyle(hero).getPropertyValue('--hero-base').trim():'';
+      const filmRgb=baseVar?hexToRgb(baseVar):[26,21,18];
+      if(hero&&titleEl)jobs.push(measureHeroContrast(hero,titleEl,btnEl,url,filmRgb,.9).then(r=>({label:'Universo (hero)',...r})));
+    }
+    const results=await Promise.all(jobs);
+    if(!contrastDebugActive()){contrastDebugBox?.remove();contrastDebugBox=null;return}
+    if(!results.length){contrastDebugBox.innerHTML='<b>Contraste</b><br>Nenhum hero visível nesta página.';return}
+    const fmt=r=>r==null?'—':r.toFixed(2)+':1'+(r>=4.5?' ✓':' ✕');
+    contrastDebugBox.innerHTML='<b>Contraste (WCAG, ?debug=contraste)</b>'+results.map(r=>
+      `<div class="cdb-row"><b>${esc(r.label)}</b><br>Título: ${fmt(r.titleRatio)}${r.estimate?' (estimativa — CORS)':''}<br>Botão: ${fmt(r.btnRatio)}${r.btnEstimate?' (estimativa)':''}</div>`
+    ).join('');
+  }finally{contrastDebugBusy=false}
+}
+function hexToRgb(hex){
+  const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i.exec(hex||'');
+  return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[26,21,18];
 }
 function setCoverImage(el,title,platform,url){
   if(!el||!url)return;
@@ -1973,8 +2126,15 @@ function hydrateUniverseHero(root,token){
     if(!src&&!coverSrc)return;
     if(src&&el.dataset.igdbSlug)heroImageCache.set(el.dataset.igdbSlug,src);
     el.classList.add(src?'has-image':'cover-fallback');
-    el.innerHTML=`<img class="uh-art-img" src="${esc(src||coverSrc)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
-    if(eager)updateAmbientBg(src||coverSrc,false,src?'art':'cover');
+    const finalUrl=src||coverSrc;
+    // pacote6, item 1: camadas 1+2 do hero adaptativo reaproveitadas aqui
+    // — .uh-art-bg (fundo desfocado) + applyNaturalArtWidth (mesmo helper
+    // de setHeroBackground, sem duplicar a lógica de medição).
+    el.innerHTML=`<div class="uh-art-bg" style="background-image:url('${esc(finalUrl)}')" aria-hidden="true"></div><img class="uh-art-img" src="${esc(finalUrl)}" alt="" loading="${eager?'eager':'lazy'}" fetchpriority="${eager?'high':'low'}">`;
+    const artImg=el.querySelector('.uh-art-img');
+    if(artImg){artImg.dataset.heroResolvedUrl=finalUrl;applyNaturalArtWidth(artImg,finalUrl)}
+    if(eager)updateAmbientBg(finalUrl,false,src?'art':'cover');
+    updateContrastDebug();
   });
   initHomeCarousel(root);
 }

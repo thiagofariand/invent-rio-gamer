@@ -205,6 +205,11 @@ function route(){
   // própria rota de resultado (#/busca) — em qualquer outra rota ele some,
   // pra não ficar um texto "fantasma" de uma busca antiga enquanto navega.
   syncSearchFieldWithRoute(path,params);
+  // pacote6, item 1: baseline do modo de depuração de contraste a cada
+  // troca de rota (sem o parâmetro ?debug=contraste, a função nem roda).
+  // hhwUpdateFilm/hydrateUniverseHero/initHomeCarousel já chamam de novo
+  // quando a imagem do hero resolve ou o slide muda.
+  if(typeof updateContrastDebug==='function')updateContrastDebug();
 }
 window.addEventListener('hashchange',route);
 

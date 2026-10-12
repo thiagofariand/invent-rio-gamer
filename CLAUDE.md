@@ -186,6 +186,29 @@ dono, pacote5b final — ver nota abaixo)
   largura — hoje fixo em .75-.78, **não medido por pixel real** (sem artwork de verdade neste ambiente; conferir
   no preview). `hhwUpdateFilm` roda em `paint()` (toda troca de slide) e no resize (debounce 150ms) das duas
   inicializações (`initHomeHeroWide`/`legacyInitHomeHeroWide`).
+- **Hero adaptativo completo** (pacote6, item 1 — fecha o que a camada 0b tinha deixado pra trás): home
+  (`.lhw-*`) ganhou as camadas 1 (`.lhw-bg`, fundo desfocado) e 2 (`.lhw-art` virou ancorada à direita, 70%,
+  proporção natural — antes era `inset:0` full-bleed cru) que faltavam; só a 3 (película) já existia. Hero de
+  universo (`universeHeroMarkup`/`hydrateUniverseHero`, o card grande com "Meu Inventário" ao lado — continua
+  sendo esse layout, não virou carrossel `.hhw-*`) ganhou as mesmas camadas 1 (`.uh-art-bg`) e 2 (`.uh-art-img`
+  virou ancorada à direita/proporção natural, antes era `object-fit:cover` esticado); a camada 3 já existia ali
+  (`.universe-hero-legibility`, degradê fixo — sem largura calculada por JS, porque esse card não troca de
+  título curto/longo por slide do jeito que o carrossel troca). A medição de largura natural (camada 2) virou
+  um único helper, `applyNaturalArtWidth(el,url)`, chamado pelos três lugares (`setHeroBackground` pra
+  hhw/lhw, `hydrateUniverseHero` pro card de universo) — não duplicada. `.game-hero-art` (hero da FICHA do
+  jogo, `renderProduct`) fica de fora dessa rodada — layout diferente (sem "fundo + arte ancorada", é um
+  banner único), fora do escopo "home/plataforma/universo" do pacote.
+- **Modo de depuração de contraste** (`?debug=contraste` na query string — `location.search`, funciona em
+  qualquer rota em hash): painel fixo no canto inferior direito (`#contrastDebugBox`) com o contraste WCAG do
+  título e do botão de cada hero visível (plataforma/home/universo), recalculado em `updateContrastDebug()`
+  (`app-3-views.js`) toda vez que o hero muda — chamada de dentro de `hhwUpdateFilm` (plataforma/home),
+  `hydrateUniverseHero` e `initHomeCarousel` (universo), e 1x no fim de `route()` como base. Mede de verdade
+  (canvas, recorte "cover" manual + pixels da própria arte) quando a imagem permite leitura; a IGDB não garante
+  CORS (armadilha já documentada acima) — sem leitura, cai numa ESTIMATIVA pela cor conhecida da
+  película/legibilidade no ponto do título, sempre rotulada "(estimativa — CORS)" no painel, nunca apresentada
+  como medição real. Sem o parâmetro, `contrastDebugActive()` retorna falso e nenhuma função roda — nada
+  aparece, nem o elemento é criado. **Não validado com artwork real neste ambiente** (sem rede pra IGDB) —
+  conferir os números no preview antes de confiar.
 - **Regra de preço pra jogo não lançado ou `semDisco`, em QUALQUER componente novo** (hero, cards, painel lateral,
   linhas): nunca "Usado a partir de". Com oferta física de exemplo (sempre Novo — `sampleOffers` nunca gera Usado
   pra jogo não lançado): "Pré-venda a partir de R$X". Sem oferta: "Em breve" (+ data se houver). Função central:
