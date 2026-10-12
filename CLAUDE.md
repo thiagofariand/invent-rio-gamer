@@ -464,3 +464,54 @@ aguardando aprovação: Kabum, API de afiliados Shopee, Nuuvem Co-Op.
 ## Como testar
 `node --check` em cada `.js`; servidor estático (`python3 -m http.server`) + Playwright para screenshots em desktop/tablet/mobile.
 `/api/offers` precisa rodar como função (use `vercel dev` ou chame o handler direto com `req/res` simulados).
+- **Endereços limpos**: `python3 -m http.server` não reproduz `cleanUrls`/rewrite da Vercel — pra testar
+  `/jogo/{slug}` sem `#`, rode `node scripts/build.js` (gera as páginas estáticas) e sirva com algo que imite
+  `cleanUrls` (serve `jogo/{slug}.html` em `/jogo/{slug}`, com `/index.html` de fallback pro resto) — python puro
+  só serve o `.html` com a extensão.
+- **Lighthouse** (pacote6, item 5): `npx lighthouse <url> --preset=desktop` (desktop) ou sem `--preset` (mobile,
+  simula rede/CPU lenta — pontuação de performance mobile é sempre bem mais baixa que desktop, é o throttling
+  do próprio Lighthouse, não um bug; no deploy real da Vercel (CDN, compressão) o número sobe). Precisa do
+  Chromium do Playwright: `CHROME_PATH=/caminho/do/chromium npx lighthouse ...`.
+
+## Pacote6, item 5 — notas do Lighthouse (desktop/mobile; home, plataforma, universo, jogo, comparativo, item de
+merch, testado localmente com o servidor que imita `cleanUrls`+rewrite, sem rede de verdade)
+- **Acessibilidade: 100 em todas as 12 combinações** depois dos ajustes abaixo (estava 85-99). SEO: 100 em
+  todas (as páginas estáticas do item 4 já cuidam disso). Best-practices: 81 em todas — ver "XHR síncrono"
+  abaixo. Performance desktop 87-98 (bom); mobile 50-61 — esperado (throttling agressivo do próprio Lighthouse
+  simulando rede 4G lenta + CPU 4x mais devagar; servidor local sem CDN/cache/compressão também pesa contra;
+  conferir o número de verdade no preview da Vercel antes de se preocupar).
+- **Corrigido** (achados reais do Lighthouse, não suposição):
+  - `aria-pressed` num `<a>` sem `role="button"` (pílulas "Ordenar destaques" da home) — ARIA inválido.
+  - Capa de jogo sem imagem carregada (fallback de sigla) ficava sem nome acessível nenhum (`link-name`) — ganhou
+    `aria-label` combinando a sigla visível + o título completo (as duas coisas precisam bater, senão vira o
+    próximo item).
+  - `aria-label` customizado que não batia com o texto visível do próprio link (`label-content-name-mismatch`) —
+    `.ud-big` (card grande de universo), `.universe-tile`/`.universe-tile-more` (ladrilhos): removido o
+    `aria-label` nesses 3, o texto visível (nome + contagem/CTA) já é um nome acessível coerente sozinho.
+  - `.mock-chip` (selo EXEMPLO) e o link "Ver universo →" do comparativo usavam cor fixa (`--text-2`/`--red-ink`)
+    sem contraste garantido em cima de toda cor de paleta de universo/plataforma — trocados por tokens
+    translúcidos mais opacos / `--action-on-glass` (mistura com branco, pensado pra isso).
+  - `--text-2`/`--muted` (dark-surface-route) subiu de opacidade .68→.76 — tinha 4.1:1 (abaixo do mínimo) em
+    cima de cor de plataforma saturada (ex. vermelho do Mario); mudança praticamente imperceptível no visual.
+  - Cor ativa da barra inferior mobile (`--action` puro) trocada por `--action-on-glass` (mesmo motivo).
+  - `<h3>` pulando direto do `<h1>` na página do item de merch (grupo de ofertas por condição) — virou `<h2>`
+    (`heading-order`).
+  - Bolinhas/barras de indicador dos carrosséis (hero de plataforma/home/universo) tinham alvo de toque de 8px
+    (precisa 24px) — ganharam padding invisível (`background-clip:content-box`, não muda o visual) até 24px.
+  - `aria-label` no card de jogo vazio do comparativo ("ver todos") já cobria `link-name`; as capas de jogo
+    (`posterCard`) ganharam `aria-label` com o título completo onde faltava.
+- **Não corrigido, documentado aqui** — `deprecations` (XHR síncrono): `app-1-core.js` carrega 8 arquivos
+  pequenos de `src/data/*.json` com `XMLHttpRequest(...,false)` (síncrono) logo no topo do script, pra todo o
+  resto do app poder assumir que os dados já estão prontos sem precisar de `await`/callback em cascata.
+  Consertar isso de verdade pede reestruturar o bootstrap inteiro do app pra assíncrono (Promise.all no
+  carregamento + segurar a 1ª renderização até resolver) — mudança grande, testada com cuidado, fora do escopo
+  seguro desta rodada. É o ÚNICO audit que prende best-practices em 81 (confirmado lendo os `auditRefs` do
+  Lighthouse) — se for atacado no futuro, vale um pacote próprio só pra isso.
+- **Links** (varredura programática, não manual): 0 parâmetro de rastreamento (`utm_`, `gclid`, `tag=`,
+  `affiliate`) em qualquer URL externa do catálogo (`catalog-data.js`, `src/data/merch.json`, `lib/*.js`,
+  `api/*.js`); todo `jogosRelacionados`/`universo` do merch.json aponta pra um slug real do catálogo (checado
+  slug a slug, 0 referência quebrada); todo `href="#/..."` interno usa um prefixo de rota que `route()`
+  realmente trata (sem typo tipo `#/jogos/` por `#/jogo/`). Console sem erro em 21 rotas × 2 tamanhos de tela
+  (desktop 1440×770 e mobile 393×852) — a lista completa cobre home, busca, diretórios, merch, 3 plataformas,
+  2 universos, 2 jogos, 2 comparativos, 2 itens de merch, 1 tema e os dois arquivos gerados (sitemap.xml,
+  robots.txt).

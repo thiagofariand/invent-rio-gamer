@@ -492,7 +492,10 @@ function destaquesPool(order,exclude){
   return [...trendGames,...rest].slice(0,12);
 }
 function destaquesAlternatorMarkup(order,hrefBase='#/',paramName='destaques'){
-  return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" href="${hrefBase}?${paramName}=${k}" aria-pressed="${k===order}" data-destaques-order="${k}" data-destaques-param="${paramName}" data-destaques-base="${hrefBase}">${esc(l)}</a>`).join('')}</div>`;
+  // pacote6, item 5 (Lighthouse): aria-pressed só é válido em elemento com
+  // role="button" (link puro não aceita) — role="button" junto resolve
+  // sem trocar o comportamento de navegação por clique/Enter.
+  return `<div class="destaques-alt" role="group" aria-label="Ordenar destaques">${DESTAQUES_ORDERS.map(([k,l])=>`<a class="destaques-alt-btn" role="button" href="${hrefBase}?${paramName}=${k}" aria-pressed="${k===order}" data-destaques-order="${k}" data-destaques-param="${paramName}" data-destaques-base="${hrefBase}">${esc(l)}</a>`).join('')}</div>`;
 }
 /* ============================================================
    PACOTE5, ITEM 1.3 — UniverseTile (componente único: home, plataforma
@@ -510,7 +513,10 @@ function universeTileMarkup(u,opts={}){
   const base=pal?.fundo||'#1f0b14';
   const displayName=pal?.nome||u.name;
   const count=opts.count!=null?opts.count:titles.length;
-  return `<a class="universe-tile" href="#/universo/${u.slug}" aria-label="Universo ${esc(displayName)}, ${count} ${count===1?'jogo':'jogos'}" data-ut-tile data-ut-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ut-platform="${esc(platform)}" data-ut-year="${esc(rep?.year||'')}" style="--ut-base:${esc(base)}">
+  // pacote6, item 5 (Lighthouse label-content-name-mismatch): sem
+  // aria-label custom — .ut-name + .ut-count (visíveis) já formam um nome
+  // acessível equivalente, sem risco de não bater com o texto exibido.
+  return `<a class="universe-tile" href="#/universo/${u.slug}" data-ut-tile data-ut-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ut-platform="${esc(platform)}" data-ut-year="${esc(rep?.year||'')}" style="--ut-base:${esc(base)}">
     <span class="ut-cover-wrap" aria-hidden="true"><span class="ut-cover-slot"></span></span>
     <span class="ut-sigla" aria-hidden="true">${esc(u.sigla)}</span>
     <span class="ut-body"><b class="ut-name">${esc(displayName)}</b><small class="ut-count">${count} jogo${count===1?'':'s'}</small></span>
@@ -535,7 +541,10 @@ function universeTileMoreMarkup(href,count,fam,fanPool){
     const platform=rep?.variants?.[0]?.[1]||'';
     return {title:rep?igdbTitleFor(rep,platform):u.name,platform,year:rep?.year||''};
   });
-  return `<a class="universe-tile universe-tile-more" href="${esc(href)}" style="--ut-base:${esc(base)}" data-ut-more data-ut-more-cands='${esc(JSON.stringify(cands))}' aria-label="Ver todos os ${count} universos ${esc(FAMILY_LABEL[fam]||fam)}">
+  // pacote6, item 5 (Lighthouse label-content-name-mismatch): sem
+  // aria-label custom aqui também — mesmo caso do universeTileMarkup,
+  // .ut-body (visível) já é um nome acessível coerente sozinho.
+  return `<a class="universe-tile universe-tile-more" href="${esc(href)}" style="--ut-base:${esc(base)}" data-ut-more data-ut-more-cands='${esc(JSON.stringify(cands))}'>
     <span class="ut-fan" aria-hidden="true">
       <span class="ut-fan-cover" data-ut-fan="0"></span>
       <span class="ut-fan-cover" data-ut-fan="1"></span>
@@ -943,7 +952,7 @@ function universeDestaqueBig(u){
   const pal=paletteForUniverse(u);
   const platform=rep?.variants?.[0]?.[1]||'';
   const base=pal?.fundo||'#1f0b14';
-  return `<a class="ud-big" href="#/universo/${u.slug}" aria-label="Conhecer o universo ${esc(pal?.nome||u.name)}" data-ud-big-art data-ud-art-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ud-art-platform="${esc(platform)}" data-ud-art-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
+  return `<a class="ud-big" href="#/universo/${u.slug}" data-ud-big-art data-ud-art-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ud-art-platform="${esc(platform)}" data-ud-art-year="${esc(rep?.year||'')}" style="--ud-base:${esc(base)}">
     <span class="ud-fallback-sigla" aria-hidden="true">${esc(u.sigla)}</span>
     <span class="ud-pill">${esc(PLATFORM_LABEL[u.casa]||'Multi')}</span>
     <span class="ud-name">${esc(pal?.nome||u.name)}</span>
@@ -2436,7 +2445,7 @@ function posterCard(p,platformHint){
   return `<article class="hec-card poster-card" data-hec data-hec-slug="${esc(p.slug)}" tabindex="0">
     <div class="hec-fixed">
       <div class="hec-cover-wrap">
-        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(displayYear||'')}"${versionIgdbId(p,platform)?` data-igdb-id="${esc(versionIgdbId(p,platform))}"`:''}>${coverTile(p.title,{note:false})}</a>
+        <a class="hec-cover igdb-cover-slot" href="#/jogo/${p.slug}" aria-label="${esc(initialsOf(p.title))} — ${esc(p.title)}" data-igdb-cover data-igdb-title="${esc(igdbTitleFor(p,platform))}" data-igdb-platform="${esc(platform)}" data-igdb-year="${esc(displayYear||'')}"${versionIgdbId(p,platform)?` data-igdb-id="${esc(versionIgdbId(p,platform))}"`:''}>${coverTile(p.title,{note:false})}</a>
         ${posterReleaseBadgeMarkup(p)}
       </div>
       <div class="poster-info">
@@ -3274,7 +3283,7 @@ function renderMerchItem(id,token){
       <div class="merch-item-offers">
         ${merchOffersByCondition(it.ofertas).map(g=>`
           <section class="merch-offer-group">
-            <h3>${esc(g.label)} <span class="merch-offer-group-from">a partir de ${brl(g.offers[0].preco)}</span></h3>
+            <h2>${esc(g.label)} <span class="merch-offer-group-from">a partir de ${brl(g.offers[0].preco)}</span></h2>
             ${g.offers.map(merchOfferRow).join('')}
           </section>`).join('')}
       </div>

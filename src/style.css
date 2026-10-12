@@ -1323,7 +1323,12 @@ h1,h2,h3{color:var(--text-1)}
 .compare-listing{display:grid;grid-template-columns:50px minmax(0,1fr);gap:11px;align-items:center}.compare-listing img,.compare-thumb-empty{width:50px;height:62px;border-radius:9px;object-fit:cover;background:#E8E1D8;border:1px solid var(--line);display:grid;place-items:center}.compare-listing strong{font-size:13px;line-height:1.25;display:block}.compare-listing small{display:block;color:var(--muted);margin-top:5px}
 .compare-price{display:flex;flex-direction:column;align-items:flex-end}.compare-price span{font-size:11px;color:var(--muted)}.compare-price b{font-size:22px}.compare-price del{font-size:11px;color:var(--muted)}
 .compare-game-card{position:sticky;top:calc(var(--header-h) + 18px);padding:22px;border-radius:18px;background:#F9F6F0;border:1px solid var(--line);box-shadow:var(--shadow-soft)}
-.compare-cover{max-width:205px;margin:15px auto}.compare-cover .cover{width:100%;aspect-ratio:3/4}.compare-game-card h2{font:600 28px/1.05 var(--font-ui);margin-top:16px}.compare-game-card dl{margin:18px 0}.compare-game-card dl>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}.compare-game-card dt{color:var(--muted);font-size:12px}.compare-game-card dd{margin:0;font-size:13px;font-weight:700}.compare-summary{color:var(--muted);font-size:13px;line-height:1.55}.compare-game-card>a{display:inline-block;margin-top:18px;color:var(--red-ink);font-weight:750;text-decoration:none}
+.compare-cover{max-width:205px;margin:15px auto}.compare-cover .cover{width:100%;aspect-ratio:3/4}.compare-game-card h2{font:600 28px/1.05 var(--font-ui);margin-top:16px}.compare-game-card dl{margin:18px 0}.compare-game-card dl>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}.compare-game-card dt{color:var(--muted);font-size:12px}.compare-game-card dd{margin:0;font-size:13px;font-weight:700}.compare-summary{color:var(--muted);font-size:13px;line-height:1.55}/* pacote6, item 5 (Lighthouse color-contrast): --red-ink é fixo (vira
+   #9C2721 no tema dark-surface) e não garante contraste em cima de toda
+   cor de paleta de universo (ex. verde escuro do Zelda, 1.78:1) —
+   --action-on-glass já existe pra isso (mistura --action com branco,
+   mesmo token que .crc-cta usa em link sobre fundo escuro translúcido). */
+.compare-game-card>a{display:inline-block;margin-top:18px;color:var(--action-on-glass);font-weight:750;text-decoration:none}
 .compare-loading{display:grid;gap:14px}.compare-loading span{height:128px;border-radius:17px;background:linear-gradient(90deg,#E6DED4 25%,#F1ECE5 50%,#E6DED4 75%);background-size:200% 100%;animation:loading 1.2s infinite}
 @keyframes loading{to{background-position:-200% 0}}
 
@@ -1477,8 +1482,10 @@ html{overflow-x:hidden}
 .home-feature-slide{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .65s ease,visibility 0s linear .65s;z-index:1}
 .home-feature-slide.is-active{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .65s ease,visibility 0s linear;z-index:2}
 .home-feature-slide .home-feature-art{z-index:0}
-.home-feature-controls{position:absolute;z-index:8;left:28px;bottom:84px;display:flex;gap:8px}
-.home-feature-controls button{width:28px;height:5px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.38);cursor:pointer;transition:width .2s ease,background .2s ease}
+.home-feature-controls{position:absolute;z-index:8;left:28px;bottom:84px;display:flex;gap:4px}
+/* pacote6, item 5 (Lighthouse target-size): barra visual continua fina
+   (5px), a área clicável cresce por padding invisível (content-box). */
+.home-feature-controls button{width:28px;height:5px;padding:10px 0;background-clip:content-box;box-sizing:content-box;border:0;border-radius:999px;background:rgba(255,255,255,.38);cursor:pointer;transition:width .2s ease,background .2s ease}
 .home-feature-controls button[aria-current="true"]{width:48px;background:#fff}
 
 .ecosystem-visual{flex:1;min-height:150px;display:grid;place-items:center;color:#fff}
@@ -2206,14 +2213,18 @@ body.sidebar-collapsed .app-sidebar:not(:hover):not(:focus-within) .sidebar-foot
    ============================================================ */
 body.dark-surface-route{
   --ink:#fff;
-  --muted:rgba(255,255,255,.68);
+  /* pacote6, item 5 (Lighthouse color-contrast): .68 dava 4.1:1 (abaixo
+     do mínimo 4.5:1) sobre fundo de cor saturada de plataforma/universo
+     (ex. vermelho #a70008 do Mario) — .76 resolve sem mudar o visual de
+     forma perceptível sobre o fundo neutro escuro de sempre. */
+  --muted:rgba(255,255,255,.76);
   --white:var(--glass-2);
   --store:var(--page-bg);
   --gray:var(--glass-3);
   --line:var(--glass-border);
   --line-strong:rgba(255,255,255,.24);
   --text-1:#fff;
-  --text-2:rgba(255,255,255,.68);
+  --text-2:rgba(255,255,255,.76);
   background:transparent;
 }
 body.dark-surface-route .row{background:var(--glass-2);border-color:var(--glass-border)}
@@ -2263,7 +2274,12 @@ body.dark-surface-route input[type="search"].select{
    alguns componentes com cor fixa, fora do token, em branco-sobre-branco
    ou cinza-sobre-escuro).
    ============================================================ */
-body.dark-surface-route .mock-chip{background:rgba(255,255,255,.12);color:var(--text-2);border:1px solid var(--glass-border);font-size:10px;letter-spacing:.06em;font-weight:700}
+/* pacote6, item 5 (Lighthouse): contraste 1.61:1 (texto --text-2 sobre o
+   fundo translúcido claro, dentro de botão colorido tipo .hero-price-btn
+   — a cor real por trás é a do botão, não o cinza neutro que --text-2
+   pressupõe). Fundo escuro translúcido + texto quase branco funciona em
+   cima de qualquer cor de botão/fundo, sem depender do que tem atrás. */
+body.dark-surface-route .mock-chip{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:10px;letter-spacing:.06em;font-weight:700}
 /* Pacote único, item 3.4: rótulos Usado/Novo/Digital (.chip, nas linhas de
    resultado da busca) tinham fundo/borda/texto fixos (#F1F2F3/#DDE0E4/
    #555D68, "marketplace familiar") que ignoravam o tema — mesmo
@@ -2576,7 +2592,11 @@ html[data-theme="neutral"] body.dark-surface-route{
     border:0;background:none;text-decoration:none;color:var(--text-2,rgba(255,255,255,.65));
     font-size:11px;font-weight:600;padding:4px;height:100%;
   }
-  .mobile-bottom [aria-current="page"]{color:var(--action,var(--accent))}
+  /* pacote6, item 5 (Lighthouse color-contrast): --action puro dava
+     4.23:1 (abaixo do mínimo 4.5:1) sobre o fundo de vidro escuro da
+     barra inferior — --action-on-glass (já usado em links sobre vidro
+     escuro, ex. .crc-cta) resolve sem mudar a cor de forma perceptível. */
+  .mobile-bottom [aria-current="page"]{color:var(--action-on-glass,var(--accent))}
   body{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
 
   /* 7.3 — setas do hero da home na base, ao lado dos indicadores (já feito
@@ -2836,8 +2856,9 @@ html[data-theme="neutral"] body.dark-surface-route{
      sem autoplay o botão pausar/retomar perde o sentido; os indicadores
      (bolinhas) assumem a navegação no lugar deles. */
   .hhw-controls{display:none}
-  .hhw-dots{display:flex;gap:8px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
-  .hhw-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
+  .hhw-dots{display:flex;gap:4px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
+  /* pacote6, item 5 (Lighthouse target-size): mesma ideia do .lhw-dot. */
+  .hhw-dot{width:8px;height:8px;padding:8px;background-clip:content-box;box-sizing:content-box;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
   .hhw-dot.is-active{background:#fff;width:20px;border-radius:4px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -3034,8 +3055,12 @@ html[data-theme="neutral"] body.dark-surface-route{
   .lhw-copy{width:100%;padding:24px 20px 76px}
   .lhw-thumbs{display:none}
   .lhw-pause{display:none}
-  .lhw-dots{display:flex;gap:8px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
-  .lhw-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
+  .lhw-dots{display:flex;gap:4px;position:absolute;left:0;right:0;bottom:16px;z-index:6;justify-content:center;pointer-events:none}
+  /* pacote6, item 5 (Lighthouse target-size): alvo de toque mínimo
+     24x24px — o ponto visual continua pequeno (8px), a área clicável
+     cresce por padding invisível (background-clip:content-box não deixa
+     a cor pintar além do ponto de sempre). */
+  .lhw-dot{width:8px;height:8px;padding:8px;background-clip:content-box;box-sizing:content-box;border:0;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:auto;cursor:pointer;transition:background-color 150ms ease,width 150ms ease,border-radius 150ms ease}
   .lhw-dot.is-active{background:#fff;width:20px;border-radius:4px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -3111,7 +3136,7 @@ html[data-theme="neutral"] body.dark-surface-route{
    linha é uma oferta de verdade (nunca EXEMPLO: sempre tem atualizadoEm
    e "confira na loja" em vez de fingir preço ao vivo). */
 .merch-item-offers{margin-top:20px;display:flex;flex-direction:column;gap:20px}
-.merch-offer-group h3{font-size:15px;font-weight:600;color:var(--text-1);display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.merch-offer-group h2{font-size:15px;font-weight:600;color:var(--text-1);display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
 .merch-offer-group-from{font-size:12.5px;font-weight:500;color:var(--text-2)}
 .merch-offer-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto auto;gap:14px;align-items:center;padding:14px 16px;border-radius:14px;background:var(--glass-2);border:1px solid var(--glass-border);margin-bottom:8px}
 .merch-offer-source{display:flex;flex-direction:column;gap:3px}
