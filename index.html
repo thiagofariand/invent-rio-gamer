@@ -7,21 +7,50 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" id="themeColorMeta" content="#2a2622">
+<!-- pacote6-seo:start — bloco trocado inteiro por scripts/build.js pra
+     cada página estática gerada (jogo/universo/plataforma/item de
+     merch); aqui (index.html) fica o padrão fixo da home/app-shell,
+     nunca sobrescrito. Domínio fixo (troca pelo .com.br, quando o dono
+     tiver, editando só esta linha); páginas geradas usam a env SITE_URL
+     de verdade no momento do build. -->
 <title>Inventário Gamer — Beta 1 + Claudinho · Quiet Luxury</title>
 <meta name="description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
+<link rel="canonical" href="https://inventario-gamer.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Inventário Gamer">
+<meta property="og:title" content="Inventário Gamer — encontre o item que falta no seu Inventário">
+<meta property="og:description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
+<meta property="og:url" content="https://inventario-gamer.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Inventário Gamer">
+<meta name="twitter:description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
+<!-- pacote6-seo:end -->
 <link rel="icon" type="image/png" href="/inventario-logo-header.png?v=Teste-Layout-Beta2">
 <link rel="stylesheet" href="/src/style.css?v=Teste-Layout-Beta2">
 </head>
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
-<!-- Tema "game" (pacote único, seção 1): camada fixa de keyart desfocada
-     atrás de tudo na ficha do jogo e na comparadora, reaproveitando a arte
-     do hero já carregada (sem pedido novo) — updateAmbientBg() em
-     app-main.js liga o background-image. #ambientShade é o degradê de
-     legibilidade por cima, um elemento à parte pra não herdar a opacidade
-     de #ambientBg (senão o degradê também ficaria translúcido). -->
+<!-- PageBackdrop (pacote5c, item 2 · correção pacote5d 1): fundo dinâmico
+     atrás de TODA página com hero (home, plataforma, universo,
+     ficha/comparadora do jogo). #ambientAnchor é a camada 1 (cor sólida
+     que nunca muda na página, --page-bg do tema atual) — precisa de
+     ELEMENTO PRÓPRIO: <body> tinha `background:var(--store)` opaco
+     (dark-surface-route e as regras de tema antigas) e, como <body> não
+     cria stacking context próprio, esse background pintava por CIMA dos
+     filhos de z-index negativo (ordem de pintura do CSS: descendentes de
+     z-index negativo entram ANTES das caixas não-posicionadas do próprio
+     elemento, mesmo sendo filhas dele) — por isso o fundo dinâmico nunca
+     aparecia, só a cor chapada do body. Fix: body (e qualquer contêiner
+     entre ele e #app) ficou transparente; só #ambientAnchor carrega a cor.
+     #ambientBg/#ambientBg2 são duas camadas da mesma arte, alternadas por
+     setBackdropArt() (app-main.js) pra fazer crossfade sem esperar uma
+     opacity:0 "apagar" antes da próxima aparecer. #ambientShade é a
+     vinheta de legibilidade por cima, um elemento à parte pra não herdar
+     a opacidade translúcida da arte. -->
+<div id="ambientAnchor" aria-hidden="true"></div>
 <div id="ambientBg" aria-hidden="true" hidden></div>
+<div id="ambientBg2" aria-hidden="true" hidden></div>
 <div id="ambientShade" aria-hidden="true" hidden></div>
 
 <header class="site-header">
@@ -163,6 +192,11 @@
   </a>
 </nav>
 
+<!-- pacote6, item 3: gerado no build (scripts/build.js) com a env REAL do
+     Vercel — window.__SITE_ENV__.isProduction. Sem build (este ambiente,
+     localhost sem rodar o script), o arquivo committado tem o fallback
+     seguro isProduction:false. -->
+<script src="/src/env-generated.js?v=pacote6"></script>
 <script src="/catalog-data.js?v=Teste-Layout-Beta2"></script>
 <script src="/mock-data.js?v=Teste-Layout-Beta2"></script>
 <script src="/src/app-1-core.js?v=Teste-Layout-Beta2"></script>

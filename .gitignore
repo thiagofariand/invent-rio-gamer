@@ -8,3 +8,11 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# pacote6b: tudo que o build gera (scripts/build.js, buildCommand da
+# Vercel) vai pra dist/ -- nunca committar, sempre apagada e recriada do
+# zero a cada build. Rode "node scripts/build.js" local pra testar (git
+# ignora o resultado). 404.html da RAIZ é a exceção: é a baseline
+# committada (só gerada se ainda não existir); o build copia ela pra
+# dist/404.html, que é o arquivo de fato servido.
+/dist/

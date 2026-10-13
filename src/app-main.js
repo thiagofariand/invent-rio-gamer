@@ -3,10 +3,65 @@
    ============================================================ */
 
 /* ---------- rotas ---------- */
+// pacote6, item 4 — ENDEREÇOS LIMPOS: o pathname (History API) é a fonte
+// principal agora; o hash (#/...) só é lido quando a página está na raiz
+// (pathname "/") E tem um "#/..." de verdade — cobre um link antigo
+// compartilhado digitado/colado direto na barra (redirectLegacyHash,
+// abaixo, já troca pela URL limpa 1x no carregamento; isto aqui é só um
+// fallback de segurança pro resto do roteador nunca quebrar se algo
+// ainda cair num endereço com #). Todo o resto do código continua
+// gerando href="#/..." nos templates (centenas de lugares — nunca
+// trocados um por um); quem transforma isso em navegação de URL limpa é
+// o interceptador de clique global (ver mais abaixo, initCleanLinks()).
 function parseHash(){
-  let h=location.hash.slice(1)||'/';
-  const [path,qs='']=h.split('?');
-  return {path:path.replace(/\/$/,'')||'/',params:new URLSearchParams(qs)};
+  if(location.pathname==='/'&&location.hash.startsWith('#/')){
+    const h=location.hash.slice(1)||'/';
+    const [path,qs='']=h.split('?');
+    return {path:path.replace(/\/$/,'')||'/',params:new URLSearchParams(qs)};
+  }
+  const path=location.pathname.replace(/\/$/,'')||'/';
+  return {path,params:new URLSearchParams(location.search)};
+}
+// Caminho da rota atual, SEM query string — usado pelos estados "ativo"
+// da sidebar (comparando contra o href="#/..." dos próprios itens).
+function currentPath(){return parseHash().path}
+// Navega preservando o endereço limpo na barra (history.pushState) —
+// chamada no lugar de "location.hash=" em toda navegação por JS
+// (goSearch, filtros, atalhos de teclado etc. — eram só 8 lugares,
+// listados no CLAUDE.md).
+function navigateTo(path){
+  if(location.pathname+location.search===path)return;
+  history.pushState(null,'',path);
+  route();
+  // pushState não dispara popstate (só voltar/avançar do navegador
+  // dispara) — route() cobre a troca de tela; estes dois efeitos
+  // colaterais que antes viviam em listeners de hashchange à parte
+  // (fechar a busca mobile, destacar a aba da barra inferior) precisam
+  // ser chamados aqui também, senão só funcionariam no botão voltar.
+  if(typeof closeMobileSearch==='function')closeMobileSearch();
+  if(typeof syncMobileBottomActive==='function')syncMobileBottomActive();
+}
+// Clique em QUALQUER link do app (href="#/...", do jeito que todo
+// template já gera) vira navegação de URL limpa, sem precisar trocar
+// href por href em centenas de lugares — só intercepta clique "normal"
+// (botão esquerdo, sem modificadora), pra abrir em nova aba/janela
+// continuar funcionando do jeito nativo do navegador.
+function initCleanLinks(){
+  document.addEventListener('click',e=>{
+    if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    const a=e.target.closest('a[href^="#/"]');
+    if(!a)return;
+    e.preventDefault();
+    navigateTo(a.getAttribute('href').slice(1));
+  });
+}
+// Endereço antigo compartilhado (ex. ".../#/jogo/x") carregado direto —
+// troca pela URL limpa 1x, sem dar reload (replaceState, não pushState:
+// não quer dizer "voltar" pra essa versão com #).
+function redirectLegacyHash(){
+  if(location.pathname==='/'&&location.hash.startsWith('#/')){
+    history.replaceState(null,'',location.hash.slice(1));
+  }
 }
 function navActive(path){
   $$('.main-nav a,.inv-link').forEach(a=>a.removeAttribute('aria-current'));
@@ -39,34 +94,64 @@ brandLogo.src=MONO_LOGO_WHITE;
 function syncHeaderScroll(){
   siteHeader.classList.toggle('is-scrolled',window.scrollY>40);
 }
-// Fase 6, fundo ambiente (atrás da flag AMBIENT_BG): reaproveita a MESMA
-// imagem do hero já carregada (sem pedido novo). Estático — nada de scroll
-// ou animação — e desligado no mobile/prefers-reduced-motion (CSS cuida
-// disso; aqui só liga/desliga a camada e troca a url quando muda o hero).
+// PageBackdrop (pacote5c, item 2): fundo dinâmico atrás de toda página com
+// hero (home, plataforma, universo, ficha/comparadora do jogo) — reaproveita
+// a MESMA imagem que o hero já carregou (sem pedido novo). Duas divs
+// (#ambientBg/#ambientBg2) alternam pra fazer crossfade de verdade: a nova
+// imagem entra na camada de TRÁS, só então sobe a opacity (nunca apaga a
+// de cima antes de acender a de baixo). #ambientShade é a película —
+// elemento à parte, não herda a opacity translúcida da arte.
 const ambientBgEl=document.getElementById('ambientBg');
+const ambientBg2El=document.getElementById('ambientBg2');
 const ambientShadeEl=document.getElementById('ambientShade');
-// Pacote único, seção 1 (tema [game]): a camada de keyart desfocada passa a
-// ser sempre ligada na ficha do jogo/comparadora (force=true, chamado do
-// route() abaixo) — AMBIENT_BG continua só pra qualquer outro uso opcional
-// que venha a existir fora do tema game.
-// Pacote 2, item 1.3: mode='art' (artwork horizontal, scale 1.15) ou
-// mode='cover' (capa ampliada, scale 1.5 — precisa de mais zoom pra
-// cobrir o fundo já que a capa é vertical/quadrada, não widescreen).
-function updateAmbientBg(url,force,mode){
-  if(!(force||AMBIENT_BG)||!ambientBgEl){
-    if(ambientBgEl)ambientBgEl.hidden=true;
-    if(ambientShadeEl)ambientShadeEl.hidden=true;
-    return;
-  }
-  if(!url){
-    ambientBgEl.hidden=true;ambientBgEl.style.backgroundImage='';
-    if(ambientShadeEl)ambientShadeEl.hidden=true;
-    return;
-  }
-  ambientBgEl.style.backgroundImage=`url("${url}")`;
-  ambientBgEl.classList.toggle('ambient-cover',mode==='cover');
-  ambientBgEl.hidden=false;
+let ambientFrontEl=ambientBgEl;
+let ambientBackdropOn=false;
+// 2.3: prefers-reduced-motion trava no PRIMEIRO slide (o 1º setBackdropArt
+// da rota) e ignora as trocas seguintes causadas pela rotação do hero —
+// mas uma troca de PÁGINA de verdade (navegação) ainda é aplicada.
+const prefersReducedMotionMQ=matchMedia('(prefers-reduced-motion:reduce)');
+let ambientHasFirstArt=false;
+// Pacote 2, item 1.3: mode='art' (artwork horizontal) ou mode='cover'
+// (capa ampliada — precisa de mais zoom, a capa é vertical/quadrada).
+// slow=true (rotação do hero, crossfade 1200ms) · slow=false (troca de
+// página/primeiro slide da rota, 400ms).
+function setBackdropArt(url,mode,slow){
+  if(!url||!ambientBackdropOn||!ambientBgEl||!ambientBg2El)return;
+  if(document.hidden)return;
+  if(slow&&ambientHasFirstArt&&prefersReducedMotionMQ.matches)return;
+  const back=ambientFrontEl===ambientBgEl?ambientBg2El:ambientBgEl;
+  back.style.setProperty('--backdrop-fade',slow?'1200ms':'400ms');
+  back.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`;
+  back.classList.toggle('ambient-cover',mode==='cover');
+  back.hidden=false;
+  void back.offsetWidth; // força o navegador a registrar o background antes de animar opacity
+  back.classList.add('is-visible');
+  ambientFrontEl.classList.remove('is-visible');
+  ambientFrontEl=back;
+  ambientHasFirstArt=true;
   if(ambientShadeEl)ambientShadeEl.hidden=false;
+}
+// Liga/desliga o PageBackdrop pra rota atual (chamado do route() abaixo) e
+// limpa o estado anterior — cada página começa sem arte até seu próprio
+// hero (hydrateHomeHeroWide/hydrateUniverseHero/hydrateIgdbVisuals) resolver
+// a imagem e chamar setBackdropArt/updateAmbientBg de novo.
+function resetBackdrop(on){
+  ambientBackdropOn=on;
+  ambientHasFirstArt=false;
+  [ambientBgEl,ambientBg2El].forEach(el=>{
+    if(!el)return;
+    el.classList.remove('is-visible');
+    el.hidden=true;el.style.backgroundImage='';
+  });
+  ambientFrontEl=ambientBgEl;
+  if(ambientShadeEl)ambientShadeEl.hidden=!on;
+}
+// Compat: ficha do jogo/comparadora (arte FIXA, sem rotação) ainda chamam
+// esta assinatura antiga — por baixo já usa o crossfade de duas camadas.
+function updateAmbientBg(url,force,mode){
+  if(force)ambientBackdropOn=true;
+  if(!url)return;
+  setBackdropArt(url,mode,false);
 }
 // <meta name="theme-color"> acompanha --page-bg (pacote único, seção 1).
 const themeColorMeta=document.getElementById('themeColorMeta');
@@ -130,12 +215,22 @@ function route(){
   const pageTheme=gameSlug?'game':platformSlug?'platform':isUniverseRoute?'universe':'neutral';
   document.documentElement.setAttribute('data-theme',pageTheme);
   applyUniverseChrome(isUniverseRoute?paletteForUniverse(uMap.get(path.slice(10))):platformSlug?paletteForPlatform(platformSlug):gameSlug?paletteForUniverse(gameUniverse):null);
-  updateAmbientBg(null,pageTheme==='game');
+  // Pacote5c, item 2.2: fundo dinâmico em home/plataforma/universo
+  // (--backdrop-art, .35) e na ficha/comparadora do jogo (tema "game",
+  // --backdrop-art-game, .55, mais presente por ser a página dele). Fora
+  // dessas quatro (busca, diretório, merch, inventário, tema, em-alta),
+  // fica desligado — só a cor sólida de sempre.
+  const isHome=path===''||path==='/';
+  resetBackdrop(isHome||pageTheme!=='neutral');
   syncThemeColorMeta();
   navActive(path);
-  // Pacote único, item 4.1: #/multiplataforma (rota antiga, link salvo por
+  // Pacote único, item 4.1: /multiplataforma (rota antiga, link salvo por
   // alguém) redireciona pro diretório — "Multi" não é mais categoria própria.
-  if(path==='/multiplataforma'){location.replace('#/universos');return}
+  // pacote6, item 4: location.replace('#/...') só mudava o hash (não
+  // navegava de verdade) agora que a rota mora no pathname — troca por
+  // replaceState (sem empilhar no histórico, igual o replace fazia) +
+  // chama route() nela mesma pra renderizar o diretório sem reload.
+  if(path==='/multiplataforma'){history.replaceState(null,'','/universos');route();return}
   if(path==='/'||path==='')renderHome();
   else if(path==='/busca')renderSearch(params,token);
   else if(path.startsWith('/jogo/'))renderProduct(path.slice(6),params,token);
@@ -169,8 +264,16 @@ function route(){
   // própria rota de resultado (#/busca) — em qualquer outra rota ele some,
   // pra não ficar um texto "fantasma" de uma busca antiga enquanto navega.
   syncSearchFieldWithRoute(path,params);
+  // pacote6, item 1: baseline do modo de depuração de contraste a cada
+  // troca de rota (sem o parâmetro ?debug=contraste, a função nem roda).
+  // hhwUpdateFilm/hydrateUniverseHero/initHomeCarousel já chamam de novo
+  // quando a imagem do hero resolve ou o slide muda.
+  if(typeof updateContrastDebug==='function')updateContrastDebug();
 }
-window.addEventListener('hashchange',route);
+// pacote6, item 4: troca pra popstate (voltar/avançar do navegador) —
+// navegação normal agora é pushState (initCleanLinks/navigateTo), que
+// não dispara hashchange nenhum.
+window.addEventListener('popstate',route);
 
 /* ---------- busca do cabeçalho + autocomplete ---------- */
 const searchInput=$('#searchInput'),suggestBox=$('#suggest'),searchClearBtn=$('#searchClear');
@@ -188,7 +291,7 @@ searchClearBtn?.addEventListener('click',()=>{
   searchInput.focus();
 });
 let sIndex=-1;
-function goSearch(q){location.hash='#/busca?q='+enc(q)}
+function goSearch(q){navigateTo('/busca?q='+enc(q))}
 function closeSuggest(){suggestBox.hidden=true;sIndex=-1;searchInput.setAttribute('aria-expanded','false')}
 function renderSuggest(raw){
   const list=suggestions(raw);
@@ -348,8 +451,8 @@ function openFiltersDrawer(){
   openOverlay('filterOverlay');
 }
 function collectFilterParams(scope){
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
-  ['cat','genre','cond','plat'].forEach(name=>{
+  const params=parseHash().params;
+  ['cat','genre','cond','plat','console'].forEach(name=>{
     const vals=$$(`${scope} [data-filter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
   });
@@ -360,14 +463,14 @@ function collectFilterParams(scope){
   if(max&&max.value)params.set('max',max.value);else params.delete('max');
   return params;
 }
-function applyParams(params){params.delete('n');location.hash='#/busca?'+params.toString()}
+function applyParams(params){params.delete('n');navigateTo('/busca?'+params.toString())}
 
 // Pacote4 4.6: filtros da página de merch — mesmo padrão de collectFilterParams/
 // applyParams acima, mas com data-mfilter/data-mprice (nunca data-filter/
 // data-price, pra não disparar o listener da busca, que redireciona pra
 // #/busca) e indo pra #/merch.
 function collectMerchFilterParams(scope){
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=parseHash().params;
   ['universo','categoria','origem','tipo'].forEach(name=>{
     const vals=$$(`${scope} [data-mfilter="${name}"]:checked`).map(i=>i.dataset.value);
     if(vals.length)params.set(name,vals.join(','));else params.delete(name);
@@ -377,7 +480,7 @@ function collectMerchFilterParams(scope){
   if(max&&max.value)params.set('max',max.value);else params.delete('max');
   return params;
 }
-function applyMerchParams(params){location.hash='#/merch?'+params.toString()}
+function applyMerchParams(params){navigateTo('/merch?'+params.toString())}
 
 /* ---------- item 7 (rodada 5): dropdowns da barra de filtros (desktop) ---------- */
 function closeAllFdrops(){
@@ -438,33 +541,33 @@ document.addEventListener('click',e=>{
   if(act==='mock-item'){openMockItemModal(btn.dataset.id);return}
   if(act==='offer-tab'){offerState.cond=btn.dataset.cond;$$('.otab',$('#offerTabs')).forEach(t=>t.setAttribute('aria-pressed',String(t===btn)));renderOfferBody();return}
   if(act==='pick-platform'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');p.set('plat',btn.dataset.plat);
-    location.hash=`#/jogo/${btn.dataset.slug}?`+p.toString();return;
+    const p=parseHash().params;p.set('plat',btn.dataset.plat);
+    navigateTo(`/jogo/${btn.dataset.slug}?`+p.toString());return;
   }
   if(act==='more-rows'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');p.set('n',btn.dataset.n);
-    location.hash='#/busca?'+p.toString();return;
+    const p=parseHash().params;p.set('n',btn.dataset.n);
+    navigateTo('/busca?'+p.toString());return;
   }
   if(act==='clear-filters'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const q=p.get('q')||'';[...p.keys()].forEach(k=>p.delete(k));if(q)p.set('q',q);
-    location.hash='#/busca'+(q?'?q='+enc(q):'');return;
+    navigateTo('/busca'+(q?'?q='+enc(q):''));return;
   }
   if(act==='rm-filter'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const k=btn.dataset.k;
-    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'){
+    if(k==='cat'||k==='genre'||k==='cond'||k==='plat'||k==='console'){
       const vals=(p.get(k)||'').split(',').filter(v=>v&&v!==btn.dataset.v);
       if(vals.length)p.set(k,vals.join(','));else p.delete(k);
     }else p.delete(k);
-    location.hash='#/busca?'+p.toString();return;
+    navigateTo('/busca?'+p.toString());return;
   }
   if(act==='open-filters'){openFiltersDrawer();return}
   if(act==='apply-pricebar'){applyParams(collectFilterParams('.filterbar'));return}
   if(act==='merch-apply-pricebar'){applyMerchParams(collectMerchFilterParams('.merch-filterbar'));return}
-  if(act==='merch-clear-filters'){location.hash='#/merch';return}
+  if(act==='merch-clear-filters'){navigateTo('/merch');return}
   if(act==='merch-rm-filter'){
-    const p=new URLSearchParams(location.hash.split('?')[1]||'');
+    const p=parseHash().params;
     const k=btn.dataset.k;
     if(k==='preco'){p.delete('min');p.delete('max')}
     else if(k==='universo'||k==='categoria'||k==='origem'||k==='tipo'){
@@ -484,7 +587,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:cur&&cur.status===status?null:status});
     refreshSaveButtons();openSaveModal(saveTargetId);
     toast(status==='owned'?'Marcado como Tenho.':status==='saved'?'Anúncio salvo no seu Inventário.':'Adicionado à sua lista de Quero.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='toggle-alert'){
@@ -493,7 +596,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{alert:al,status:(cur&&cur.status)||'wanted'});
     refreshSaveButtons();openSaveModal(saveTargetId);
     toast(al?'Interesse em alerta salvo neste aparelho. Ainda não enviamos notificações.':'Alerta removido.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='clear-status'){
@@ -501,7 +604,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:null,alert:false});
     refreshSaveButtons();closeOverlay('saveOverlay');
     toast('Removido do seu Inventário.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   if(act==='save-snapshot'){
@@ -510,7 +613,7 @@ document.addEventListener('click',e=>{
     invSet(ref,{status:'owned',paid:Number.isFinite(price)?price:null,boughtAt:new Date().toISOString()});
     refreshSaveButtons();closeOverlay('saveOverlay');
     toast('Item pessoal salvo no seu Inventário.');
-    if(location.hash.startsWith('#/inventario'))route();
+    if(currentPath()==='/inventario')route();
     return;
   }
   const closeId=btn.closest('.overlay')?.id;
@@ -523,9 +626,16 @@ document.addEventListener('change',e=>{
 $('#filterApply').addEventListener('click',()=>{applyParams(collectFilterParams('#filterBody'));closeOverlay('filterOverlay')});
 
 /* ---------- rodapé: modo demonstração ---------- */
-function updateMockToggleLabel(){$('#mockToggle').textContent=mockOn()?'Desligar modo demonstração':'Ligar modo demonstração'}
-$('#mockToggle').addEventListener('click',()=>{LS.set(KEYS.mock,mockOn()?0:1);updateMockToggleLabel();route();toast(mockOn()?'Modo demonstração ligado: preços e itens de exemplo aparecem com a etiqueta EXEMPLO.':'Modo demonstração desligado.')});
-updateMockToggleLabel();
+// pacote6, item 3: em produção (window.__SITE_ENV__.isProduction, gerado
+// no build) o botão nem aparece — mockOn() já está travado em false, um
+// clique nele seria um toggle morto (LS.set não muda nada, só confunde).
+if(isProductionEnv()){
+  $('#mockToggle')?.closest('span')?.remove();
+}else{
+  function updateMockToggleLabel(){$('#mockToggle').textContent=mockOn()?'Desligar modo demonstração':'Ligar modo demonstração'}
+  $('#mockToggle').addEventListener('click',()=>{LS.set(KEYS.mock,mockOn()?0:1);updateMockToggleLabel();route();toast(mockOn()?'Modo demonstração ligado: preços e itens de exemplo aparecem com a etiqueta EXEMPLO.':'Modo demonstração desligado.')});
+  updateMockToggleLabel();
+}
 
 /* ---------- observador simples para manter botões de salvar sincronizados ---------- */
 const _origInvSet=invSet;
@@ -580,6 +690,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sidebarDrawer&&!sid
 /* ---------- partida ---------- */
 updateBadge();
 
+// pacote6, item 4: redireciona endereço antigo (#/...) pra URL limpa
+// ANTES do 1º route() — senão parseHash() leria a versão velha.
+redirectLegacyHash();
+initCleanLinks();
 route();
 
 
@@ -602,7 +716,7 @@ function closeMobileSearch(){
 document.querySelector('[data-mobile-search]')?.addEventListener('click',openMobileSearch);
 document.getElementById('mobileSearchClose')?.addEventListener('click',closeMobileSearch);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('mobile-search-open'))closeMobileSearch()});
-window.addEventListener('hashchange',closeMobileSearch);
+window.addEventListener('popstate',closeMobileSearch);
 
 /* Destaca a aba ativa da barra inferior (mobile) conforme a rota. */
 function syncMobileBottomActive(){
@@ -614,5 +728,5 @@ function syncMobileBottomActive(){
     else el.removeAttribute('aria-current');
   });
 }
-window.addEventListener('hashchange',syncMobileBottomActive);
+window.addEventListener('popstate',syncMobileBottomActive);
 syncMobileBottomActive();
