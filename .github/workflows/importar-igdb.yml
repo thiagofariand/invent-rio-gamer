@@ -1,0 +1,70 @@
+name: Importar catálogo da IGDB
+
+# pacote7, item 1 — workflow manual (workflow_dispatch, nunca automático).
+# Roda scripts/importar-igdb.mjs. Modo amostra (único implementado por
+# enquanto): só mede, nunca grava catálogo — publica docs/importacao-amostra.md
+# via Pull Request pra revisão (a Action NUNCA altera o catálogo direto na
+# branch, pacote7 "COMO TRABALHAR").
+#
+# Segredos esperados em Settings > Secrets and variables > Actions:
+#   TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET — mesmo par de credenciais do
+#   app Twitch Dev que o site já usa em produção (lá, nomeado
+#   IGDB_CLIENT_ID/IGDB_CLIENT_SECRET nas env da Vercel — ver CLAUDE.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "amostra (só mede, gera relatório) ou completo (aplica o corte escolhido — ainda não implementado)"
+        type: choice
+        options: [amostra, completo]
+        default: amostra
+      corte:
+        description: "Corte de popularidade escolhido (só usado no modo completo, quando existir)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Rodar importação (${{ github.event.inputs.modo }})
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          MODO: ${{ github.event.inputs.modo }}
+          CORTE: ${{ github.event.inputs.corte }}
+        run: node scripts/importar-igdb.mjs
+
+      - name: Abrir Pull Request com o resultado
+        if: github.event.inputs.modo == 'amostra'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "pacote7: amostra de importação IGDB (${{ github.run_id }})"
+          title: "Amostra de importação IGDB — escolher corte"
+          body: |
+            Gerado pela Action "Importar catálogo da IGDB" (modo amostra, run ${{ github.run_id }}).
+
+            Veja `docs/importacao-amostra.md` — contagem por corte de popularidade e exemplos
+            reais de jogos perto de cada borda, por plataforma (Switch, PS4, PS5, Xbox One,
+            Xbox Series X|S) e para o SNES (ocidental e exclusivo-japonês, separados).
+
+            Nenhum jogo foi adicionado ao catálogo neste modo. Escolha um corte e peça o
+            modo completo (ainda não implementado — ver CLAUDE.md/pacote7) pra aplicar de
+            verdade.
+          branch: "pacote7/amostra-igdb-${{ github.run_id }}"
+          add-paths: docs/importacao-amostra.md
+          base: ${{ github.ref_name }}

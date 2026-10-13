@@ -400,8 +400,14 @@ dono, pacote5b final — ver nota abaixo)
   outras "eras" de regra que setavam o mesmo background) ficou transparente.
 
 ## Arquivos de prompt (`docs/`)
-- `docs/prompt-pacote-5e-versoes.md`: pacote atual (rótulo "Ver todos" vai pro ladrilho, sigla centralizada,
-  versões ocultas — os 3 itens feitos). `docs/versoes-candidatas.md`: varredura de obras candidatas (item 3.2).
+- `docs/prompt-pacote-7-expansao.md`: pacote atual (expansão do catálogo via GitHub Action + universos
+  automáticos). Só o item 1 (script + workflow + exemplo de amostra) feito até agora — ver seção própria abaixo.
+- `docs/prompt-pacote-6b-saida.md`: pacote anterior, completo (pasta de saída `dist/` do build + fix da
+  contagem 514/515 — ver seção "Build e pasta de saída" acima).
+- `docs/prompt-pacote-6-lancamento.md`: pacote anterior, completo (hero adaptativo, preço único, EXEMPLO fora
+  de produção, endereços limpos + SEO, Lighthouse).
+- `docs/prompt-pacote-5e-versoes.md`: pacote anterior, completo (rótulo "Ver todos" vai pro ladrilho, sigla
+  centralizada, versões ocultas). `docs/versoes-candidatas.md`: varredura de obras candidatas (item 3.2).
 - `docs/prompt-pacote-5d-correcoes.md`: pacote anterior, completo (4 correções sobre o 5C — fundo dinâmico que
   não aparecia, hero da ficha do jogo sem arte, "Ver todos" duplicado, pílula branca vazia).
 - `docs/prompt-pacote-5c.md`: pacote anterior, completo (hero ancorado à direita, fundo dinâmico, caixa de
@@ -556,3 +562,53 @@ merch, testado localmente com o servidor que imita `cleanUrls`+rewrite, sem rede
   (desktop 1440×770 e mobile 393×852) — a lista completa cobre home, busca, diretórios, merch, 3 plataformas,
   2 universos, 2 jogos, 2 comparativos, 2 itens de merch, 1 tema e os dois arquivos gerados (sitemap.xml,
   robots.txt).
+
+## Pacote7 — expansão do catálogo via GitHub Action (em andamento — só o item 1 feito)
+- **Por quê uma Action e não o build da Vercel**: este ambiente de execução (e o build da Vercel) não tem rede
+  pra `api.igdb.com`; a importação roda numa GitHub Action manual (`workflow_dispatch`,
+  `.github/workflows/importar-igdb.yml`), usando os secrets do repositório `TWITCH_CLIENT_ID`/
+  `TWITCH_CLIENT_SECRET` (mesmo par de credenciais do app Twitch Dev que o site já usa em produção sob os
+  nomes `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET` nas env da Vercel — só o nome do secret é diferente aqui porque o
+  pacote pediu esse nome literal). A Action **nunca** altera o catálogo direto numa branch — sempre abre PR.
+- **Item 1 (script + modo amostra) — feito**: `scripts/importar-igdb.mjs`.
+  - Plataformas atuais: Nintendo Switch (igdbId 130), PS4 (48), PS5 (167), Xbox One (49), Xbox Series X|S
+    (169). Retrô (teste): SNES (19). IDs não confirmados contra a API ao vivo neste ambiente (sem rede pra
+    IGDB no sandbox) — valores estáveis e documentados pela comunidade IGDB; o primeiro run real loga quantos
+    jogos cada plataforma devolveu antes de qualquer filtro, pra pegar na hora se algum ID estiver errado
+    (viria zerado).
+  - Filtro anti-shovelware: campo `category` da IGDB, só aceita 0 (jogo principal), 8 (remake), 9 (remaster).
+    Excluídos, nomeados no pacote: DLC(1)/expansão(2,4)/bundle(3)/mod(5)/episódio(6)/temporada(7)/pacote(13)/
+    atualização(14). **Não nomeados pelo pacote, excluídos por padrão por ambiguidade**: port(11),
+    expanded_game(10), fork(12) — se fizer falta algum porte relevante na amostra, é só acrescentar ao array
+    `CATEGORIAS_PERMITIDAS` no script.
+  - Popularidade: `max(total_rating_count, hypes)` — avaliações (críticas+usuários) OU "quero jogar"
+    pré-lançamento, o que for maior (pensado pra não descartar jogo recém-anunciado e popular que ainda não
+    tem avaliação nenhuma).
+  - **Sinal de lançamento físico — não implementado, documentado**: a IGDB não tem um campo dedicado e
+    confiável pra "teve lançamento físico" (não confirmado contra a documentação ao vivo neste ambiente); o
+    pacote previa usar esse sinal como critério alternativo SE existisse — como não há, o filtro é só
+    popularidade (exatamente o fallback que o próprio pacote pedia pra esse caso).
+  - SNES (item 1b): corte PRÓPRIO e SEPARADO do das plataformas atuais (`CORTES_SNES_OCIDENTAL`/
+    `CORTES_SNES_JAPONES` no script — valores de partida, ajustáveis depois de ver a amostra real). Split
+    ocidental/exclusivo-japonês via `release_dates.region` (região 5 = Japão; 1/2/3/4/8 = Europa/América do
+    Norte/Austrália/Nova Zelândia/Mundial = "ocidental"). A IGDB não tem código de região específico pra
+    Brasil — cartucho brasileiro de SNES era predominantemente NTSC-US (Playtronic licenciava os jogos dos
+    EUA), então "lançado no Brasil" não é distinguível por essa via e não muda a classificação aqui (a região
+    só importa como atributo da OFERTA depois, no catálogo — nunca do jogo).
+  - Rate limit: fila sequencial, ~3,3 requisições/segundo (sem paralelismo), margem sobre o limite de ~4/s da
+    IGDB.
+  - **Validado com dados simulados** (sem rede pra IGDB neste ambiente): `node scripts/importar-igdb.mjs
+    --modo=amostra` sem `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` no ambiente cai automaticamente no gerador
+    de dados fake (distribuição de popularidade em cauda longa, pra validar a lógica de corte/exemplos) e
+    rotula o relatório inteiro como SIMULADO. `docs/importacao-amostra.md` commitado é esse resultado
+    simulado — é só pra o dono ver o FORMATO antes de rodar a Action de verdade; os números e nomes não são
+    reais.
+  - Workflow (`.github/workflows/importar-igdb.yml`): `workflow_dispatch` com inputs `modo`
+    (amostra/completo) e `corte` (string livre). Modo amostra: roda o script e abre PR (via
+    `peter-evans/create-pull-request`) só com `docs/importacao-amostra.md`. Modo completo: o script já tem o
+    ponto de entrada (`rodarCompleto()`) mas ainda não faz nada (ver abaixo) — a Action roda, loga e sai com
+    erro de propósito, pra nunca passar impressão de que completou algo que não fez.
+- **Itens 2 (importação completa + catálogo dividido por plataforma + mescla), 3 (universos automáticos) e 4
+  (documentação final) — NÃO IMPLEMENTADOS ainda**: dependem do dono rodar a Action em modo amostra, escolher
+  o corte vendo nomes reais, e pedir o modo completo (fluxo pedido pelo próprio pacote: "Eu rodo a Action em
+  modo amostra, escolho o corte e peço o modo completo"). Ficam pra uma próxima rodada.
