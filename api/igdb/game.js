@@ -16,6 +16,8 @@ module.exports = async function handler(req, res) {
       query: req.query.q || req.query.title,
       platform: req.query.platform,
       year: req.query.year,
+      heroRatio: req.query.ratio,
+      heroW: req.query.heroW,
       credentials: { clientId, clientSecret }
     });
     return res.status(200).json(result);

@@ -28,11 +28,15 @@ retrô, merch e fã-made. Slogan: "Encontre o item que falta no seu Inventário.
 HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#/games`,
 `#/universo/:slug`, `#/jogo/:slug`, `#/ofertas/:slug?plat=&cond=`, `#/busca?...`).
 - `index.html`, `painel.html` (painel de saúde), `catalog-data.js` (catálogo, gêneros, anos), `mock-data.js`.
-- `src/app-1-core.js` (utilitários, ícones SVG, `coverTile`, `retailChip`, `GENRES`) ·
-  `app-2-search.js` (busca, filtros, `digitalStores`) · `app-3-views.js` (telas, Browse) · `app-main.js` (roteador, eventos) · `style.css`.
+- `src/app-1-core.js` (utilitários, ícones SVG, `coverTile`, `retailChip`, `GENRES`, `semDisco`/`formato`, `MERCH_ITEMS`) ·
+  `app-2-search.js` (busca, filtros, `digitalStores`, `applyDirectStoreLinks`) · `app-3-views.js` (telas, Browse, páginas de merch) · `app-main.js` (roteador, eventos) · `style.css`.
+- `src/data/`: `paleta-universos.json`, `paleta-plataformas.json`, `hero-overrides.json`, `home-heroes.json`,
+  `search-aliases.json`, `merch.json` (fonte única de merch — ver "Merch" abaixo).
+- `assets/icons-categoria.svg`: sprite dos ícones de categoria de merch (`#cat-colecionaveis`, `#cat-casa` etc.).
 - `api/`: `offers.js`, `trending.js`, `ml/{connect,callback,refresh,status}`, `igdb/{game,status}`, `rawg/status`.
 - `lib/`: `mercadolivre.js`, `meli-oauth.js`, `meli-token.js` (renovação automática via Redis Upstash),
-  `igdb.js`, `rawg.js`, `shopee-manual-offers.js`, `http.js`, `trending.js`.
+  `igdb.js` (também devolve `lojas[]`, ver "Links diretos de loja"), `rawg.js`, `shopee-manual-offers.js` (preço manual
+  Shopee **só de jogos** — não confundir com `src/data/merch.json`), `http.js`, `trending.js`.
 - Variáveis: `MELI_CLIENT_ID/SECRET/REDIRECT_URI`, `KV_REST_API_URL/TOKEN` (Redis), `IGDB_CLIENT_ID/SECRET`,
   `RAWG_API_KEY`, `DIAGNOSTICS_SECRET`, `YOUTUBE_API_KEY`, `OPENAI_*`, `CRON_SECRET`. Nunca imprima segredos.
 
@@ -46,7 +50,21 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
   as demais lojas seguem **Usado** até confirmação por anúncio. Só lojas com venda comprovada (as de zero venda estão fora).
 - Mercado Livre: **Novo** via API de catálogo. **Usado** (`sites/MLB/search`) está **bloqueado (403)** para apps não
   certificados → o site usa link de busca externo. `searchUsedListings` fica no arquivo para o dia em que liberar.
-- Rodapé tem aviso de link de afiliado; manter.
+- Rodapé tem aviso de link de afiliado; manter. Crédito de dados "IGDB e RAWG" também no rodapé global (link de volta obrigatório — exigência da RAWG).
+- **Formato físico e pré-venda** (pacote4, seção 2): Sony anunciou (1º/07/2026) que, a partir de jan/2028, jogo novo de
+  PlayStation vem só digital ou caixa física **com código** (sem disco). Campo `semDisco` por jogo (manual no catálogo, ex.
+  GTA VI, ou automático: PlayStation + lançamento ≥ 2028-01-01) deriva `formato` (`fisico-disco`\|`fisico-codigo`\|`digital`).
+  Jogo `semDisco` **nunca** tem oferta/coluna Usado (código de ativação não revende) — nem `sampleOffers` gera, nem a
+  interface mostra; vira o bloco fixo "Sem revenda (código de uso único)". Selo "Disco" (padrão) ou "Físico · código de
+  download" (`semDisco`) na coluna Novo do card de compra e da comparadora.
+  Estado de lançamento (`releaseState`, a partir de `releaseDate` + `preVenda` manual): `pre-venda` (data futura +
+  `preVenda:true`) \| `anunciado` (data futura sem `preVenda`) \| `lancado`. Pílula do hero PRÉ-VENDA/EM BREVE; jogo não
+  lançado também não tem Usado (não existe o que revender ainda); botão "Tenho" vira "Em breve" sem ação.
+- **Links diretos de loja digital** (pacote4, seção 3): `/api/igdb/game` devolve `lojas:[{loja,url,direto:true}]` a partir
+  de `external_games`/`websites` da IGDB — mapeamento de categoria→loja é **best-effort** (não validado contra a API ao
+  vivo neste ambiente; conferir no preview antes de confiar). Campo manual `lojas` no catálogo tem prioridade sobre a
+  IGDB — é o jeito confiável de corrigir PlayStation/Xbox/Nintendo eShop (cujo código de categoria a IGDB não confirma
+  bem). Com link direto: "Ver na {loja} ↗". Sem link direto: "Buscar na {loja} ↗" (nunca deixar parecer ficha do jogo).
 
 **Catálogo**
 - Só entra jogo com **data de lançamento confirmada** (pré-venda aberta vale). Sem data = fora
@@ -61,17 +79,41 @@ HTML/CSS/JS puro + Vercel Functions (Node 24, CommonJS). Roteamento por hash (`#
 - Ano do jogo vem de `collections` por **título exato**; sem entrada lá, não mostra ano.
 - Gêneros: lista curta editorial em `catalog-data.js` (Ação, Aventura, RPG, Luta, Tiro, Corrida, Esporte, Plataforma, Família, Terror).
 
+**Merch** (colecionáveis, decoração, casa, iluminação, vestuário, livros e arte — pacote4, seção 4)
+- Fonte única: `src/data/merch.json` — **não é** `lib/shopee-manual-offers.js` (esse é preço de jogo, schema incompatível).
+  Schema do item: `id,titulo,universo,categoria,origem,tipo,loja,url,preco,precoAtualizadoEm,imagem,imagemFonte,imagemAutorizada,exemplo`.
+- Regra de imagem: só renderiza foto com `imagem` **e** `imagemAutorizada===true` (nunca hospedar/copiar foto de
+  terceiro); sem isso, ícone da categoria (`assets/icons-categoria.svg`) sobre o degradê do universo.
+- Regra de preço: preço + "atualizado há N dias" só com `precoAtualizadoEm` de até 14 dias; passado isso (ou `preco`
+  nulo), "Ver preço na {loja}" sem número.
+- Regra fixa (vale pro site inteiro): nunca link direto pra loja a partir de card/lista — o clique abre `#/item/{id}`;
+  só lá tem o botão de verdade pra loja (`rel="sponsored noopener"`) e o link "Pedir remoção de conteúdo".
+- Busca (`#/busca`) ainda não foi migrada pro merch.json — pendência conhecida, não some itens nem quebra, só usa dado
+  separado (`M.items`, mock-data.js) até alguém migrar `merchRows`/`priceCell` em `app-2-search.js`.
+
 **Visual**
 - Duas fontes: **Georgia (serifa) nos títulos/monogramas + DM Sans** no resto. Nunca `!important` global de fonte.
 - Cabeçalho: logo larga, começa na borda esquerda sem margem. Sem botão "Onde comprar" no hero (o cartão de preço já leva ao comparador).
 - Vidro/translucidez só na navegação (cabeçalho, Browse, gavetas); conteúdo (cards, linhas de oferta) é opaco. Sempre fallback sólido.
 - Ícones de universo: desenho próprio estilizado, sem recriar logo oficial.
 - Comparador abre em **Todos** (Novo+Usado+Digital juntos); botões viram filtro.
+- Tema por tipo de página (`data-theme` no `<html>`, trocado em cada rota — `route()` em `app-main.js`): `game` (ficha do
+  jogo), `platform` (página de plataforma), `universe` (qualquer aba do universo), `neutral` (home, busca, diretório,
+  merch, inventário, tema, o resto). Cor base vem de `applyUniverseChrome()` + paleta do universo/plataforma; sem
+  paleta própria, cai no bloco "padrao" dos tokens `--page-bg`/`--panel-base`/`--action`.
+- Paleta por universo: `src/data/paleta-universos.json` (fundo/painel/ação por franquia, cor **fixa**, sem entrada ali
+  cai no "padrao"); `src/data/paleta-plataformas.json` equivalente para Nintendo/PlayStation/Xbox.
 
-## Estado atual (28/09/2026)
+## Arquivos de prompt (`docs/`)
+- `docs/prompt-pacote-4.md`: pacote atual em execução (seções 1B, 2, 3, 4, 5 feitas; 0.D é este commit).
+- `docs/antigos/prompt-pacote-4 (2).md`: duplicado do pacote 4, arquivado (mesmo conteúdo do atual, mantido só por histórico).
+- `docs/franquias-sem-universo.md`: lista de franquias de 1–2 jogos (não viram universo ainda).
+
+## Estado atual (06/10/2026)
 Feito: catálogo base (Mario, Zelda, CoD, RE, Spider-Man, GoW…), IGDB com 4 heurísticas de capa, Mercado Livre com fallback,
 token com renovação automática + `painel.html`, RAWG isolada (ainda não ligada a páginas), Browse no cabeçalho, filtro de gênero,
-selos Oficial/Varejo, comparador "Todos", página Games em bento (Multi+Retrô lado a lado).
+selos Oficial/Varejo, comparador "Todos", página Games em bento (Multi+Retrô lado a lado). Pacote4 completo: correções da
+vistoria (1B), formato físico/pré-venda (2), links diretos de loja (3), merch com fonte única + página do item (4), avisos (5).
 Se `main` e `Teste-novo-layout` divergirem, confira `git log` — alguns fixes foram feitos primeiro em um e depois portados.
 
 ## Backlog (ordem sugerida)
@@ -97,6 +139,11 @@ aguardando aprovação: Kabum, API de afiliados Shopee, Nuuvem Co-Op.
 - Buscas por texto em APIs externas quebram quando a gente cola um sufixo nosso ("(2023)", nome da plataforma): tenha fallback sem o sufixo.
 - Token do Mercado Livre é rotativo; a URL de redirect do OAuth é a de **produção** (conectar só lá).
 - Não confie em fetch de imagem da IGDB no navegador para ler pixels sem testar CORS; sempre com fallback para a tabela fixa.
+- `hydrateIgdbCovers()` faz `el.innerHTML=coverTile(...)` em qualquer elemento com `data-igdb-cover` quando a capa chega —
+  nunca coloque esse atributo num card/contêiner que já tem outro conteúdo (nome, preço, botão), senão a capa some tudo
+  quando a IGDB responde (bug do item 1.7). `data-igdb-cover` só num slot dedicado (um `<span>`/`<a>` só da capa); texto
+  e botões ficam em elementos **irmãos**, fora do slot. Mesmo cuidado para selos/badges que entram por cima de uma capa
+  (ex. corner-mock de EXEMPLO/PRÉ-VENDA): sempre num wrapper à parte, nunca dentro do próprio elemento com `data-igdb-cover`.
 
 ## Como testar
 `node --check` em cada `.js`; servidor estático (`python3 -m http.server`) + Playwright para screenshots em desktop/tablet/mobile.

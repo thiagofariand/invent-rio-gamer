@@ -1,0 +1,6 @@
+{
+  "_leia-me": "Override manual do hero por jogo (item 6, rodada 5 / pacote único item 6.3). Chave = slug do jogo no catálogo. {\"url\": \"https://images.igdb.com/...\"} troca a arte direto — só aceita o CDN oficial da IGDB, qualquer outra origem é rejeitada no carregamento (console.warn). {\"fallback\": true} força o degradê da franquia + sigla mesmo que a IGDB tenha uma arte disponível, pra quando a arte real é ruim (logo/wordmark, baixa resolução) e ainda não temos uma artwork de troca verificada pra apontar. {\"artworkIndex\": N} ainda não é suportado pelo front — a API hoje só devolve a arte já escolhida pelo pickHero(), não a lista inteira de artworks do jogo.",
+  "halo-infinite": {"fallback": true, "_motivo": "arte padrão da IGDB pra este jogo é um wordmark/logo, não uma cena (ver pacote único item 2.2); sem artwork de troca verificada, melhor o degradê limpo do que o logo esticado."},
+  "fire-emblem-fortunes-weave": {"fallback": true, "_motivo": "mesmo problema (logo em vez de cena) — jogo ainda não lançado (17/09/2026), acervo de artworks da IGDB deve estar bem curto."},
+  "fire-emblem-awakening": {"fallback": true, "_motivo": "mesmo problema — jogo de 2013, a arte principal no IGDB também costuma ser capa/logo, não cena."}
+}

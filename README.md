@@ -1,6 +1,6 @@
-# Inventário Gamer — Beta 1 + Claudinho · Quiet Luxury
+# Inventário Gamer — Teste de Layout Novo · Beta 1
 
-Base completa da **Beta 1 + Claudinho**, agora com a nova direção visual aprovada. Este pacote substitui a sequência `.99x` como ponto de partida e pode ser enviado diretamente para a raiz do repositório no GitHub.
+Pacote completo para a branch paralela **Teste-novo-layout**, preparado a partir do código mais recente da Beta 1 + Claudinho. As mudanças desta branch concentram-se nos ajustes de interface combinados; a branch principal não é alterada.
 
 ## Nova direção visual
 
@@ -10,8 +10,8 @@ Base completa da **Beta 1 + Claudinho**, agora com a nova direção visual aprov
 - Home editorial em três partes: destaque em alta, ofertas em jogos e merch.
 - Hero "Em alta" alternando três franquias, com atualização diária opcional e fallback local.
 - Merch dividido em Produtos oficiais, Feito por fãs e Decoração gamer.
-- Games em mosaico com Multiplataforma, Retrogaming, Nintendo e PlayStation.
-- Universo com hero de franquia, jogos em medalhões e atalhos relacionados.
+- Games em mosaico responsivo: chamada editorial à esquerda, Multiplataforma e Retrogaming acima, Nintendo e PlayStation abaixo.
+- Universo com keyart alternando entre os quatro jogos mais recentes catalogados, painel lateral Meu Inventário com medalhões fixos desses lançamentos, e prateleira de jogos com seleção diária.
 - Página do jogo com hero amplo e os três blocos de compra, colecionáveis e fan-made.
 - Comparador de ofertas em página completa, com resultados à esquerda e ficha do jogo à direita.
 - No celular, a ficha do jogo aparece antes das ofertas e a página Games segue a ordem Multi/Retro, Nintendo e PlayStation.
@@ -119,6 +119,13 @@ curl -H "x-inventario-diagnostics: SEU_SEGREDO" https://inventario-gamer.vercel.
 - `api/offers.js`: se o Mercado Livre responder token vencido, renova uma vez e repete a consulta.
 - `/painel.html`: painel de saúde em português (Mercado Livre, IGDB, RAWG). Pede o `DIAGNOSTICS_SECRET` no navegador (fica só em `sessionStorage`); dispensa terminal/curl.
 - `lib/rawg.js` + `/api/rawg/status`: RAWG isolada (chave `RAWG_API_KEY`). Ainda não ligada em nenhuma página — planejado: nota Metacritic na ficha do jogo e cross-check da IGDB.
+
+## Rótulos de loja e condição (decisões de produto)
+
+- **Oficial** só com prova real (eShop, PlayStation Store, Steam). Nuuvem = "Varejo autorizado". Mercado Livre, Shopee e Gamer Hut = "Varejo/revenda", mesmo sendo lojas grandes e confiáveis.
+- Gamer Hut (`lib/shopee-manual-offers.js`) entra como **Novo** por decisão do dono do projeto; as demais lojas manuais seguem **Usado** até confirmação por anúncio.
+- Comparador (`#/ofertas/:slug`) abre em **Todos** (Novo + Usado + Digital juntos); os botões de formato viram filtro.
+- Gêneros: classificação editorial em `catalog-data.js` (`genreByTitle` → `genreByFranchise`). Alimenta o filtro `&genre=` da busca e o menu **Browse** (Games ▾): colunas PlayStation | Nintendo, só com gêneros que têm jogo naquela plataforma. "Ver tudo" aponta pra busca filtrada por plataforma até existir a homepage de plataforma.
 
 ## Limitação consciente do Mercado Livre
 

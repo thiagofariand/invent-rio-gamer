@@ -1,0 +1,348 @@
+{
+  "_leia-me": "Paleta v2 por universo (swatches2.html). fundo=cor de fundo da pagina; painel=cor base dos paineis; acao=cor do botao de acao (FAB) com texto acaoTexto; segundaCor=cor de marca original quando o universo tem duas. Slugs provisorios: conferir com os slugs do catalogo.",
+  "padrao": {
+    "fundo": "#1f0b14",
+    "painel": "#2a1019",
+    "acao": "#E64236",
+    "acaoTexto": "#000000"
+  },
+  "universos": [
+    {
+      "slug": "mario",
+      "nome": "Super Mario",
+      "seed": "#E4000F",
+      "fundo": "#a70008",
+      "painel": "#a00007",
+      "acao": "#3d7dff",
+      "acaoTexto": "#000000",
+      "segundaCor": "#0044CC",
+      "aliases": [
+        "mario",
+        "mario kart"
+      ]
+    },
+    {
+      "slug": "the-legend-of-zelda",
+      "nome": "The Legend of Zelda",
+      "seed": "#1E7B34",
+      "fundo": "#00561b",
+      "painel": "#005a1d",
+      "acao": "#a38200",
+      "acaoTexto": "#000000",
+      "segundaCor": "#D4AF37"
+    },
+    {
+      "slug": "pokemon",
+      "nome": "Pokémon",
+      "seed": "#FFCB05",
+      "fundo": "#7a5f00",
+      "painel": "#695200",
+      "acao": "#f5221e",
+      "acaoTexto": "#000000",
+      "segundaCor": "#EE1515"
+    },
+    {
+      "slug": "sonic",
+      "nome": "Sonic",
+      "seed": "#0089CF",
+      "fundo": "#00649a",
+      "painel": "#005684",
+      "acao": "#eb3c2d",
+      "acaoTexto": "#000000",
+      "segundaCor": "#DA291C"
+    },
+    {
+      "slug": "kirby",
+      "nome": "Kirby",
+      "seed": "#F49AC1",
+      "fundo": "#99486e",
+      "painel": "#893a60",
+      "acao": "#bb678d",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "god-of-war",
+      "nome": "God of War",
+      "seed": "#7A1F1F",
+      "fundo": "#7a1f1f",
+      "painel": "#892d2b",
+      "acao": "#c6655f",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "resident-evil",
+      "nome": "Resident Evil",
+      "seed": "#8A0303",
+      "fundo": "#8a0303",
+      "painel": "#981b14",
+      "acao": "#d6584a",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "spider-man",
+      "nome": "Marvel's Spider-Man",
+      "seed": "#1D4ED8",
+      "fundo": "#0a35bf",
+      "painel": "#103dc7",
+      "acao": "#ec3934",
+      "acaoTexto": "#000000",
+      "segundaCor": "#DC2626",
+      "aliases": [
+        "marvel spider man"
+      ]
+    },
+    {
+      "slug": "call-of-duty",
+      "nome": "Call of Duty",
+      "seed": "#4B5320",
+      "fundo": "#444b18",
+      "painel": "#49511e",
+      "acao": "#838c58",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "grand-theft-auto",
+      "nome": "Grand Theft Auto",
+      "seed": "#C21F6E",
+      "fundo": "#8e004d",
+      "painel": "#9a0054",
+      "acao": "#de4085",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "assassins-creed",
+      "nome": "Assassin's Creed",
+      "seed": "#8E1B2E",
+      "fundo": "#8b182c",
+      "painel": "#932032",
+      "acao": "#d05b64",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "mortal-kombat",
+      "nome": "Mortal Kombat",
+      "seed": "#B00020",
+      "fundo": "#930019",
+      "painel": "#9f001c",
+      "acao": "#e3464a",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "halo",
+      "nome": "Halo",
+      "seed": "#1E8A6E",
+      "fundo": "#00644e",
+      "painel": "#005844",
+      "acao": "#349a7d",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "elden-ring",
+      "nome": "Elden Ring",
+      "seed": "#B8912F",
+      "fundo": "#7e5f00",
+      "painel": "#6d5200",
+      "acao": "#a68016",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "final-fantasy",
+      "nome": "Final Fantasy",
+      "seed": "#3B5BA5",
+      "fundo": "#25438a",
+      "painel": "#2c4a92",
+      "acao": "#6083d1",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "diablo",
+      "nome": "Diablo",
+      "seed": "#B23A1A",
+      "fundo": "#892000",
+      "painel": "#932300",
+      "acao": "#d55a3c",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "street-fighter",
+      "nome": "Street Fighter",
+      "seed": "#D94A1E",
+      "fundo": "#a62d00",
+      "painel": "#912600",
+      "acao": "#df5025",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "star-wars",
+      "nome": "Star Wars",
+      "seed": "#F5D400",
+      "fundo": "#736300",
+      "painel": "#635500",
+      "acao": "#9b8600",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "persona",
+      "nome": "Persona",
+      "seed": "#D7001D",
+      "fundo": "#9b0012",
+      "painel": "#a00012",
+      "acao": "#f03034",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "metroid",
+      "nome": "Metroid",
+      "seed": "#E85D04",
+      "fundo": "#ac4200",
+      "painel": "#953800",
+      "acao": "#868686",
+      "acaoTexto": "#000000",
+      "segundaCor": "#F2F2F2"
+    },
+    {
+      "slug": "star-fox",
+      "nome": "Star Fox",
+      "seed": "#2E9DCC",
+      "fundo": "#006b91",
+      "painel": "#005c7d",
+      "acao": "#1d92c0",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "f-zero",
+      "nome": "F-Zero",
+      "seed": "#E63946",
+      "fundo": "#b70026",
+      "painel": "#9e0020",
+      "acao": "#e93c48",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "super-smash-bros",
+      "nome": "Super Smash Bros.",
+      "seed": "#6A2C91",
+      "fundo": "#67288d",
+      "painel": "#6d2f94",
+      "acao": "#a366cf",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "warioware",
+      "nome": "WarioWare",
+      "seed": "#C9A227",
+      "fundo": "#7a6000",
+      "painel": "#695200",
+      "acao": "#a48100",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "paper-mario",
+      "nome": "Paper Mario",
+      "seed": "#E8813A",
+      "fundo": "#a04c00",
+      "painel": "#8b4100",
+      "acao": "#cb6717",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "yoshi",
+      "nome": "Yoshi",
+      "seed": "#5CB85C",
+      "fundo": "#057314",
+      "painel": "#00630d",
+      "acao": "#409d42",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "infamous",
+      "nome": "inFAMOUS",
+      "seed": "#2AB6E8",
+      "fundo": "#006c8d",
+      "painel": "#005d7a",
+      "acao": "#0093bf",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "littlebigplanet",
+      "nome": "LittleBigPlanet",
+      "seed": "#B5743C",
+      "fundo": "#8f5113",
+      "painel": "#7e4300",
+      "acao": "#b6753d",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "silent-hill",
+      "nome": "Silent Hill",
+      "seed": "#5C5552",
+      "fundo": "#4d4643",
+      "painel": "#534c49",
+      "acao": "#8c8481",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "stellar-blade",
+      "nome": "Stellar Blade",
+      "seed": "#9C2FA0",
+      "fundo": "#7e0383",
+      "painel": "#87148b",
+      "acao": "#bf52c2",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "need-for-speed",
+      "nome": "Need for Speed",
+      "seed": "#8FD400",
+      "fundo": "#486e00",
+      "painel": "#3d5e00",
+      "acao": "#659800",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "dark-souls",
+      "nome": "Dark Souls",
+      "seed": "#6E5A44",
+      "fundo": "#56432e",
+      "painel": "#5d4a35",
+      "acao": "#97826b",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "the-elder-scrolls",
+      "nome": "The Elder Scrolls",
+      "seed": "#4B3F72",
+      "fundo": "#4b3f72",
+      "painel": "#514579",
+      "acao": "#887db5",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "the-witcher",
+      "nome": "The Witcher",
+      "seed": "#7A5C1E",
+      "fundo": "#5d4200",
+      "painel": "#664801",
+      "acao": "#a08145",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "ea-sports-fc",
+      "nome": "EA Sports FC",
+      "seed": "#1E9E4A",
+      "fundo": "#007330",
+      "painel": "#006328",
+      "acao": "#21a04c",
+      "acaoTexto": "#000000"
+    },
+    {
+      "slug": "alan-wake",
+      "nome": "Alan Wake",
+      "seed": "#C77B1E",
+      "fundo": "#905500",
+      "painel": "#7d4900",
+      "acao": "#bd720c",
+      "acaoTexto": "#000000"
+    }
+  ]
+}

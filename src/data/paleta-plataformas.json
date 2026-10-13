@@ -1,0 +1,6 @@
+{
+  "_leia-me": "Pacote único, seção 1 (tema [platform]): fundo liso (sem keyart) por plataforma de 1ª parte. Mesmo formato de paleta-universos.json (fundo/painel/acao/acaoTexto) para reaproveitar applyUniverseChrome(). Contraste conferido: branco sobre fundo/painel e preto sobre acao, os três pares >= 4.5:1 (ver commit).",
+  "nintendo":    { "fundo": "#a70008", "painel": "#a00007", "acao": "#e3464a", "acaoTexto": "#000000" },
+  "playstation": { "fundo": "#0b3a8c", "painel": "#0f4096", "acao": "#5f8fe6", "acaoTexto": "#000000" },
+  "xbox":        { "fundo": "#0e5a1a", "painel": "#0c6320", "acao": "#3fb55a", "acaoTexto": "#000000" }
+}

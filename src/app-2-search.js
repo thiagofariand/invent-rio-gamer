@@ -1,8 +1,23 @@
 /* ---------- busca no catálogo (local) ---------- */
+// Parte B, item 7e: opcional, atrás da flag SEARCH_MISS_LOG (desligada por
+// padrão) — manda só o termo normalizado quando a busca não acha NADA, pro
+// backend contar no KV (sem IP, sem título cru, sem qualquer identificação).
+// Fire-and-forget: nunca atrasa nem quebra o render da página de busca.
+function logSearchMiss(raw){
+  if(!SEARCH_MISS_LOG)return;
+  const term=normSearch(raw);
+  if(!term)return;
+  try{
+    fetch('/api/trending',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term}),keepalive:true}).catch(()=>{});
+  }catch{/* nunca quebra a busca por causa disso */}
+}
 function scoreTitle(p,q,core){
-  const names=[p.title,...p.aliases].map(norm),fr=norm(p.franchise);
+  const names=[p.title,...p.aliases].map(normSearch),fr=normSearch(p.franchise);
   let s=0;
-  if(q===fr||core===fr)s=80;
+  // Parte B, item 7b: apelido de FRANQUIA (src/data/search-aliases.json,
+  // chave = p.universe) conta igual ao nome literal da franquia bater.
+  const franchiseAliases=franchiseAliasIdx.get(p.universe)||[];
+  if(q===fr||core===fr||franchiseAliases.includes(q)||franchiseAliases.includes(core))s=80;
   else{
     if(names.includes(q))s=120;
     if(names.includes(core))s=Math.max(s,110);
@@ -14,7 +29,7 @@ function scoreTitle(p,q,core){
   return s;
 }
 function matchCatalog(raw){
-  const q=norm(raw);
+  const q=normSearch(raw);
   if(!q)return catalog.map(p=>({p,score:1,variants:p.variants,platform:null}));
   const platform=detectPlatform(raw),core=stripPlatform(raw,platform);
   const out=[];
@@ -59,10 +74,17 @@ function readFilters(params){
   const num=k=>{const v=parseFloat(String(params.get(k)||'').replace(',','.'));return Number.isFinite(v)?v:null};
   return {
     cats:new Set(list('cat')),
+    genres:new Set(list('genre')),
     conds:new Set(list('cond').map(c=>URL_COND[c]).filter(Boolean)),
     plats:new Set(list('plat')),
     min:num('min'),max:num('max'),
-    retro:params.get('retro')==='1'
+    retro:params.get('retro')==='1',
+    // Pacote2, item 4.1: #/busca?universo={slug}&retro=1 — link do card
+    // "Clássicos" da página de universo, escopando a busca pra franquia.
+    universo:params.get('universo')||'',
+    sort:params.get('sort')||'relevancia',
+    // Pacote4 2.5: filtro de estado de lançamento ('' = Todos).
+    lanc:['lancado','pre-venda','anunciado'].includes(params.get('lanc'))?params.get('lanc'):''
   };
 }
 const rowCat=r=>r.kind==='game'?'games':r.item.cat;
@@ -75,9 +97,12 @@ function applyFilters(rows,F){
   return rows.filter(r=>{
     if(F.cats.size&&!F.cats.has(rowCat(r)))return false;
     if(r.kind==='game'){
+      if(F.universo&&r.p.universe!==F.universo)return false;
       if(F.conds.size&&!r.conds.some(c=>F.conds.has(c)))return false;
       if(F.plats.size&&!F.plats.has(r.platform))return false;
       if(F.retro&&!isRetro(r.platform))return false;
+      if(F.lanc&&releaseState(r.p)!==F.lanc)return false;
+      if(F.genres&&F.genres.size&&!(r.p.genres||[]).some(g=>F.genres.has(g)))return false;
       if(F.min!=null||F.max!=null){
         const conds=visibleConds(r,F).filter(c=>c!=='digital');
         const known=conds.map(c=>summaryOf(c,r.p.title,r.platform)).filter(s=>s&&s.min!=null);
@@ -87,7 +112,8 @@ function applyFilters(rows,F){
         }
       }
     }else{
-      if(F.conds.size||F.plats.size||F.retro)return false;
+      if(F.universo&&r.item.universe!==F.universo)return false;
+      if(F.conds.size||F.plats.size||F.retro||F.lanc||(F.genres&&F.genres.size))return false;
       if(F.min!=null&&r.item.price<F.min)return false;
       if(F.max!=null&&r.item.price>F.max)return false;
     }
@@ -132,7 +158,12 @@ function fetchCond(title,platform,cond){
       const st=d&&d.sources&&d.sources.mercado_livre?d.sources.mercado_livre.status:'error';
       res={status:r.ok?(offers.length?'ok':(st==='ok'?'empty':(st||'error'))):'error',offers,t:Date.now()};
     }catch{res={status:'offline',offers:[],t:Date.now()}}
-    if(!res.offers.length&&mockOffers()){res={status:'ok',realStatus:res.status,offers:M.offersFor(title,platform,cond),mock:true,t:Date.now()}}
+    // Pacote3, item 2.1: a lista de anúncios de exemplo agora vem de
+    // sampleOfferList (app-1-core.js), que deriva do MESMO preço único de
+    // sampleOffers(title) usado em toda a vitrine — troca o antigo
+    // M.offersFor(), que tinha sua própria semente e podia divergir do
+    // preço já mostrado no card antes da API responder.
+    if(!res.offers.length&&mockOffers()){res={status:'ok',realStatus:res.status,offers:sampleOfferList(title,{title},cond),mock:true,t:Date.now()}}
     results.set(k,res);
     if(!res.mock&&(res.status==='ok'||res.status==='empty')){const s=summarize(res);sums[k]={t:Date.now(),status:s.status,count:s.count,min:s.min,minDisplay:s.minDisplay,image:s.image||''};LS.set(KEYS.sums,sums)}
     memo.delete(k);
@@ -157,6 +188,19 @@ function rowAction(r){
     return `<button class="btn btn-outline" data-act="open-merch-offers" data-id="${esc(r.item.id)}">Ver ofertas →</button>`;
   }
   return '';
+}
+// Pacote3, item 2.1: preço de exemplo da linha de busca vem do MESMO
+// sampleOffers(title) do resto do site — se o bucket do jogo não inclui
+// esta condição, cai em "sem ofertas" (não inventa mais preço pra toda
+// condição como o antigo demoPrice fazia).
+function purchasePriceMarkup(cond,p,platform){
+  const s=summaryOf(cond,p.title,platform);
+  if(s&&s.status==='ok'&&s.count){
+    return `<span class="purchase-from">a partir de</span><strong>${esc(s.minDisplay)}</strong>${s.mock?mockChip():''}`;
+  }
+  const demo=sampleOffers(p.title,{year:p.year})[cond];
+  if(demo)return `<span class="purchase-from">a partir de</span><strong>${esc(demo.display)}</strong>${mockChip()}`;
+  return `<span class="purchase-from">sem ofertas</span>`;
 }
 function conditionRowMarkup(r,cond){
   const ck=esc(condKey(r,cond));
@@ -215,16 +259,50 @@ async function autoloadPrices(rows,token,F){
 }
 
 /* ---------- lojas digitais e atalhos externos (links de busca reais) ---------- */
+// Pacote4 3.1/3.2/3.3: cada entrada tem `direto` (true = página do jogo na
+// própria loja, false = busca da loja) e, quando faz sentido comparar com
+// um link direto que a IGDB/catálogo possam fornecer pro mesmo nome de
+// loja, `storeKey` (vocabulário de STORE_NAMES em app-1-core.js) — ver
+// applyDirectStoreLinks(), chamada depois de fetchIgdbVisual() resolver.
 function digitalStores(p,platform){
   const out=[];
-  if(platform==='Switch'||platform==='Switch 2')out.push({name:'Nintendo Store',url:`https://www.nintendo.com/pt-br/search/#q=${enc(p.title)}`});
-  if(platform==='PS4'||platform==='PS5')out.push({name:'PlayStation Store',url:`https://store.playstation.com/pt-br/search/${enc(p.title)}`});
+  if(platform==='Switch'||platform==='Switch 2')out.push({kind:'oficial',name:'Nintendo Store',storeKey:'Nintendo',url:`https://www.nintendo.com/pt-br/search/#q=${enc(p.title)}`,direto:false});
+  if(platform==='PS4'||platform==='PS5')out.push({kind:'oficial',name:'PlayStation Store',storeKey:'PlayStation',url:`https://store.playstation.com/pt-br/search/${enc(p.title)}`,direto:false});
   const u=p.universe?uMap.get(p.universe):null;
-  if(u&&u.eco==='Multi')out.push({name:'Steam',url:`https://store.steampowered.com/search/?term=${enc(p.title)}`});
+  if(u&&u.eco==='Multi')out.push({kind:'oficial',name:'Steam',storeKey:'Steam',url:`https://store.steampowered.com/search/?term=${enc(p.title)}`,direto:false});
   const d=D.digitalCatalog[p.title];
-  if(d)out.push({name:'Nuuvem',url:d.url,note:d.platform});
-  if(!out.length)out.push({name:'Nuuvem',url:`https://www.nuuvem.com/br-pt/catalog/page/1/search/${enc(p.title)}`});
+  // d.url já é um link verificado à mão (ver CLAUDE.md) — direto de verdade.
+  if(d)out.push({kind:'autorizado',name:'Nuuvem',url:d.url,note:d.platform,direto:true});
+  if(!out.length)out.push({kind:'autorizado',name:'Nuuvem',url:`https://www.nuuvem.com/br-pt/catalog/page/1/search/${enc(p.title)}`,direto:false});
   return out;
+}
+// Pacote4 3.3: troca o link de busca pelo link direto (catálogo manual ou
+// IGDB, catálogo com prioridade) quando o nome da loja bate — mantém a
+// busca como estava pra qualquer loja sem link direto confirmado.
+function applyDirectStoreLinks(stores,directLinks){
+  if(!directLinks||!directLinks.length)return stores;
+  const byKey=new Map();
+  // directLinks já chega ordenado por prioridade (catálogo antes da IGDB);
+  // a primeira ocorrência de cada loja fica, as próximas são ignoradas.
+  directLinks.forEach(l=>{if(!byKey.has(l.loja))byKey.set(l.loja,l)});
+  return stores.map(s=>{
+    const match=s.storeKey&&byKey.get(s.storeKey);
+    return match?{...s,url:match.url,direto:true}:s;
+  });
+}
+// Pacote4 3.4: tenta a versão pt-br do link da PlayStation Store — best
+// effort (troca o segmento de locale da URL), atrás da flag
+// STORE_LOCALE_BR (desligada por padrão). Sem rede neste ambiente pra
+// validar contra a Store de verdade; documentado no resumo que o teste
+// real depende do preview.
+function psStoreLocaleBR(url){
+  if(!STORE_LOCALE_BR)return url;
+  try{
+    const u=new URL(url);
+    if(!/playstation\.com$/i.test(u.hostname.replace(/^store\./,'')))return url;
+    u.pathname=u.pathname.replace(/^\/[a-z]{2}-[a-z]{2}\//i,'/pt-br/');
+    return u.toString();
+  }catch{return url}
 }
 const ext={
   ml:q=>`https://lista.mercadolivre.com.br/${enc(q)}`,
@@ -249,16 +327,18 @@ function merchLinks(term,cat){
 
 /* ---------- autocomplete (local, sem chamar APIs a cada tecla) ---------- */
 function suggestions(raw){
-  const q=norm(raw);
+  const q=normSearch(raw);
   if(q.length<2)return [];
   const tokens=q.split(' ').filter(Boolean);
   const out=[];
-  const uni=universes.find(u=>u.hasCatalog&&norm(u.name).startsWith(q)&&q.length>=3);
+  // Parte B, item 7b: apelido (franquia ou universo) também sugere — a
+  // sugestão sempre mostra o nome OFICIAL (u.name), nunca o apelido digitado.
+  const uni=universes.find(u=>u.hasCatalog&&(normSearch(u.name).startsWith(q)&&q.length>=3||universeAliasMatch(u,q)));
   if(uni)out.push({type:'universe',u:uni,score:200});
   for(const p of catalog){
     const hay=' '+p.searchText;
     if(!tokens.every(t=>hay.includes(' '+t)))continue;
-    const names=[p.title,...p.aliases].map(norm);
+    const names=[p.title,...p.aliases].map(normSearch);
     let s=60;
     if(names.some(n=>n.startsWith(q)))s=100;else if(names.some(n=>(' '+n).includes(' '+q)))s=85;
     out.push({type:'title',p,score:s-Math.min(p.title.length,40)/100});

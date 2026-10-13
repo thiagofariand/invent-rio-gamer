@@ -1,31 +1,62 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" id="themeColorMeta" content="#2a2622">
 <title>Inventário Gamer — Beta 1 + Claudinho · Quiet Luxury</title>
 <meta name="description" content="Compare jogos novos, usados e digitais, descubra colecionáveis e organize o seu Inventário.">
-<link rel="icon" type="image/png" href="/inventario-logo-header.png?v=Beta1-Claudinho-QL">
-<link rel="stylesheet" href="/src/style.css?v=Beta1-Claudinho-QL">
+<link rel="icon" type="image/png" href="/inventario-logo-header.png?v=Teste-Layout-Beta2">
+<link rel="stylesheet" href="/src/style.css?v=Teste-Layout-Beta2">
 </head>
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
 
+<!-- Tema "game" (pacote único, seção 1): camada fixa de keyart desfocada
+     atrás de tudo na ficha do jogo e na comparadora, reaproveitando a arte
+     do hero já carregada (sem pedido novo) — updateAmbientBg() em
+     app-main.js liga o background-image. #ambientShade é o degradê de
+     legibilidade por cima, um elemento à parte pra não herdar a opacidade
+     de #ambientBg (senão o degradê também ficaria translúcido). -->
+<div id="ambientBg" aria-hidden="true" hidden></div>
+<div id="ambientShade" aria-hidden="true" hidden></div>
+
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="#/" aria-label="Inventário Gamer — início">
-      <img class="brand-logo" src="/inventario-logo-header.png?v=Beta1-Claudinho-QL" alt="Inventário Gamer">
+      <img class="brand-logo brand-logo-desktop" width="216" src="/assets/inventario-logo-darkbg-216.png?v=rodada11" srcset="/assets/inventario-logo-darkbg-216.png?v=rodada11 1x, /assets/inventario-logo-darkbg-432.png?v=rodada11 2x, /assets/inventario-logo-darkbg-648.png?v=rodada11 3x" alt="Inventário Gamer">
+      <!-- rodada11, item 2: logo compacta (sem o subtítulo "GAMES ·
+           COLECIONÁVEIS · OFERTAS") pro cabeçalho de 1 linha do mobile —
+           arquivo próprio agora (inventario-logo-darkbg-compact.png),
+           recortado rente ao desenho igual ao completo. -->
+      <img class="brand-logo brand-logo-mobile" width="180" src="/assets/inventario-logo-darkbg-compact-180.png?v=rodada11" srcset="/assets/inventario-logo-darkbg-compact-180.png?v=rodada11 1x, /assets/inventario-logo-darkbg-compact-360.png?v=rodada11 2x, /assets/inventario-logo-darkbg-compact-540.png?v=rodada11 3x" alt="Inventário Gamer">
     </a>
     <div class="search">
       <span class="s-ico" aria-hidden="true">⌕</span>
       <input id="searchInput" type="search" autocomplete="off" placeholder="Busque por games, franquias ou colecionáveis..." aria-label="Buscar games, franquias ou colecionáveis" aria-expanded="false" aria-controls="suggest" role="combobox" aria-autocomplete="list">
+      <!-- Pacote2, item 3.5: ✕ próprio pra limpar o texto (troca a seta nativa
+           do input[type=search], que não dava pra estilizar em --text-2) —
+           só aparece com texto digitado, diferente do #mobileSearchClose
+           (que fecha a busca em tela cheia no mobile). -->
+      <button type="button" id="searchClear" class="search-clear-btn" aria-label="Limpar busca" hidden>✕</button>
+      <!-- Pacote único, item 7.2: no mobile, a busca abre em tela cheia
+           reaproveitando este MESMO campo (reposicionado via CSS/JS quando
+           body.mobile-search-open) — sem duplicar a lógica de sugestões já
+           ligada em #searchInput/#suggest. Este botão só aparece nesse modo. -->
+      <button type="button" id="mobileSearchClose" class="mobile-search-close" aria-label="Fechar busca">✕</button>
       <div id="suggest" class="suggest" role="listbox" hidden></div>
     </div>
     <button id="searchGo" class="search-go" aria-label="Buscar">Buscar</button>
     <nav class="main-nav" aria-label="Categorias">
-      <a id="nav-games" href="#/games">Games</a>
+      <a id="nav-universos" href="#/universos">Universos</a>
       <a id="nav-merch" href="#/merch">Colecionáveis</a>
     </nav>
+    <button type="button" class="sidebar-drawer-btn" id="sidebarDrawerBtn" aria-expanded="false" aria-controls="sidebarDrawer" aria-label="Abrir menu de navegação">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <a id="nav-inv" class="inv-link" href="#/inventario">
       <svg class="inv-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M8 7V6a4 4 0 0 1 8 0v1M6.5 7.5h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/>
@@ -37,11 +68,38 @@
   </div>
 </header>
 
+<aside class="app-sidebar" id="appSidebar" aria-label="Navegação principal"></aside>
+<div class="sidebar-drawer-overlay" id="sidebarDrawerOverlay" hidden></div>
+<aside class="app-sidebar sidebar-drawer" id="sidebarDrawer" aria-label="Navegação principal" hidden></aside>
+
 <main id="main" tabindex="-1"></main>
 
+<!-- Pacote3, item 3.11: rodapé global em 3 colunas (institucional/explorar/
+     legal) — vira <details> empilhado no mobile (ver CSS: o <summary> só
+     funciona como acordeão abaixo de 900px; no desktop as 3 colunas ficam
+     sempre abertas, o marcador nativo é escondido). As páginas atrás dos
+     links (#/sobre, #/contato, #/privacidade, #/termos, #/aviso-afiliado)
+     são só "Conteúdo em elaboração" por enquanto — o texto jurídico de
+     verdade é o dono quem escreve, não é pra inventar aqui. -->
 <footer class="site-footer">
-  <div class="footer-inner">
-    <span>Inventário Gamer organiza e compara ofertas; a compra acontece na loja de origem.</span>
+  <div class="footer-inner footer-columns">
+    <details class="footer-col" open>
+      <summary>Institucional</summary>
+      <ul><li><a href="#/sobre">Sobre</a></li><li><a href="#/contato">Contato</a></li></ul>
+    </details>
+    <details class="footer-col" open>
+      <summary>Explorar</summary>
+      <ul><li><a href="#/em-alta">Em alta</a></li><li><a href="#/busca?cond=usado">Ofertas</a></li><li><a href="#/universos">Universos</a></li></ul>
+    </details>
+    <details class="footer-col" open>
+      <summary>Legal</summary>
+      <ul><li><a href="#/privacidade">Privacidade</a></li><li><a href="#/termos">Termos</a></li><li><a href="#/aviso-afiliado">Aviso de afiliado</a></li><li><a href="#/contato?assunto=remocao">Remoção de conteúdo</a></li></ul>
+    </details>
+  </div>
+  <div class="footer-inner footer-fine">
+    <span>Inventário Gamer organiza e compara ofertas; a compra acontece na loja de origem. Alguns links são de afiliado: se você comprar por eles, o Inventário pode receber uma pequena comissão, sem custo extra pra você.</span>
+    <span>Marcas e logotipos pertencem aos seus respectivos donos. O Inventário Gamer não é afiliado a Nintendo, Sony ou Microsoft.</span>
+    <span>Dados e imagens de jogos: <a href="https://www.igdb.com" target="_blank" rel="noopener">IGDB</a> e <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>.</span>
     <span><button id="mockToggle" type="button">Modo demonstração</button> · itens de exemplo são sempre identificados.</span>
   </div>
 </footer>
@@ -87,16 +145,29 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <nav class="mobile-bottom" aria-label="Navegação móvel">
-  <a href="#/"><b>⌂</b><span>Início</span></a>
-  <button type="button" data-mobile-search><b>⌕</b><span>Busca</span></button>
-  <a href="#/inventario"><b>▣</b><span>Inventário</span></a>
+  <a href="#/" data-mobile-tab="inicio">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg>
+    <span>Início</span>
+  </a>
+  <a href="#/universos" data-mobile-tab="universos">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+    <span>Universos</span>
+  </a>
+  <button type="button" data-mobile-search data-mobile-tab="busca">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+    <span>Busca</span>
+  </button>
+  <a href="#/inventario" data-mobile-tab="inventario">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="18" height="10" rx="2"/><path d="M3 10a9 9 0 0 1 18 0"/><path d="M10 14h4"/></svg>
+    <span>Inventário</span>
+  </a>
 </nav>
 
-<script src="/catalog-data.js?v=Beta1-Claudinho-QL"></script>
-<script src="/mock-data.js?v=Beta1-Claudinho-QL"></script>
-<script src="/src/app-1-core.js?v=Beta1-Claudinho-QL"></script>
-<script src="/src/app-2-search.js?v=Beta1-Claudinho-QL"></script>
-<script src="/src/app-3-views.js?v=Beta1-Claudinho-QL"></script>
-<script src="/src/app-main.js?v=Beta1-Claudinho-QL"></script>
+<script src="/catalog-data.js?v=Teste-Layout-Beta2"></script>
+<script src="/mock-data.js?v=Teste-Layout-Beta2"></script>
+<script src="/src/app-1-core.js?v=Teste-Layout-Beta2"></script>
+<script src="/src/app-2-search.js?v=Teste-Layout-Beta2"></script>
+<script src="/src/app-3-views.js?v=Teste-Layout-Beta2"></script>
+<script src="/src/app-main.js?v=Teste-Layout-Beta2"></script>
 </body>
 </html>
