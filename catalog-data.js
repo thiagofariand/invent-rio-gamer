@@ -106,7 +106,7 @@ const collections={
     {slug:'god-of-war-iii',title:'God of War III',year:2010,platforms:['PS3','PS4']},
     {slug:'ghost-of-sparta',title:'God of War: Ghost of Sparta',year:2010,platforms:['PSP']},
     {slug:'ascension',title:'God of War: Ascension',year:2013,platforms:['PS3']},
-    {slug:'god-of-war-2018',title:'God of War',year:2018,platforms:['PS4']},
+    {slug:'god-of-war-2018',title:'God of War (2018)',year:2018,platforms:['PS4']},
     {slug:'ragnarok',title:'God of War Ragnarök',year:2022,platforms:['PS4','PS5']}
   ]},
   marvelspiderman:{name:"Marvel's Spider-Man",short:'Spider-Man',icon:'✦',items:[

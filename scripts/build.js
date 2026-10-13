@@ -2,12 +2,23 @@
 // pacote6 — script de build do Vercel (sem function nova, plano Hobby:
 // tudo que é "gerado" roda aqui, no build, e vira arquivo estático).
 //
-// item 3: grava src/env-generated.js com a env REAL do Vercel
+// pacote6b — TUDO que o build produz vai pra dist/ (apagada e recriada
+// a cada build), nunca mais pra raiz do repo. Motivo: com
+// outputDirectory:"." (fix do deploy), a Vercel serve a RAIZ inteira
+// como site estático — isso publicaria CLAUDE.md, docs/, scripts/,
+// package.json etc. outputDirectory:"dist" resolve isso: só o que este
+// script copia pra lá (allowlist abaixo) fica acessível. api/ continua
+// na raiz — functions da Vercel não dependem de outputDirectory.
+//
+// item 3: grava dist/src/env-generated.js com a env REAL do Vercel
 // (VERCEL_ENV, só existe no servidor de build — nunca chega no
 // navegador sozinha) — window.__SITE_ENV__.isProduction é a única forma
 // confiável do cliente saber se está em produção de verdade (nem
 // localhost, nem preview). mockOn() (app-1-core.js) lê essa flag e
-// desliga o modo demonstração (selo EXEMPLO) à força em produção.
+// desliga o modo demonstração (selo EXEMPLO) à força em produção. O
+// src/env-generated.js da RAIZ (committado, isProduction:false) nunca é
+// tocado por este script — é o fallback de quem roda sem build (ex.
+// este sandbox, localhost sem "npm run build").
 //
 // item 4: páginas estáticas por jogo/universo/plataforma/item de merch
 // (título, meta description, canonical, Open Graph/Twitter já escritos
@@ -21,6 +32,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
+const DIST = path.join(ROOT, 'dist');
 const vercelEnv = process.env.VERCEL_ENV || 'development'; // 'production' | 'preview' | 'development'
 const isProduction = vercelEnv === 'production';
 // item 4: domínio pra canonical/OG/sitemap das páginas GERADAS (a home,
@@ -32,17 +44,71 @@ const SITE_URL = (process.env.SITE_URL || 'https://inventario-gamer.vercel.app')
 
 function log(msg) { console.log(`[build] ${msg}`); }
 
-// ---------- item 3: env-generated.js ----------
+// ---------- pacote6b: pasta de saída (dist/) ----------
+// ALLOWLIST — só isso vai pra dist/. Arquivo novo que o front (index.html
+// ou os src/*.js) passe a carregar precisa ser acrescentado aqui, senão
+// fica 404 em produção (cleanUrls/dist não tem fallback de "copiar tudo").
+// Documentado também no CLAUDE.md.
+const DIST_FILES = [
+  'index.html',       // app principal (SPA) — as páginas geradas abaixo são cópias dele
+  'painel.html',       // painel de saúde do dono (/api/ml/connect é o único link)
+  'catalog-data.js',   // catálogo (franquias, gêneros, anos)
+  'mock-data.js',      // dados de demonstração (selo EXEMPLO)
+  'inventario-logo-header.png', // logo do cabeçalho, referenciada direto por index.html
+];
+const DIST_SRC_FILES = [ // src/*.js e style.css carregados por <script>/<link> em index.html
+  'app-1-core.js', 'app-2-search.js', 'app-3-views.js', 'app-main.js', 'style.css',
+];
+const DIST_DIRS = [
+  'assets',     // ícones de plataforma/categoria, logos (exceto assets/_originais — fonte, não servida)
+  'src/data',   // *.json carregados via XHR síncrono em app-1-core.js (paleta, consoles, merch, versões...)
+];
+const DIST_DIR_EXCLUDE = new Set(['_originais']); // pastas de material-fonte, nunca servidas
+// public/img (imagens oficiais de merch já convertidas em .webp pelo
+// fluxo descrito no CLAUDE.md, seção "Merch" — regra de imagem oficial)
+// ainda não existe neste repo (nenhuma imagem enviada pelo dono até
+// agora); quando existir, é copiada pra dist/img automaticamente
+// (excluindo public/img/merch/originais, que é material-fonte).
+const OPTIONAL_DIST_DIRS = [{ from: 'public/img', to: 'img' }];
+
+function rimraf(p) { fs.rmSync(p, { recursive: true, force: true }); }
+function copyFile(from, to) {
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  fs.copyFileSync(from, to);
+}
+function copyDir(fromDir, toDir, excludeNames) {
+  if (!fs.existsSync(fromDir)) return;
+  for (const entry of fs.readdirSync(fromDir, { withFileTypes: true })) {
+    if (excludeNames && excludeNames.has(entry.name)) continue;
+    const from = path.join(fromDir, entry.name);
+    const to = path.join(toDir, entry.name);
+    if (entry.isDirectory()) copyDir(from, to, excludeNames);
+    else copyFile(from, to);
+  }
+}
+
+function prepareDist() {
+  rimraf(DIST);
+  fs.mkdirSync(DIST, { recursive: true });
+  DIST_FILES.forEach(f => copyFile(path.join(ROOT, f), path.join(DIST, f)));
+  DIST_SRC_FILES.forEach(f => copyFile(path.join(ROOT, 'src', f), path.join(DIST, 'src', f)));
+  DIST_DIRS.forEach(d => copyDir(path.join(ROOT, d), path.join(DIST, d), DIST_DIR_EXCLUDE));
+  OPTIONAL_DIST_DIRS.forEach(({ from, to }) => copyDir(path.join(ROOT, from), path.join(DIST, to), DIST_DIR_EXCLUDE));
+  // Páginas geradas de builds anteriores que tenham ficado na RAIZ do
+  // repo (versão pré-pacote6b deste script, antes de existir dist/) —
+  // nunca devem ficar lá, nem fora do git (gitignoradas) nem dentro.
+  ['jogo', 'universo', 'plataforma', 'item', 'sitemap.xml', 'robots.txt'].forEach(p => rimraf(path.join(ROOT, p)));
+  log('dist/ preparada (allowlist copiada, nada da raiz do repo).');
+}
+
+// ---------- item 3: env-generated.js (dentro de dist/, nunca na raiz) ----------
 function writeEnvFile() {
   const content = `// GERADO NO BUILD (scripts/build.js) — não editar à mão.
 // VERCEL_ENV no momento do build: ${vercelEnv}
-// Fallback neste arquivo (committado): development/isProduction:false,
-// pra localhost e qualquer ambiente sem build (ex. este sandbox) sempre
-// terem um valor seguro em vez de 404 no <script>.
 window.__SITE_ENV__={isProduction:${isProduction}};
 `;
-  fs.writeFileSync(path.join(ROOT, 'src', 'env-generated.js'), content);
-  log(`src/env-generated.js gerado (VERCEL_ENV=${vercelEnv}, isProduction=${isProduction})`);
+  fs.writeFileSync(path.join(DIST, 'src', 'env-generated.js'), content);
+  log(`dist/src/env-generated.js gerado (VERCEL_ENV=${vercelEnv}, isProduction=${isProduction})`);
 }
 
 // ---------- item 4: catálogo ----------
@@ -89,6 +155,19 @@ function buildCollectionsIndex(D) {
 // Mesma regra de "universo só existe com 3+ jogos" do app-1-core.js/
 // app-3-views.js (titlesOf(u.slug).length>=3) — aqui contando quantos
 // títulos do catalog caem em cada franquia (slugify(p.franchise)).
+//
+// pacote6b, item 2 (contagem): D.catalog tem UMA ENTRADA POR VARIANT
+// (não por jogo) quando o mesmo título existe em mais de uma plataforma
+// (campo "multiplataforma" — ver CLAUDE.md, "Catálogo"). O contador do
+// inventário na interface (app-1-core.js) conta jogos ÚNICOS por slug
+// igual a este script (seenSlugs) — por isso os dois números já batem
+// hoje (514 páginas geradas = 514 slugs únicos). A diferença citada no
+// pacote ("515 no inventário") não reproduz neste build: ver o número
+// final no log abaixo; se divergir de novo depois de uma mudança no
+// catálogo, o motivo mais provável é um título presente em D.catalog
+// sem entrada em D.collections cujo slugify(title) colida com outro
+// jogo (dois jogos reais, slugs diferentes, títulos quase iguais) — não
+// uma falha deste contador.
 function collectEntities(D) {
   const collByTitle = buildCollectionsIndex(D);
   const games = [];
@@ -138,13 +217,13 @@ function writeEntityPage(template, relPath, headOpts) {
     throw new Error('index.html sem o marcador <!-- pacote6-seo:start/end --> — build cancelado.');
   }
   const html = template.replace(SEO_MARKER, renderHeadBlock(headOpts));
-  const outPath = path.join(ROOT, relPath);
+  const outPath = path.join(DIST, relPath);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, html);
 }
 
 function buildPages() {
-  const template = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const template = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
   const D = loadCatalogData();
   const merch = loadMerch();
   const { games, universes } = collectEntities(D);
@@ -154,7 +233,7 @@ function buildPages() {
     const desc = `${g.title}${g.platform ? ` para ${g.platform}` : ''}${g.year ? ` (${g.year})` : ''} — compare preços novo, usado e digital no Inventário Gamer.`;
     // item 4: noindex pra página sem NENHUMA oferta real depende de preço
     // ao vivo (mesma limitação do item 3 — sem rede neste ambiente pra
-        // checar o Mercado Livre durante o build); fica como pendência
+    // checar o Mercado Livre durante o build); fica como pendência
     // explícita, documentada no CLAUDE.md — toda página de jogo sai
     // indexável por padrão até existir esse sinal.
     writeEntityPage(template, `jogo/${g.slug}.html`, {
@@ -206,26 +285,23 @@ function buildPages() {
     { path: '/busca', priority: '0.3' },
   ].forEach(e => sitemapEntries.push(e));
 
-  log(`${games.length} jogos, ${universes.length} universos (3+ jogos), 3 plataformas, ${merch.length} itens de merch — páginas estáticas geradas.`);
+  log(`${games.length} jogos, ${universes.length} universos (3+ jogos), 3 plataformas, ${merch.length} itens de merch — páginas estáticas geradas em dist/.`);
   return sitemapEntries;
 }
 
-// ---------- sitemap.xml / robots.txt / 404.html ----------
+// ---------- sitemap.xml / robots.txt / 404.html (dentro de dist/) ----------
 function writeSitemap(entries) {
   const urls = entries.map(e => `  <url>\n    <loc>${esc(SITE_URL + e.path)}</loc>\n    <priority>${e.priority}</priority>\n  </url>`).join('\n');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
-  fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), xml);
-  log(`sitemap.xml gerado (${entries.length} URLs, SITE_URL=${SITE_URL}).`);
+  fs.writeFileSync(path.join(DIST, 'sitemap.xml'), xml);
+  log(`dist/sitemap.xml gerado (${entries.length} URLs, SITE_URL=${SITE_URL}).`);
 }
 function writeRobots() {
   const txt = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /painel.html\nSitemap: ${SITE_URL}/sitemap.xml\n`;
-  fs.writeFileSync(path.join(ROOT, 'robots.txt'), txt);
-  log('robots.txt gerado.');
+  fs.writeFileSync(path.join(DIST, 'robots.txt'), txt);
+  log('dist/robots.txt gerado.');
 }
-function write404() {
-  const out = path.join(ROOT, '404.html');
-  if (fs.existsSync(out)) { log('404.html já existe, mantido.'); return; }
-  const html = `<!doctype html>
+const NOT_FOUND_HTML = `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -237,10 +313,20 @@ function write404() {
 <body><main><h1>Essa página não existe</h1><p>O item que você procura pode ter mudado de endereço ou saído do catálogo.</p><a href="/">Voltar ao início</a></main></body>
 </html>
 `;
-  fs.writeFileSync(out, html);
-  log('404.html gerado.');
+function write404() {
+  // Baseline committada na RAIZ do repo (fora de dist/, que é sempre
+  // apagada): só é criada se ainda não existir, pra servir de fonte
+  // estável entre builds. A cópia que de fato é servida vai pra dist/.
+  const baseline = path.join(ROOT, '404.html');
+  if (!fs.existsSync(baseline)) {
+    fs.writeFileSync(baseline, NOT_FOUND_HTML);
+    log('404.html (baseline, raiz do repo) gerado.');
+  }
+  fs.copyFileSync(baseline, path.join(DIST, '404.html'));
+  log('dist/404.html gerado.');
 }
 
+prepareDist();
 writeEnvFile();
 const sitemapEntries = buildPages();
 writeSitemap(sitemapEntries);

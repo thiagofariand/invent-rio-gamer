@@ -41,11 +41,16 @@ pacote6 item 4 — era por hash antes: `#/games`, `#/jogo/:slug` etc.; hoje `/ga
   string no próprio link (ex. "Retrô" → `#/busca?retro=1`) comparam só o path na sidebar agora, não a query —
   o estado "ativo" desses 2 itens específicos pode ficar menos preciso que antes (cosmético, não quebra
   navegação).
-- **Vercel** (`vercel.json`): `cleanUrls:true` (serve `jogo/slug.html` em `/jogo/slug`, sem a extensão) +
-  `trailingSlash:false` + 1 rewrite catch-all (`/(.*)` → `/index.html`, o padrão documentado da Vercel pra SPA —
-  arquivo estático de verdade tem prioridade sobre o rewrite, então as páginas geradas abaixo vencem antes de
-  cair no fallback). Links antigos com `#/` continuam funcionando (`redirectLegacyHash`, acima) — nunca quebra
-  link já compartilhado.
+- **Vercel** (`vercel.json`): `outputDirectory:"dist"` (pacote6b — ver "Build e pasta de saída" abaixo) +
+  `cleanUrls:true` (serve `jogo/slug.html` em `/jogo/slug`, sem a extensão) + `trailingSlash:false` + 1 rewrite
+  (`/((?!api/|.*\.).*)` → `/index.html`) — fallback SPA só pra rota SEM extensão e que não comece com `api/`
+  (pacote6b, item 2: o catch-all antigo, `/(.*)`, devolvia a home com status 200 pra QUALQUER endereço, inclusive
+  arquivo inexistente tipo `/CLAUDE.md` — não vazava conteúdo, já que `dist/` não tem esses arquivos, mas também
+  não dava 404 de verdade. Path com ponto no nome — `.md`, `.js`, `.json`, `.xml` etc. — ou que comece com
+  `api/` cai fora do rewrite; sem arquivo real em `dist/` pra esse path, a Vercel serve o 404.html de verdade,
+  com status 404). Arquivo estático de verdade (inclusive as páginas geradas abaixo) tem prioridade sobre o
+  rewrite, então nunca compete com elas. Links antigos com `#/` continuam funcionando (`redirectLegacyHash`,
+  acima) — nunca quebra link já compartilhado (o hash nem chega no servidor, é só client-side).
 - **Páginas estáticas + SEO** (pacote6, item 4; `scripts/build.js`): pra cada jogo (`jogo/{slug}.html`), universo
   com 3+ jogos (`universo/{slug}.html`), plataforma (`plataforma/{nintendo,playstation,xbox}.html`) e item de
   merch (`item/{id}.html`), o build gera uma cópia de `index.html` — MESMO CSS/JS, o app de verdade assume no
@@ -58,32 +63,52 @@ pacote6 item 4 — era por hash antes: `#/games`, `#/jogo/:slug` etc.; hoje `/ga
   (`c?c.slug:slugify(p.title)`) — sem isso os slugs gerados não bateriam com os que o app usa de verdade.
   Universo só gera página com 3+ jogos (mesma regra de sempre). `sitemap.xml` e `robots.txt` também gerados no
   build, com `SITE_URL` (env da Vercel; sem ela, cai no domínio de produção conhecido hoje —
-  `inventario-gamer.vercel.app` — trocar pelo `.com.br` é só configurar a env). `404.html` só é gerado se ainda
-  não existir (fica committado como baseline; os outros gerados — `jogo/`, `universo/`, `plataforma/`, `item/`,
-  `sitemap.xml`, `robots.txt` — estão no `.gitignore`, regenerados a cada build, nunca committados). **Rode
-  `node scripts/build.js` local pra testar** (gera tudo na hora, fora do commit).
+  `inventario-gamer.vercel.app` — trocar pelo `.com.br` é só configurar a env). Tudo isso (jogo/universo/
+  plataforma/item/sitemap/robots) é gerado DENTRO de `dist/` (pacote6b) — nunca mais na raiz do repo. `404.html`
+  é a exceção: a baseline fica committada na RAIZ (só é criada se ainda não existir); o build copia ela pra
+  `dist/404.html`, que é o arquivo de fato servido. **Rode `node scripts/build.js` local pra testar** (gera tudo
+  em `dist/`, fora do commit — `.gitignore` ignora a pasta inteira).
   - **noindex pra página sem oferta real — NÃO IMPLEMENTADO**: pedido explícito do pacote6 era meta robots
     `noindex, follow` pra jogo sem nenhuma oferta real; isso depende de preço AO VIVO (mesma limitação do item
     3 — sem rede neste ambiente pra checar o Mercado Livre durante o build, e um build que chama a API pra
-    cada um dos 514 jogos também não é desejável de verdade, deixaria o deploy lento). Toda página de jogo sai
+    cada um dos 515 jogos também não é desejável de verdade, deixaria o deploy lento). Toda página de jogo sai
     indexável por padrão hoje. Caminho futuro: um job separado (cron já existe, `/api/trending`) que atualiza
     um `offers-status.json` pequeno que o build lê, ou mover a decisão pro runtime via o cache que
     `/api/offers` já populariza — qualquer um dos dois é trabalho novo, ainda não feito.
-  - **Testado** (Playwright, servidor Node que imita `cleanUrls`+rewrite da Vercel — `python -m http.server`
-    não reproduz isso): carregar `/jogo/breath-of-the-wild` direto (sem `#`, sem reload) funciona, `<title>` e
-    `canonical` corretos, o app assume e renderiza a ficha normal; mesmo teste em `/universo/mario` e
+  - **Testado** (Playwright, servidor Node que imita `cleanUrls`+rewrite da Vercel contra `dist/` — `python -m
+    http.server` não reproduz isso): carregar `/jogo/breath-of-the-wild` direto (sem `#`, sem reload) funciona,
+    `<title>` e `canonical` corretos, o app assume e renderiza a ficha normal; mesmo teste em `/universo/mario` e
     `/item/lego-71438-...`; `/jogo/inexistente-xyz` cai no 404 do próprio app, sem erro. Console limpo em
     home/busca/universos/merch/games/em-alta/inventário/plataforma/comparativo. **Não testado num deploy Vercel
     de verdade** — o comportamento de `cleanUrls`/rewrite em produção precisa ser conferido no preview antes de
     confiar 100%.
-- **Build** (pacote6, item 3; `scripts/build.js`, `vercel.json` → `buildCommand`): roda no build do Vercel (plano
-  Hobby — zero function nova, só arquivo estático). Hoje gera `src/env-generated.js`
-  (`window.__SITE_ENV__={isProduction:bool}`, a partir de `VERCEL_ENV`) — o jeito confiável do cliente saber se
-  está em produção de verdade (nem localhost nem preview conseguem fingir, já que `VERCEL_ENV` só existe no
-  servidor de build). O arquivo fica **committado** com o fallback seguro `isProduction:false` (desenvolvimento),
-  pra localhost e qualquer ambiente sem build (este sandbox incluído) sempre terem um valor — **nunca editar
-  `src/env-generated.js` à mão fora de rodar `node scripts/build.js`**, ele é sobrescrito a cada build de
-  verdade.
+- **Build e pasta de saída** (pacote6, item 3 + **pacote6b** completo — `scripts/build.js`, `vercel.json` →
+  `buildCommand`/`outputDirectory`): roda no build do Vercel (plano Hobby — zero function nova, só arquivo
+  estático). **Pacote6b — por quê `dist/`**: com `outputDirectory:"."` (fix do deploy que tinha ficado
+  `STATIC_BUILD_NO_OUT_DIR`), a Vercel servia a RAIZ do repo inteira como site — isso publicava `CLAUDE.md`,
+  `docs/` (prompts, rascunho de texto legal), `scripts/`, `package.json` etc. `scripts/build.js` agora apaga e
+  recria `dist/` a cada build e só copia pra lá uma **ALLOWLIST** explícita (nunca "copiar tudo menos X" —
+  arquivo novo que o front precise carregar tem que ser ACRESCENTADO nela, ou vira 404 em produção):
+  - Arquivos: `index.html`, `painel.html`, `catalog-data.js`, `mock-data.js`, `inventario-logo-header.png`.
+  - `src/*.js` + `src/style.css` (os 4 módulos do app + a folha de estilo, carregados por `<script>`/`<link>`
+    em `index.html`) — `src/env-generated.js` NÃO é copiado, é gerado direto em `dist/src/env-generated.js`
+    (ver abaixo).
+  - Diretórios inteiros: `assets/` (ícones, logos — exceto `assets/_originais`, material-fonte das logos, nunca
+    servido) e `src/data/` (todo `*.json` carregado via XHR síncrono em `app-1-core.js`: paleta, consoles,
+    merch, versões, home-heroes, search-aliases, hero-overrides).
+  - `public/img/` (opcional — ainda não existe neste repo; quando o dono subir imagem oficial de merch pelo
+    fluxo da seção "Merch" abaixo, o build copia pra `dist/img/` automaticamente, excluindo
+    `public/img/merch/originais/`, que é material-fonte).
+  - `api/` continua na RAIZ do repo, fora de `dist/` — as functions da Vercel não dependem de
+    `outputDirectory`, só os arquivos estáticos.
+  - As páginas geradas (`jogo/`, `universo/`, `plataforma/`, `item/`, `sitemap.xml`, `robots.txt`) e
+    `src/env-generated.js` são escritos DENTRO de `dist/` pelo próprio script (não fazem parte da allowlist
+    copiada — são gerados, não copiados).
+  Gera `dist/src/env-generated.js` (`window.__SITE_ENV__={isProduction:bool}`, a partir de `VERCEL_ENV`) — o
+  jeito confiável do cliente saber se está em produção de verdade (nem localhost nem preview conseguem fingir,
+  já que `VERCEL_ENV` só existe no servidor de build). O `src/env-generated.js` da RAIZ (committado,
+  `isProduction:false`) nunca é tocado por este script — é só o fallback de quem roda sem build (localhost,
+  este sandbox). `.gitignore` ignora `/dist/` inteira; nada do que o build gera é committado.
 - `index.html`, `painel.html` (painel de saúde), `catalog-data.js` (catálogo, gêneros, anos), `mock-data.js`.
 - `src/app-1-core.js` (utilitários, ícones SVG, `coverTile`, `retailChip`, `GENRES`, `semDisco`/`formato`, `MERCH_ITEMS`) ·
   `app-2-search.js` (busca, filtros, `digitalStores`, `applyDirectStoreLinks`) · `app-3-views.js` (telas, Browse, páginas de merch) · `app-main.js` (roteador, eventos) · `style.css`.
@@ -460,14 +485,30 @@ aguardando aprovação: Kabum, API de afiliados Shopee, Nuuvem Co-Op.
   quando a IGDB responde (bug do item 1.7). `data-igdb-cover` só num slot dedicado (um `<span>`/`<a>` só da capa); texto
   e botões ficam em elementos **irmãos**, fora do slot. Mesmo cuidado para selos/badges que entram por cima de uma capa
   (ex. corner-mock de EXEMPLO/PRÉ-VENDA): sempre num wrapper à parte, nunca dentro do próprio elemento com `data-igdb-cover`.
+- **`src/data/paleta-universos.json`-style "tabela de anos por título exato" (`collections` em `catalog-data.js`)
+  exige título ÚNICO por entrada, mesmo quando duas entradas são do MESMO universo em anos diferentes**
+  (pacote6b, item 2): `collections.godofwar.items` tinha DUAS entradas com `title:'God of War'` (a de 2005 E a
+  de 2018) — como a busca é por `Map.set(title,...)` (o último sobrescreve o primeiro), o jogo de 2005 (PS2)
+  ficava com o ANO e o SLUG do jogo de 2018 (`god-of-war-2018`), e o jogo de 2018 de verdade caía no fallback
+  `slugify(título)`, colidindo com o mesmo slug. Resultado visível: contagem "515 jogos no inventário" (conta
+  `catalog.length`, 1 por linha de `D.catalog`, sempre correta) batendo diferente da contagem de páginas
+  geradas pelo build (514 — o script tratava a colisão de slug como "mesmo jogo repetido" e descartava a
+  segunda ocorrência, quando na verdade eram dois jogos DIFERENTES colidindo por um bug de dado). Corrigido
+  ajustando a entrada de 2018 pra `title:'God of War (2018)'` (igual ao título já usado na linha do catálogo
+  principal) — com títulos únicos, os dois jogos resolvem slug e ano certos e os dois números voltam a bater
+  (515 = 515). **Lição**: ao adicionar uma entrada em `collections` pra um remake/relançamento com "(ano)" no
+  título do catálogo principal, o título dentro de `collections.*.items` tem que ser EXATAMENTE esse (com o
+  "(ano)"), nunca o nome "pelado" da franquia — título duplicado ali é silencioso (não dá erro, só embaralha
+  slug/ano de dois jogos).
 
 ## Como testar
 `node --check` em cada `.js`; servidor estático (`python3 -m http.server`) + Playwright para screenshots em desktop/tablet/mobile.
 `/api/offers` precisa rodar como função (use `vercel dev` ou chame o handler direto com `req/res` simulados).
 - **Endereços limpos**: `python3 -m http.server` não reproduz `cleanUrls`/rewrite da Vercel — pra testar
-  `/jogo/{slug}` sem `#`, rode `node scripts/build.js` (gera as páginas estáticas) e sirva com algo que imite
-  `cleanUrls` (serve `jogo/{slug}.html` em `/jogo/{slug}`, com `/index.html` de fallback pro resto) — python puro
-  só serve o `.html` com a extensão.
+  `/jogo/{slug}` sem `#`, rode `node scripts/build.js` (gera `dist/`) e sirva `dist/` com algo que imite
+  `cleanUrls` + o rewrite com exclusão por extensão/`api/` (serve `jogo/{slug}.html` em `/jogo/{slug}`, cai no
+  `index.html` só pra path sem extensão e fora de `api/`, 404 de verdade pro resto) — python puro só serve o
+  `.html` com a extensão e nunca dá 404 pro que não existe.
 - **Lighthouse** (pacote6, item 5): `npx lighthouse <url> --preset=desktop` (desktop) ou sem `--preset` (mobile,
   simula rede/CPU lenta — pontuação de performance mobile é sempre bem mais baixa que desktop, é o throttling
   do próprio Lighthouse, não um bug; no deploy real da Vercel (CDN, compressão) o número sobe). Precisa do
