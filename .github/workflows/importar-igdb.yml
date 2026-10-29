@@ -6,6 +6,12 @@ name: Importar catálogo da IGDB
 # via Pull Request pra revisão (a Action NUNCA altera o catálogo direto na
 # branch, pacote7 "COMO TRABALHAR").
 #
+# pacote7b, item 1: o script agora usa game_type (campo que substituiu
+# category na IGDB) e falha (job vermelho) se qualquer plataforma voltar 0
+# jogos antes do corte de popularidade — por isso o passo abaixo de abrir PR
+# não tem "if: always()": se o script falhar, a Action para aí mesmo, sem
+# publicar relatório vazio como se fosse sucesso.
+#
 # Segredos esperados em Settings > Secrets and variables > Actions:
 #   TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET — mesmo par de credenciais do
 #   app Twitch Dev que o site já usa em produção (lá, nomeado
