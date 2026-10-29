@@ -227,10 +227,16 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
   pré-existente nos 25 mocks antigos, que ainda usam `origem` pro filtro "Origem" da busca de merch).
   `jogosRelacionados` é lista de **slugs do catálogo** (nunca nome livre) — um item pode ligar a mais de um jogo; sem
   jogo correspondente no catálogo, a lista fica vazia (sem link, sem texto solto).
-- **Campos calculados, nunca gravados no JSON**: `preco,loja,url,precoAtualizadoEm,importado` do item são calculados
-  ao carregar (`merchCheapestOffer()` em `app-1-core.js`) a partir da oferta **mais barata sem condição de cupom/
-  pagamento** (`ofertas[].preco`, nunca `precoCondicional`) — fonte única, sem duplicar o preço em dois lugares. Item
-  com `ofertas[]` mas nenhuma oferta com preço (ex. set fora de catálogo na loja oficial) mostra "Indisponível".
+- **Campos calculados, nunca gravados no JSON**: `preco,loja,url,precoAtualizadoEm,importado,condicaoPagamento` do
+  item são calculados ao carregar (`merchCheapestOffer()` em `app-1-core.js`) a partir da oferta **mais barata**
+  (`ofertas[].preco`, **nunca** `precoCondicional` — esse é cupom, nunca entra no "a partir de"; desconto só de
+  Pix, SEM cupom, não é condição no sentido da regra, conta normal) — fonte única, sem duplicar o preço em dois
+  lugares. `it.condicaoPagamento` (copiado da oferta escolhida) é o que faz `merchPriceLine()` escrever "a partir
+  de R$ 438,84 no Pix" em vez de um número pelado que pareceria valer pra qualquer forma de pagamento (bug
+  corrigido no pacote7b, item 3 — antes a etiqueta "no Pix" só aparecia na linha da oferta individual, não no
+  resumo "a partir de" do card/ficha do item). Mesma regra pro cabeçalho de cada grupo por condição
+  (`merchOffersByCondition`, "a partir de" do grupo). Item com `ofertas[]` mas nenhuma oferta com preço (ex. set
+  fora de catálogo na loja oficial) mostra "Indisponível".
 - **Campos por categoria**:
   - `blocos-de-montar` (LEGO e afins): `marca,numeroSet,pecas,ano,faixaEtaria,status` (`status:"aposentado"` vira selo
     "Aposentado (fora de linha)"; `"a-venda"` não tem selo). Condições de oferta: `novo-lacrado`,`usado-completo`
@@ -244,7 +250,8 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
   - Ícone próprio por categoria em `assets/icons-categoria.svg` (`#cat-blocos-de-montar`, `#cat-amiibo`,
     `#cat-livros-mangas`) — nunca o logotipo da marca (LEGO/amiibo só em texto).
 - **Schema da oferta** (`ofertas[]`): `loja,vendedor,anuncio,condicao,preco,precoAnterior,condicaoPagamento,
-  precoCondicional,condicaoCondicional,freteGratis,importado,conferido,pecaUnica,atualizadoEm,url,afiliadoTag`.
+  precoCondicional,condicaoCondicional,freteGratis,importado,conferido,pecaUnica,atualizadoEm,url,afiliadoTag,
+  estado` (campo `estado` adicionado no pacote7b, item 5 — ver "Faxina diária" logo abaixo).
   - `condicaoPagamento` é sufixo do PRÓPRIO `preco` quando ele já exige uma forma de pagamento específica (ex. "no
     Pix" — `preco` já É o valor no Pix, mostrado "R$ 438,84 no Pix", com `precoAnterior` riscado do valor cheio ao
     lado, no mesmo padrão de uma promoção comum).
@@ -278,6 +285,36 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
 - **Colecionáveis de {jogo}** (teste-merch2, item 1): seção na página do jogo, logo abaixo de "Comprar este jogo" —
   fileira de até 12 itens de merch ligados ao jogo via `jogosRelacionados`, "Ver todos →" abre `#/merch` filtrado
   por esse jogo. Sem item ligado, a seção não aparece (nunca mostra vazia).
+
+**Faxina diária das ofertas** (pacote7b, item 5 — `scripts/faxina-ofertas.mjs` +
+`.github/workflows/faxina-ofertas.yml`, agendada 1x/dia 09:00 UTC + manual)
+- Verifica cada URL de `src/data/merch.json`'s `ofertas[].url` (HTTP simples, sem IA, com espera de
+  ~1,2s entre lojas pra não parecer robô). 404/410 → **quebrado**; 403/429/5xx/timeout → **não
+  verificável** (nunca tratado como quebrado — comum no Mercado Livre bloquear requisição simples mesmo
+  de anúncio válido); resto → **ok**.
+- **Nunca apaga oferta.** Só grava `ofertas[].estado` (`"oculto-quebrado"` | `"oculto-pecaunica"` |
+  ausente = visível). Oferta com `estado` nunca conta pro preço calculado (`merchCheapestOffer`) nem
+  aparece na lista (`merchOffersByCondition`) — mas continua no JSON, pra nunca perder o histórico.
+  Uma vez oculta, fica oculta pra sempre até o dono remover o campo `estado` à mão depois de revisar — o
+  script NUNCA re-verifica nem desoculta uma oferta já marcada (evita gastar requisição à toa e
+  respeita "fica oculta até eu revisar", pedido do pacote).
+- `pecaUnica:true` + `atualizadoEm` com mais de 14 dias → oculta direto (`oculto-pecaunica`), sem nem
+  checar a URL — é só conta de data.
+- Gera `docs/faxina-relatorio.md` (resumo + listas de quebradas/ocultadas/não-verificáveis) e abre PR pra
+  `claude/pacote5-final` com o relatório + `merch.json` atualizado — nunca commita direto. Sem nenhuma
+  oferta pra ocultar nesta execução, não abre PR (comportamento padrão do
+  `peter-evans/create-pull-request`: sem diff, sem PR).
+- **Fora do escopo**: `lib/shopee-manual-offers.js` (preço de JOGO, schema em JS — objeto literal, não
+  JSON) não é tocado por esta faxina. Editar esse arquivo por regex num script automático, sem
+  supervisão, é arriscado demais pro ganho (seriam só as ~13 ofertas de lá) — decisão tomada nesta
+  rodada, documentada aqui caso o dono queira migrar esse arquivo pra JSON no futuro e aí sim incluir.
+  Ofertas de jogo que vêm de API (Mercado Livre, via `lib/mercadolivre.js`) também ficam de fora — são
+  buscadas ao vivo a cada visita, não têm URL fixa guardada pra checar num cron.
+- **Validado com dados simulados** (`node scripts/faxina-ofertas.mjs --simular`, sem rede neste ambiente)
+  — confirma a lógica de quebrado/não-verificável/pecaUnica vencida, a idempotência (rodar duas vezes
+  seguidas não re-oculta nem re-verifica o que já está oculto) e que o item some do "a partir de"/da
+  lista assim que ganha `estado` (visto no preview local). Serialização do JSON preserva uma linha por
+  item (igual ao arquivo hoje) pra PR nunca reformatar o arquivo inteiro por causa de 1 campo novo.
 
 **Página de plataforma e diretório de universos** (pacote5) · **Home** voltou pro desenho do Pacote 4 (pedido do
 dono, pacote5b final — ver nota abaixo)
@@ -398,6 +435,48 @@ dono, pacote5b final — ver nota abaixo)
   negativo entra antes da caixa não-posicionada do próprio elemento). A cor da paleta agora vive só em
   **`#ambientAnchor`** (camada 1, elemento próprio, `z-index:-3`, o mais baixo dos quatro) — `<body>` (e as 2
   outras "eras" de regra que setavam o mesmo background) ficou transparente.
+
+**Meu Inventário / "menu de pausa"** (pacote7b, item 4 — substitui o layout do pacote4: amarelo +
+quadriculado azul-marinho + abas em caixinha pelo tema atual do site, greige escuro + `--glass-*`)
+- `renderInventory` (`app-3-views.js`) lê tudo da URL: `view` (`inv` padrão\|`mis` Missões), `cat` (Todos\|
+  Games\|Colecionáveis\|Fan-made\|Quero\|Alertas), `modo` (`grade` padrão\|`lista`), `agr` (agrupar:
+  `nenhum` padrão\|`plataforma`\|`universo`), `q` (busca na coleção), `sel` (item selecionado no painel
+  direito) e `add=1` (cadastro rápido). Único estado que NÃO vai pra URL: `invState` (módulo,
+  `editingId`/`editingTarget`/`addConsole`) — formulário de edição aberto e console escolhido no cadastro
+  rápido, efêmero, zera ao navegar.
+- **"PAUSE MENU"** continua sendo o único elemento "gamer" explícito — pequeno, Press Start 2P (Google
+  Fonts, licença OFL, carregada em `index.html`), cor `--action`. Nunca mais preenche a tela de amarelo.
+- **Categorias** (coluna esquerda, `.pm-rail`/`.pm-cat-item`): ícones de traço (`ico()`, mesmo helper da
+  barra lateral do site) — nunca emoji. Selecionada = mesmo estilo do item ativo da sidebar (contorno +
+  fundo `--glass-3`), nunca preenchida de vermelho.
+- **Grade** (`.inv-grid-slots`, ladrilhos 3:4 via `.cover` padrão): badge coração = `status==='wanted'`;
+  badge "↓ caiu" = `invCaiu()` compara `ultimoPrecoVisto` (gravado só quando a pessoa ABRE o item no
+  painel, `renderInventory`) com o preço atual (`invLivePrice`). **Badge "x2" do mockup de referência NÃO
+  implementado** — o catálogo já junta todas as plataformas de um jogo numa única entrada
+  (`platforms[]`), não existe hoje um caso real de "mesmo jogo salvo duas vezes" pra badge mostrar; ver
+  `docs/referencias/meu-inventario-maquete.dc.html` se precisar revisitar.
+- **Painel direito** (`invDetailMarkup`): muda por status. Tenho: `adicionadoEm` (= `addedAt`, sempre
+  existiu), `valorPago`/`condicao` (campos novos, opcionais, por enquanto só editáveis por um formulário
+  inline simples — sem modal bonito ainda) via "Editar dados"; cai pro `paid` antigo (fluxo de anúncio
+  único/fan-made, `save-snapshot`) quando `valorPago` não foi preenchido. Quero: etiqueta de preço
+  (`.pm-tag`, forma lisa com furinho/barbante, desenhada do zero — não existia componente parecido no
+  site), `precoAlvo` (preço-alvo da missão) e o switch `Avisar quando o preço cair` (`.pm-switch`, também
+  novo). **Sem descrição do jogo no painel** — a sinopse traduzida pro português não existe no catálogo
+  ainda (backlog item 6); a condição do pacote ("só se existir em português") nunca é satisfeita hoje.
+- **Cadastro rápido** (`invQuickAddMarkup`, estado vazio e "+"): busca usa `matchCatalog` (mesmo mecanismo
+  da busca de verdade); "comece pelo seu console" lista os consoles com mais jogos catalogados — sem
+  campo de popularidade no catálogo, os jogos mostrados por console são só os primeiros do array
+  (`catalog`), não um ranking de verdade.
+- **Missões** (`invMissionsMarkup`): lista os itens "Quero", "cumprida" quando o menor preço atual
+  (`invLivePrice`) ≤ `precoAlvo`.
+- **Exportar/Importar**: exporta `{v,exportadoEm,items}` (JSON, baixa na hora); importar faz merge por id
+  (só adiciona o que não existe, nunca sobrescreve).
+- **Mobile** (item 4.8): categorias viram fileira com rolagem horizontal; o painel do item é um "bottom
+  sheet" (`.inv-aside.is-open`, só abre com `?sel=` explícito na URL — nunca ocupa a tela sozinho por
+  padrão) com botão de fechar, pano de fundo e Escape fecham — **foco não fica preso de verdade dentro do
+  sheet** (sem ciclo de Tab), simplificação assumida por tempo; se incomodar na prática, revisitar.
+- **Aba "Museu"**: não criada (pedido explícito do pacote — fica pra depois do lançamento). O mockup de
+  referência (`docs/referencias/meu-inventario-maquete.dc.html`) tem uma aba Museu de exemplo; ignorada.
 
 ## Arquivos de prompt (`docs/`)
 - `docs/prompt-pacote-7-expansao.md`: pacote atual (expansão do catálogo via GitHub Action + universos

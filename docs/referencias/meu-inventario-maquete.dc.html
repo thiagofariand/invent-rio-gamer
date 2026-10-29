@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Meu Inventário</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Press+Start+2P&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#211e1b}
+a{color:#f0a49e}a:hover{color:#ffd0cb}
+.inv-rail{flex:0 0 100px;display:flex;flex-direction:column;gap:6px}
+.inv-slot:hover .inv-art{transform:translateY(-3px)}
+.inv-art{transition:transform .2s}
+@media (max-width:760px){.inv-rail{flex:1 1 100%;flex-direction:row;overflow-x:auto}}
+@media (prefers-reduced-motion:reduce){.inv-art{transition:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #211e1b; color: #f3efe9; font-family: 'DM Sans', system-ui, sans-serif; box-sizing: border-box; padding: 28px 24px 40px">
+<div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Press Start 2P', monospace; font-size: 11px; letter-spacing: 0.08em; color: #f07a70">PAUSE MENU</span>
+<h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Meu Inventário</h1>
+<p style="margin: 0; font-size: 15px; color: #c4bcb1; max-width: 560px">O que você tem, o que está caçando e os avisos de preço. Salvo neste aparelho, sem login.</p>
+</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid #4a443e; color: #f3efe9; text-decoration: none; font-size: 14px; font-weight: 500">← Continuar procurando</a>
+</div>
+
+<div role="tablist" aria-label="Menu de pausa" style="display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #4a443e">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+<button role="tab" aria-selected="{{ t.selected }}" onClick="{{ t.pick }}" disabled="{{ t.disabled }}" style="{{ t.style }}">
+<span>{{ t.label }}</span>
+<sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #3a3531; color: #f3efe9">{{ t.badge }}</span></sc-if>
+<sc-if value="{{ t.soon }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; color: #c4bcb1">em breve</span></sc-if>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ isInv }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px; background: #2b2724; border: 1px solid #4a443e; border-radius: 22px; padding: 16px">
+
+<nav class="inv-rail" aria-label="Categorias do inventário">
+<sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+<button onClick="{{ c.pick }}" aria-pressed="{{ c.pressed }}" style="{{ c.style }}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<sc-if value="{{ c.iTodos }}" hint-placeholder-val="{{ false }}"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></sc-if>
+<sc-if value="{{ c.iGames }}" hint-placeholder-val="{{ false }}"><path d="M6 9h12a3 3 0 0 1 3 3l-1 5a2 2 0 0 1-3.5 1L15 16H9l-1.5 2A2 2 0 0 1 4 17l-1-5a3 3 0 0 1 3-3zM8 11v4M6 13h4M15.5 12.5h.01M17.5 14.5h.01"></path></sc-if>
+<sc-if value="{{ c.iCol }}" hint-placeholder-val="{{ false }}"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5"></path></sc-if>
+<sc-if value="{{ c.iFan }}" hint-placeholder-val="{{ false }}"><path d="M14 4l6 6-9 9H5v-6zM12 6l6 6"></path></sc-if>
+<sc-if value="{{ c.iQuero }}" hint-placeholder-val="{{ false }}"><path d="M12 20s-7-4.4-9-8.6A5 5 0 0 1 12 6.5a5 5 0 0 1 9 4.9C19 15.6 12 20 12 20z"></path></sc-if>
+<sc-if value="{{ c.iAlerta }}" hint-placeholder-val="{{ false }}"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"></path></sc-if>
+</svg>
+<span style="font-size: 11px; font-weight: 500">{{ c.label }}</span>
+</button>
+</sc-for>
+</nav>
+
+<section style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 14px" aria-label="Itens">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">{{ catLabel }}</h2>
+<span style="font-size: 13px; color: #c4bcb1">{{ countLabel }}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<label style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #211e1b; border: 1px solid #4a443e">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4bcb1" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Buscar na coleção</span>
+<input type="search" placeholder="Buscar na coleção" style="background: transparent; border: 0; outline: none; color: #f3efe9; font: inherit; font-size: 14px; width: 170px">
+</label>
+<button style="min-height: 40px; padding: 0 12px; border-radius: 12px; background: #211e1b; border: 1px solid #4a443e; color: #f3efe9; font: inherit; font-size: 13px">Agrupar: Plataforma ▾</button>
+<button aria-label="Ver em lista" style="min-width: 40px; min-height: 40px; border-radius: 12px; background: #211e1b; border: 1px solid #4a443e; display: grid; place-items: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f3efe9" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 14px; background: #24211e; border-radius: 16px; padding: 14px">
+<sc-for list="{{ items }}" as="item" hint-placeholder-count="10">
+<button class="inv-slot" onClick="{{ item.pick }}" aria-label="{{ item.aria }}" aria-pressed="{{ item.pressed }}" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<div class="inv-art" style="{{ item.artStyle }}">
+<span style="font-size: 24px; font-weight: 700; color: #ffffff; opacity: 0.9">{{ item.sigla }}</span>
+<span style="position: absolute; left: 6px; bottom: 6px; font-size: 10px; font-weight: 700; color: #ffffff; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 6px">{{ item.plat }}</span>
+<div style="position: absolute; top: 6px; right: 6px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end">
+<sc-if value="{{ item.qtd }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; font-weight: 700; color: #211e1b; background: #f3efe9; padding: 2px 6px; border-radius: 6px">{{ item.qtd }}</span></sc-if>
+<sc-if value="{{ item.quero }}" hint-placeholder-val="{{ false }}"><span style="display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: #f3efe9"><svg width="13" height="13" viewBox="0 0 24 24" fill="#c0392b" aria-hidden="true"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"></path></svg></span></sc-if>
+<sc-if value="{{ item.caiu }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #102a43; background: #9fd3ff; padding: 2px 6px; border-radius: 6px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#102a43" stroke-width="3" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>caiu</span></sc-if>
+</div>
+</div>
+<span style="font-size: 12px; font-weight: 500; color: #f3efe9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ item.nome }}</span>
+</button>
+</sc-for>
+<sc-for list="{{ vazios }}" as="v" hint-placeholder-count="3">
+<button aria-label="Adicionar à coleção" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 6px">
+<div style="aspect-ratio: 3 / 4; border-radius: 12px; border: 2px dashed #5a534c; display: grid; place-items: center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c4bcb1" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+</div>
+<span style="font-size: 12px; color: #c4bcb1">Adicionar</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<aside style="flex: 1 1 280px; max-width: 100%; background: #24211e; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px" aria-label="Item selecionado">
+<div style="{{ det.artStyle }}">
+<span style="font-size: 54px; font-weight: 700; color: #ffffff; opacity: 0.9">{{ det.sigla }}</span>
+<span style="position: absolute; left: 10px; bottom: 10px; font-size: 11px; color: #ffffff; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 6px">capa oficial aqui</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #c4bcb1">{{ det.universo }}</span>
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2">{{ det.nome }}</h3>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 13px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Plataforma</span><span style="font-weight: 500">{{ det.platFull }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Na coleção</span><span style="font-weight: 500">{{ det.status }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; grid-column: span 2"><span style="color: #c4bcb1">Condição</span><span style="font-weight: 500">{{ det.condicao }}</span></div>
+</div>
+
+<sc-if value="{{ det.owned }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #e4ddd2">{{ det.desc }}</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; border-radius: 12px; background: #2b2724; font-size: 13px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Adicionado em</span><span style="font-weight: 500">[data]</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Valor pago</span><span style="font-weight: 500">R$ [pago]</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; grid-column: span 2"><span style="color: #c4bcb1">Condição</span><span style="font-weight: 500">{{ det.condicao }}</span></div>
+</div>
+<button style="align-self: flex-start; min-height: 40px; padding: 0 12px; border-radius: 10px; background: transparent; border: 1px solid #4a443e; color: #f3efe9; font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 6px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f3efe9" stroke-width="2" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"></path></svg>Editar dados</button>
+<div style="display: flex; gap: 10px">
+<a href="#" style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 12px; background: #e04a3f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px">Ver página do jogo →</a>
+<button style="min-height: 46px; padding: 0 16px; border-radius: 12px; background: transparent; border: 1px solid #5a534c; color: #f3efe9; font: inherit; font-size: 14px">Remover</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ det.wanted }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center">
+<svg width="34" height="40" viewBox="0 0 34 40" fill="none" aria-hidden="true"><path d="M2 6c10 2 18 8 26 14" stroke="#c4bcb1" stroke-width="1.5" stroke-linecap="round"></path></svg>
+<div style="position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 16px 10px 26px; background: #f3efe9; color: #211e1b; border-radius: 4px 12px 12px 4px">
+<span style="position: absolute; left: 9px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 999px; background: #24211e"></span>
+<span style="font-size: 11px; font-weight: 500; color: #5a534c">Menor preço agora</span>
+<span style="font-size: 18px; font-weight: 700">{{ det.preco }}</span>
+</div>
+</div>
+<span style="font-size: 13px; color: #c4bcb1">Missão: conseguir por até <strong style="color: #f3efe9">{{ det.alvo }}</strong></span>
+<button role="switch" aria-checked="{{ alertOn }}" onClick="{{ toggleAlert }}" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 12px; border-radius: 12px; background: #2b2724; border: 0; color: #f3efe9; font: inherit; font-size: 13px; cursor: pointer">
+<span>Avisar quando o preço cair</span>
+<span style="{{ trackStyle }}"><span style="{{ knobStyle }}"></span></span>
+</button>
+<div style="display: flex; gap: 10px">
+<a href="#" style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 12px; background: #e04a3f; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px">Ver ofertas →</a>
+<button style="min-height: 46px; padding: 0 16px; border-radius: 12px; background: transparent; border: 1px solid #5a534c; color: #f3efe9; font: inherit; font-size: 14px">Remover</button>
+</div>
+</div>
+</sc-if>
+</aside>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+<div style="display: flex; align-items: baseline; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #2b2724; border: 1px solid #4a443e">
+<span style="font-size: 18px; font-weight: 700">{{ s.n }}</span>
+<span style="font-size: 13px; color: #c4bcb1">{{ s.label }}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="font-size: 12px; color: #c4bcb1">Salvo só neste aparelho</span>
+<button style="min-height: 44px; padding: 0 16px; border-radius: 12px; background: #2b2724; border: 1px solid #4a443e; color: #f3efe9; font: inherit; font-size: 13px; font-weight: 500">Exportar coleção</button>
+<button style="min-height: 44px; padding: 0 16px; border-radius: 12px; background: #2b2724; border: 1px solid #4a443e; color: #f3efe9; font: inherit; font-size: 13px; font-weight: 500">Importar</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMis }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; background: #2b2724; border: 1px solid #4a443e; border-radius: 22px; padding: 20px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">Missões</h2>
+<span style="font-size: 13px; color: #c4bcb1">O que você está caçando e o preço que topa pagar. A missão se cumpre quando alguma loja chegar lá.</span>
+</div>
+<button style="min-height: 44px; padding: 0 18px; border-radius: 12px; background: #e04a3f; border: 0; color: #ffffff; font: inherit; font-size: 14px; font-weight: 700">+ Nova missão</button>
+</div>
+<sc-for list="{{ missions }}" as="m" hint-placeholder-count="3">
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 14px; border-radius: 16px; background: #24211e; border: 1px solid {{ m.border }}">
+<div style="width: 60px; aspect-ratio: 3 / 4; border-radius: 10px; background: {{ m.cor }}; display: grid; place-items: center; flex: 0 0 60px">
+<span style="font-size: 13px; font-weight: 700; color: #ffffff">{{ m.sigla }}</span>
+</div>
+<div style="flex: 999 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #c4bcb1">{{ m.platFull }}</span>
+<span style="font-size: 16px; font-weight: 700">{{ m.nome }}</span>
+<span style="font-size: 14px">Missão: conseguir por até <strong>{{ m.alvo }}</strong></span>
+<span style="font-size: 13px; color: #c4bcb1">Menor preço agora: {{ m.preco }}</span>
+</div>
+<div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+<span style="{{ m.statusStyle }}">{{ m.statusLabel }}</span>
+<sc-if value="{{ m.done }}" hint-placeholder-val="{{ false }}">
+<a href="#" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 10px; background: #e04a3f; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700">Ver oferta →</a>
+</sc-if>
+<sc-if value="{{ m.open }}" hint-placeholder-val="{{ true }}">
+<button style="min-height: 40px; padding: 0 14px; border-radius: 10px; background: transparent; border: 1px solid #5a534c; color: #f3efe9; font: inherit; font-size: 13px">Editar preço-alvo</button>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMus }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 18px; background: #141210; border: 1px solid #4a443e; border-radius: 22px; padding: 20px">
+
+<section style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 14px" aria-label="Galeria">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">{{ salaTitle }}</h2>
+<span style="font-size: 13px; color: #c4bcb1">{{ musCount }}</span>
+</div>
+<button style="min-height: 44px; padding: 0 16px; border-radius: 12px; background: transparent; border: 1px solid #5a534c; color: #f3efe9; font: inherit; font-size: 13px; font-weight: 500">Escolher peças</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{ uniChips }}" as="u" hint-placeholder-count="5">
+<button onClick="{{ u.pick }}" aria-pressed="{{ u.pressed }}" style="{{ u.style }}">{{ u.label }}</button>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 10px; padding: 14px; border-radius: 16px; background: #1c1916">
+<sc-for list="{{ exhibits }}" as="e" hint-placeholder-count="10">
+<button onClick="{{ e.pick }}" aria-label="{{ e.aria }}" aria-pressed="{{ e.pressed }}" style="{{ e.thumbStyle }}">
+<sc-if value="{{ e.locked }}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 12px; font-weight: 700; color: #34302c">{{ e.sigla }}</span>
+</sc-if>
+<sc-if value="{{ e.unlocked }}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 12px; font-weight: 700; color: #ffffff">{{ e.sigla }}</span>
+</sc-if>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 14px" aria-label="Peça selecionada">
+<div style="position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; padding-top: 20px; border-radius: 16px; background: radial-gradient(ellipse 55% 70% at 50% 15%, rgba(255,240,215,0.20), rgba(255,240,215,0.05) 55%, transparent 80%)">
+<div style="{{ ex.artStyle }}">
+<span style="font-size: 40px; font-weight: 700; color: {{ ex.siglaColor }}">{{ ex.siglaShow }}</span>
+<sc-if value="{{ ex.unlocked }}" hint-placeholder-val="{{ true }}"><span style="position: absolute; left: 8px; bottom: 8px; font-size: 10px; color: #ffffff; background: rgba(0,0,0,0.6); padding: 3px 7px; border-radius: 6px">capa oficial aqui</span></sc-if>
+</div>
+<div aria-hidden="true" style="width: 200px; height: 14px; margin-top: 14px; border-radius: 6px 6px 2px 2px; background: #3a3531; box-shadow: 0 10px 24px rgba(0,0,0,0.6)"></div>
+<div aria-hidden="true" style="width: 170px; height: 26px; background: #2b2724"></div>
+</div>
+
+<article style="width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: #2b2724; border: 1px solid #4a443e">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #f07a70">{{ ex.kicker }}</span>
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2">{{ ex.nome }}</h3>
+<span style="font-size: 13px; color: #c4bcb1">{{ ex.platFull }} · lançado em {{ ex.lancamento }}</span>
+</div>
+<sc-if value="{{ ex.unlocked }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 13px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Na coleção desde</span><span style="font-weight: 500">[data]</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Onde conseguiu</span><span style="font-weight: 500">[loja ou pessoa]</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Preço pago</span><span style="font-weight: 500">R$ [pago]</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Vale hoje</span><span style="font-weight: 500">{{ ex.vale }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; grid-column: span 2"><span style="color: #c4bcb1">Estado</span><span style="font-weight: 500">{{ ex.condicao }}</span></div>
+</div>
+<p style="margin: 0; font-size: 14px; font-style: italic; color: #e4ddd2; border-top: 1px solid #4a443e; padding-top: 10px">“[Uma lembrança desta peça — por exemplo, como ela chegou até você.]”</p>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button style="min-height: 44px; padding: 0 14px; border-radius: 10px; background: #e04a3f; border: 0; color: #ffffff; font: inherit; font-size: 13px; font-weight: 700">Editar ficha</button>
+<button style="min-height: 44px; padding: 0 14px; border-radius: 10px; background: transparent; border: 1px solid #5a534c; color: #f3efe9; font: inherit; font-size: 13px">Compartilhar</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ ex.locked }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 14px; color: #e4ddd2">{{ ex.lockText }}</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 13px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Onde encontrar</span><span style="font-weight: 500">[N] lojas · a partir de {{ ex.preco }}</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="color: #c4bcb1">Recorde de preço</span><span style="font-weight: 500">[menor já visto]</span></div>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-if value="{{ ex.canHunt }}" hint-placeholder-val="{{ true }}"><button style="min-height: 44px; padding: 0 14px; border-radius: 10px; background: #e04a3f; border: 0; color: #ffffff; font: inherit; font-size: 13px; font-weight: 700">Caçar esta peça</button></sc-if>
+<a href="#" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #5a534c; color: #f3efe9; text-decoration: none; font-size: 13px; font-weight: 500">Ver ofertas →</a>
+</div>
+</div>
+</sc-if>
+</article>
+</section>
+</div>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var st = this.state || {};
+    var tab = st.tab || 'inventario';
+    var cat = st.cat || 'todos';
+    var sel = st.sel || 'botw';
+    var alerts = st.alerts || { za: true, dread: true, re4: true, lego: true };
+    var all = [
+      { id: 'odyssey', desc: 'Mario viaja por vários reinos ao lado do Cappy, um chapéu que permite assumir o controle de inimigos e objetos.', lancamento: '2017', nome: 'Super Mario Odyssey', sigla: 'SMO', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'Super Mario', cor: '#a8261d', tipo: 'game', status: 'Tenho', condicao: 'Usado · com caixa', preco: '[preço] · usado', quero: false, caiu: false, qtd: '' },
+      { id: 'botw', desc: 'Link desperta depois de cem anos e explora um Hyrule aberto para enfrentar a Calamidade Ganon.', lancamento: '2017', nome: 'The Legend of Zelda: Breath of the Wild', sigla: 'BotW', plat: 'Switch', platFull: 'Switch e Wii U', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'game', status: 'Tenho (2 versões)', condicao: 'Novo · lacrado', preco: '[preço] · usado', quero: false, caiu: false, qtd: 'x2' },
+      { id: 'za', lancamento: '2025', nome: 'Pokémon Legends: Z-A', sigla: 'Z-A', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'Pokémon', cor: '#8a6408', tipo: 'game', status: 'Quero', condicao: '—', preco: '[preço] · novo', quero: true, caiu: false, qtd: '', alvo: 'R$ [alvo]' },
+      { id: 'dread', desc: 'Samus investiga o planeta ZDR em uma aventura 2D, fugindo dos robôs E.M.M.I. que a perseguem.', lancamento: '2021', nome: 'Metroid Dread', sigla: 'MD', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'Metroid', cor: '#a4480d', tipo: 'game', status: 'Tenho', condicao: 'Usado · com caixa', preco: '[preço] · usado', quero: false, caiu: true, qtd: '' },
+      { id: 'kirby', desc: 'A primeira grande aventura 3D do Kirby, em um mundo misterioso tomado pela natureza.', lancamento: '2022', nome: 'Kirby e a Terra Esquecida', sigla: 'KTE', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'Kirby', cor: '#9c3d6c', tipo: 'game', status: 'Tenho', condicao: 'Usado · sem caixa', preco: '[preço] · usado', quero: false, caiu: false, qtd: '' },
+      { id: 'gowr', desc: 'Kratos e Atreus atravessam os nove reinos da mitologia nórdica enquanto o Ragnarök se aproxima.', lancamento: '2022', nome: 'God of War Ragnarök', sigla: 'GoW', plat: 'PS5', platFull: 'PlayStation 5', universo: 'God of War', cor: '#7a1f1f', tipo: 'game', status: 'Tenho', condicao: 'Usado · com caixa', preco: '[preço] · usado', quero: false, caiu: false, qtd: '' },
+      { id: 're4', lancamento: '2023', nome: 'Resident Evil 4', sigla: 'RE4', plat: 'PS5', platFull: 'PlayStation 5', universo: 'Resident Evil', cor: '#5e1212', tipo: 'game', status: 'Quero', condicao: '—', preco: '[preço] · usado', quero: true, caiu: true, qtd: '', alvo: 'R$ [alvo]', done: true },
+      { id: 'smw', desc: 'Mario e Yoshi atravessam a Dinosaur Land para resgatar a princesa das garras de Bowser.', lancamento: '1990', nome: 'Super Mario World', sigla: 'SMW', plat: 'SNES', platFull: 'Super Nintendo', universo: 'Super Mario', cor: '#a8261d', tipo: 'game', status: 'Tenho', condicao: 'Completo na caixa · americano', preco: '[preço] · usado', quero: false, caiu: false, qtd: '' },
+      { id: 'mipha', desc: 'Figura da Campeã Zora de Breath of the Wild, da série de amiibo dos Campeões.', lancamento: '2017', nome: 'amiibo Mipha', sigla: 'amiibo', plat: 'Figura', platFull: 'amiibo (série Campeões)', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'colecionavel', status: 'Tenho', condicao: 'Novo · lacrado', preco: '[preço] · novo', quero: false, caiu: false, qtd: '' },
+      { id: 'lego', lancamento: '2024', nome: 'LEGO Mario & Yoshi', sigla: 'LEGO', plat: 'Blocos', platFull: 'LEGO 71438', universo: 'Super Mario', cor: '#a8261d', tipo: 'colecionavel', status: 'Quero', condicao: '—', preco: '[preço] · novo', quero: true, caiu: false, qtd: '', alvo: 'R$ [alvo]' },
+      { id: 'quadro', desc: 'Peça feita por artista independente, inspirada no reino de Hyrule.', lancamento: '—', nome: 'Quadro pixel art Hyrule', sigla: 'Fan', plat: 'Fan-made', platFull: 'Peça de artista', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'fanmade', status: 'Tenho', condicao: '—', preco: '—', quero: false, caiu: false, qtd: '' }
+    ];
+    var catDefs = [
+      { id: 'todos', label: 'Todos', iTodos: true },
+      { id: 'games', label: 'Games', iGames: true },
+      { id: 'colecionaveis', label: 'Colecionáveis', iCol: true },
+      { id: 'fanmade', label: 'Fan-made', iFan: true },
+      { id: 'quero', label: 'Quero', iQuero: true },
+      { id: 'alertas', label: 'Alertas', iAlerta: true }
+    ];
+    var match = function (x) {
+      if (cat === 'games') return x.tipo === 'game';
+      if (cat === 'colecionaveis') return x.tipo === 'colecionavel';
+      if (cat === 'fanmade') return x.tipo === 'fanmade';
+      if (cat === 'quero') return x.quero;
+      if (cat === 'alertas') return !!alerts[x.id];
+      return true;
+    };
+    var list = all.filter(match);
+    var art = function (cor, big) {
+      return 'position: relative; aspect-ratio: 3 / 4; border-radius: ' + (big ? '16px' : '12px') + '; background: ' + cor + '; display: grid; place-items: center; box-shadow: 0 6px 14px rgba(0,0,0,0.35)' + (big ? '; width: 100%; max-width: 230px; align-self: center' : '');
+    };
+    var items = list.map(function (x) {
+      var on = x.id === sel;
+      return Object.assign({}, x, {
+        pressed: on ? 'true' : 'false',
+        aria: x.nome + ', ' + x.platFull + ', ' + x.status,
+        artStyle: art(x.cor, false) + (on ? '; outline: 2px solid #f07a70; outline-offset: 3px' : ''),
+        pick: function () { self.setState({ sel: x.id }); }
+      });
+    });
+    var cats = catDefs.map(function (c) {
+      var on = c.id === cat;
+      return Object.assign({}, c, {
+        pressed: on ? 'true' : 'false',
+        style: 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 84px; min-height: 64px; border-radius: 14px; font-family: inherit; cursor: pointer; ' + (on ? 'background: #3a302c; color: #ffffff; border: 1px solid #f07a70' : 'background: transparent; color: #c4bcb1; border: 1px solid transparent'),
+        pick: function () { self.setState({ cat: c.id }); }
+      });
+    });
+    var tabStyle = function (on, off) {
+      return 'display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; background: transparent; border: 0; border-bottom: 2px solid ' + (on ? '#e04a3f' : 'transparent') + '; margin-bottom: -1px; font: inherit; font-size: 15px; font-weight: ' + (on ? '700' : '500') + '; color: ' + (off ? '#8f877d' : (on ? '#f3efe9' : '#c4bcb1')) + '; cursor: ' + (off ? 'default' : 'pointer');
+    };
+    var queroList = all.filter(function (x) { return x.quero; });
+    var tabs = [
+      { id: 'inventario', label: 'Inventário', badge: '', soon: false },
+      { id: 'missoes', label: 'Missões', badge: String(queroList.length), soon: false },
+      { id: 'museu', label: 'Museu', badge: '', soon: false }
+    ].map(function (t) {
+      var on = t.id === tab;
+      return Object.assign({}, t, {
+        selected: on ? 'true' : 'false',
+        disabled: t.soon,
+        style: tabStyle(on, t.soon),
+        pick: function () { if (!t.soon) self.setState({ tab: t.id }); }
+      });
+    });
+    var d = all.filter(function (x) { return x.id === sel; })[0] || all[0];
+    var on = !!alerts[d.id];
+    var labels = { todos: 'Todos', games: 'Games', colecionaveis: 'Colecionáveis', fanmade: 'Fan-made', quero: 'Quero', alertas: 'Alertas de preço' };
+    var totais = { 'Super Mario': '13', 'The Legend of Zelda': '16', 'Pokémon': '26', 'Metroid': '4', 'God of War': '8', 'Resident Evil': '18', 'Kirby': '[N]' };
+    var franq = function (d) { var tem = all.filter(function (x) { return x.universo === d.universo && x.tipo === 'game' && x.status.indexOf('Tenho') === 0; }).length; return 'Você tem ' + tem + ' de ' + (totais[d.universo] || '[N]') + ' jogos de ' + d.universo; };
+    var uni = st.uni || 'todos';
+    var unis = ['todos', 'Super Mario', 'The Legend of Zelda', 'Pokémon', 'Metroid', 'Resident Evil'];
+    var extras = [
+      { id: 'oot', nome: 'The Legend of Zelda: Ocarina of Time', sigla: 'OoT', plat: 'N64', platFull: 'Nintendo 64', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'game', status: 'Falta', condicao: '—', preco: '[preço] · usado', lancamento: '1998' },
+      { id: 'mm', nome: 'The Legend of Zelda: Majora\'s Mask', sigla: 'MM', plat: 'N64', platFull: 'Nintendo 64', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'game', status: 'Falta', condicao: '—', preco: '[preço] · usado', lancamento: '2000' },
+      { id: 'totk', nome: 'The Legend of Zelda: Tears of the Kingdom', sigla: 'TotK', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'The Legend of Zelda', cor: '#1f6b3a', tipo: 'game', status: 'Falta', condicao: '—', preco: '[preço] · usado', lancamento: '2023' },
+      { id: 'sm64', nome: 'Super Mario 64', sigla: 'SM64', plat: 'N64', platFull: 'Nintendo 64', universo: 'Super Mario', cor: '#a8261d', tipo: 'game', status: 'Falta', condicao: '—', preco: '[preço] · usado', lancamento: '1996' },
+      { id: 'wonder', nome: 'Super Mario Bros. Wonder', sigla: 'SMBW', plat: 'Switch', platFull: 'Nintendo Switch', universo: 'Super Mario', cor: '#a8261d', tipo: 'game', status: 'Falta', condicao: '—', preco: '[preço] · usado', lancamento: '2023' }
+    ];
+    var pool = all.filter(function (x) { return x.status.indexOf('Tenho') === 0 || x.status === 'Quero'; }).concat(extras);
+    var rank = function (x) { return x.status.indexOf('Tenho') === 0 ? 0 : 1; };
+    pool.sort(function (p, q) { return rank(p) - rank(q); });
+    var exList = pool.filter(function (x) { return uni === 'todos' || x.universo === uni; });
+    if (!exList.length) exList = pool;
+    var exIdx = (st.ex || 0) % exList.length;
+    var cur = exList[exIdx];
+    var exhibits = exList.map(function (x, i) {
+      var on = i === exIdx; var lk = x.status.indexOf('Tenho') !== 0;
+      return Object.assign({}, x, { locked: lk, unlocked: !lk, pressed: on ? 'true' : 'false', aria: lk ? 'Estátua de pedra, ainda não conquistada: ' + x.nome : x.nome, pick: function () { self.setState({ ex: i }); },
+        thumbStyle: 'aspect-ratio: 3 / 4; border-radius: 8px; display: grid; place-items: center; cursor: pointer; padding: 0; font-family: inherit; background: ' + (lk ? '#5c5853' : x.cor) + '; border: 2px solid transparent; filter: ' + (lk ? 'grayscale(1)' : 'none') + '; outline: ' + (on ? '2px solid #f3efe9' : 'none') + '; outline-offset: 2px' });
+    });
+    var uniChips = unis.map(function (u) {
+      var on = u === uni;
+      return { label: u === 'todos' ? 'Todas as salas' : u, pressed: on ? 'true' : 'false', pick: function () { self.setState({ uni: u, ex: 0 }); },
+        style: 'min-height: 36px; padding: 0 12px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; ' + (on ? 'background: #3a302c; color: #ffffff; border: 1px solid #f07a70' : 'background: transparent; color: #c4bcb1; border: 1px solid #4a443e') };
+    });
+    var curLk = cur.status.indexOf('Tenho') !== 0;
+    var tem = exList.filter(function (x) { return x.status.indexOf('Tenho') === 0; }).length;
+    var n = function (f) { return all.filter(f).length; };
+    var missions = queroList.map(function (x) {
+      return Object.assign({}, x, {
+        open: !x.done,
+        border: x.done ? '#9fd3ff' : '#3a3531',
+        statusLabel: x.done ? 'Missão cumprida!' : 'Em andamento',
+        statusStyle: 'font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; ' + (x.done ? 'background: #9fd3ff; color: #102a43' : 'background: #3a3531; color: #f3efe9')
+      });
+    });
+    return {
+      tabs: tabs,
+      isInv: tab === 'inventario',
+      isMis: tab === 'missoes',
+      isMus: tab === 'museu',
+      ex: Object.assign({}, cur, { locked: curLk, unlocked: !curLk, kicker: 'SALA ' + cur.universo.toUpperCase() + ' · PEDESTAL ' + String(exIdx + 1).padStart(2, '0') + (curLk ? ' · ESTÁTUA DE PEDRA' : ''), lockText: cur.status === 'Quero' ? 'Esta peça já está nas suas missões. Quando você conseguir, a estátua ganha cor.' : 'Você ainda não tem esta peça. Quando conseguir, a estátua ganha cor.', canHunt: cur.status !== 'Quero', siglaShow: cur.sigla, siglaColor: curLk ? '#34302c' : '#ffffff', artStyle: 'position: relative; aspect-ratio: 3 / 4; width: 190px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 24px 40px rgba(0,0,0,0.7); background: ' + (curLk ? '#5c5853; filter: grayscale(1)' : cur.cor), vale: cur.tipo === 'fanmade' ? 'sem dados suficientes' : 'R$ [valor] · usado' }),
+      exhibits: exhibits,
+      uniChips: uniChips,
+      musCount: tem + ' com cor · ' + (exList.length - tem) + ' ainda em pedra',
+      salaTitle: uni === 'todos' ? 'Museu da coleção' : 'Sala ' + uni,
+      cats: cats,
+      items: items,
+      vazios: cat === 'todos' || cat === 'games' ? [1, 2, 3] : [1],
+      catLabel: labels[cat],
+      countLabel: list.length + (list.length === 1 ? ' item' : ' itens'),
+      det: Object.assign({}, d, { artStyle: art(d.cor, true), owned: d.status.indexOf('Tenho') === 0, wanted: d.status === 'Quero', vale: d.tipo === 'fanmade' ? 'sem dados suficientes' : 'R$ [valor] · usado', alvo: d.alvo || 'R$ [alvo]', franquia: franq(d) }),
+      alertOn: on ? 'true' : 'false',
+      toggleAlert: function () { var a = Object.assign({}, alerts); a[d.id] = !a[d.id]; self.setState({ alerts: a }); },
+      trackStyle: 'position: relative; width: 42px; height: 24px; border-radius: 999px; flex: 0 0 42px; background: ' + (on ? '#e04a3f' : '#5a534c'),
+      knobStyle: 'position: absolute; top: 3px; left: ' + (on ? '21px' : '3px') + '; width: 18px; height: 18px; border-radius: 999px; background: #ffffff',
+      missions: missions,
+      stats: [
+        { n: n(function (x) { return x.tipo === 'game' && x.status.indexOf('Tenho') === 0; }), label: 'games' },
+        { n: n(function (x) { return x.tipo === 'colecionavel' && x.status === 'Tenho'; }), label: 'colecionáveis' },
+        { n: n(function (x) { return x.tipo === 'fanmade'; }), label: 'fan-made' },
+        { n: n(function (x) { return !!alerts[x.id]; }), label: 'alertas' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
