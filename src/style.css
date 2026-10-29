@@ -594,38 +594,113 @@ main{max-width:1200px;padding-top:28px}
 .o-thumb{width:46px;height:58px;object-fit:cover;border:1px solid #D9DCE0;background:#F2F3F4;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)}
 .o-thumb-empty{display:block}
 
-/* Meu Inventário: o segundo mundo / pause menu */
-body.inventory-route{background:var(--night)}
-body.inventory-route .site-footer{background:var(--night);color:#9EA3B0;border-color:#252833}
-.inventory-world{
-  color:#F4F0DE;background:
-    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px),
-    radial-gradient(circle at 50% 0,rgba(65,71,100,.22),transparent 38%),var(--night);
-  background-size:12px 12px,12px 12px,auto,auto;
-  margin:-28px -24px -64px;padding:32px 24px 80px;min-height:70vh
-}
+/* Meu Inventário / "menu de pausa" (pacote7b, item 4) -- tema atual do
+   site (greige escuro, vermelho só em ação, cartões --glass-*), não mais
+   o amarelo + quadriculado azul-marinho do pacote4. */
+.inventory-world{margin:-28px -24px -64px;padding:32px 24px 80px;min-height:70vh}
 .inventory-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:18px}
-.inventory-kicker{font:900 10px/1 Inter,system-ui,sans-serif;color:var(--gold);letter-spacing:.14em}
-.inventory-world .page-h{color:#fff;margin-top:5px}
-.inventory-world .lede,.inventory-world .fine{color:#9EA4B1}
-.inv-continue{border:2px solid var(--night-line);color:#D8DBE1;background:#1B1D26;font-size:11px}
-.inventory-world .stats{gap:10px}
-.inventory-world .stat{background:var(--night-panel);border:2px solid var(--night-line);border-radius:0;color:#fff;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px)}
-.inventory-world .stat b{color:var(--gold)}
-.inventory-world .stat span{color:#B8BDC8}
-.inventory-world .tabs{border-color:var(--night-line)}
-.inventory-world .tab{color:#AAB0BC;border:2px solid var(--night-line);margin-right:6px}
-.inventory-world .tab[aria-current="true"]{color:var(--gold);border-color:var(--gold);background:#242113}
-.inventory-world .inv-card{background:#1A1D27;border:2px solid #6F5B14;border-radius:0;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px)}
-.inventory-world .inv-card .cover{border-color:#4B5264;background:#252936;box-shadow:inset 0 0 0 4px #1A1D27;color:#AEB5C3}
-.inventory-world .inv-title{color:#fff;font-weight:700}
-.inventory-world .inv-meta{color:#AAB0BC}
-.inventory-world .chip.status{background:var(--have);border-color:#71F0A0;color:#082113;font-weight:900}
-.inventory-world .chip.soft{background:#242733;border-color:#414655;color:#C3C7D1}
-.inventory-world .btn-outline{border-color:var(--gold);color:var(--gold);background:#1A1D27}
-.inventory-world .btn-ghost{border-color:#464B59;color:#C5CAD3;background:#1A1D27}
-.inventory-world .empty{background:#181A22;border-color:#3A3E4A;color:#C4C8D1}
+/* Único elemento "gamer" explícito que sobra -- fonte pixelada, pequena,
+   na cor de destaque (nunca preenchendo a tela de amarelo como antes). */
+.inventory-kicker{font:12px/1 "Press Start 2P",monospace;letter-spacing:.06em;color:var(--action);display:block;margin-bottom:6px}
+.inv-continue{border:1px solid var(--glass-border);color:var(--text-1);background:var(--glass-2);font-size:13px;white-space:nowrap}
+.pm-layout{display:flex;flex-wrap:wrap;gap:16px;background:var(--glass-2);border:1px solid var(--glass-border);border-radius:22px;padding:16px}
+.pm-rail{flex:0 0 150px;display:flex;flex-direction:column;gap:4px}
+.pm-cat-item{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:10px;color:var(--text-2);text-decoration:none;border:1px solid transparent}
+.pm-cat-item .ico{flex:none}
+.pm-cat-item span{flex:1;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm-cat-item small{color:var(--text-2);font-size:11.5px}
+.pm-cat-item:hover{background:var(--glass-3)}
+.pm-cat-item[aria-pressed="true"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:var(--glass-3);color:var(--text-1)}
+.pm-center{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.pm-center-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.pm-center-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--glass-3);border:1px solid var(--glass-border);color:var(--text-1)}
+.pm-grid-wrap{background:var(--glass-1);border-radius:16px;padding:14px}
+.inv-grid-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:14px}
+.inv-group-head{font-size:13px;color:var(--text-2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.inv-group-head:first-child{margin-top:0}
+.inv-slot{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-width:0}
+.inv-slot-art{position:relative}
+.inv-slot[aria-current="true"] .cover{outline:2px solid var(--action-on-glass);outline-offset:2px}
+.inv-slot-badges{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;z-index:4}
+.inv-badge-heart{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:#fff;color:#c0392b}
+.inv-badge-caiu{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:#102a43;background:#9fd3ff;padding:2px 6px;border-radius:6px}
+.inv-slot-name{font-size:12px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-slot-dashed{aspect-ratio:3/4;border-radius:12px;border:2px dashed var(--glass-border);display:grid;place-items:center;color:var(--text-2)}
+.inv-slot-add .inv-slot-name{color:var(--text-2)}
+.inv-list{display:flex;flex-direction:column;gap:8px}
+.inv-list-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.inv-list-row:hover{background:var(--glass-2)}
+.inv-list-row[aria-current="true"]{outline:1.5px solid var(--action-on-glass);outline-offset:-1.5px;background:var(--glass-2)}
+.inv-list-cover{flex:none;width:44px}
+.inv-list-cover .cover{width:44px;aspect-ratio:3/4}
+.inv-list-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.inv-aside{flex:1 1 280px;max-width:320px;background:var(--glass-1);border:1px solid var(--glass-border);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.inv-aside-empty{align-items:center;justify-content:center;text-align:center;color:var(--text-2)}
+.inv-aside-cover{width:100%;max-width:220px;align-self:center}
+.inv-aside-cover .cover{width:100%}
+.inv-aside-head{display:flex;flex-direction:column;gap:2px}
+.inv-aside-uni{font-size:12px;color:var(--text-2)}
+.inv-aside-head h3{margin:0;font-size:20px;line-height:1.2}
+.inv-aside-body{display:flex;flex-direction:column;gap:14px}
+.inv-aside-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:13px}
+.inv-aside-label{display:block;color:var(--text-2)}
+.inv-aside-value{font-weight:500}
+.inv-aside-actions{display:flex;gap:10px;flex-wrap:wrap}
+.inv-edit-form{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:var(--glass-2)}
+.inv-edit-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-2)}
+/* Etiqueta de preço: forma lisa no estilo do site (fundo claro, furinho e
+   "barbante" em traço fino), sem textura -- pedido explícito do pacote. */
+.pm-tag{position:relative;display:flex;flex-direction:column;gap:2px;padding:10px 14px 10px 24px;border-radius:4px 12px 12px 4px;background:#f3efe9;color:#211e1b;margin-left:18px}
+.pm-tag::before{content:"";position:absolute;left:-18px;top:50%;width:18px;height:1.5px;background:var(--glass-border);transform:translateY(-50%)}
+.pm-tag::after{content:"";position:absolute;left:9px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:999px;background:var(--glass-1)}
+.pm-tag-label{font-size:11px;font-weight:500;color:#5a534c}
+.pm-tag-value{font-size:17px;font-weight:700}
+.pm-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;height:48px;padding:0 12px;border-radius:12px;background:var(--glass-2);border:0;color:var(--text-1);font:inherit;font-size:13px;cursor:pointer;width:100%}
+.pm-switch-track{position:relative;width:42px;height:24px;border-radius:999px;flex:none;background:var(--glass-border);transition:background-color 150ms ease}
+.pm-switch[aria-checked="true"] .pm-switch-track{background:var(--action)}
+.pm-switch-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;background:#fff;transition:left 150ms ease}
+.pm-switch[aria-checked="true"] .pm-switch-knob{left:21px}
+@media(prefers-reduced-motion:reduce){.pm-switch-track,.pm-switch-knob{transition:none}}
+.pm-panel{background:var(--glass-2);border:1px solid var(--glass-border);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.pm-panel-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.mission-list{display:flex;flex-direction:column;gap:10px}
+.mission-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px;border-radius:16px;background:var(--glass-1);border:1px solid var(--glass-border)}
+.mission-row.is-done{border-color:#9fd3ff}
+.mission-cover{width:60px;flex:none}
+.mission-cover .cover{width:60px;aspect-ratio:3/4}
+.mission-info{flex:999 1 240px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mission-status{flex:1 1 160px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.inv-quickadd{display:flex;flex-direction:column}
+.inv-quick-list{display:flex;flex-direction:column;gap:8px}
+.inv-quick-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--glass-1)}
+.inv-quick-name{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px}
+.inv-quick-name small{color:var(--text-2);font-size:12px}
+.inv-console-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-pill{height:36px;padding:0 14px;border-radius:999px;background:transparent;color:var(--text-2);border:1px solid var(--glass-border);font:inherit;font-size:13px}
+.chip-pill.is-on{background:var(--glass-3);color:var(--text-1);border-color:var(--action-on-glass)}
+.pm-footer{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:18px}
+.pm-footer-stats{display:flex;flex-wrap:wrap;gap:10px}
+.pm-stat{display:flex;align-items:baseline;gap:8px;padding:10px 14px;border-radius:12px;background:var(--glass-2);border:1px solid var(--glass-border)}
+.pm-stat b{font-size:18px}
+.pm-stat span{font-size:13px;color:var(--text-2)}
+.pm-footer-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cover.big{width:100%;max-width:230px}
+.cover.mini-slot{width:60px;aspect-ratio:3/4}
+.inv-aside-close{display:none}
+.inv-aside-backdrop{display:none}
+@media(max-width:899px){
+  .pm-rail{flex-direction:row;overflow-x:auto;flex-wrap:nowrap;gap:6px}
+  .pm-cat-item{flex:none;width:auto}
+  /* item 4.8: o painel vira "bottom sheet" -- fica fora da tela até
+     ?sel= aparecer na URL (toque num espaço da grade), com botão de
+     fechar visível e pano de fundo pra fechar tocando fora. */
+  .inv-aside{position:fixed;left:0;right:0;bottom:0;max-width:none;max-height:82vh;overflow:auto;border-radius:20px 20px 0 0;transform:translateY(110%);transition:transform 220ms var(--ease-spring,ease);z-index:60;box-shadow:0 -12px 32px rgba(0,0,0,.4)}
+  .inv-aside.is-open{transform:translateY(0)}
+  .inv-aside-close{display:flex;align-items:center;justify-content:center;position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:999px;background:var(--glass-3);border:0;color:var(--text-1)}
+  .inv-aside-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55}
+  @media(prefers-reduced-motion:reduce){.inv-aside{transition:none}}
+}
 
 .mobile-bottom{display:none}
 

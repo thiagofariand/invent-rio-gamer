@@ -147,7 +147,12 @@ const ICONS={
   trend:'<path d="m3 17 6-6 4 4 8-8"/><path d="M15 6h6v6"/>',
   tag:'<path d="M20 12.5 12.5 20 4 11.5V4h7.5z"/><circle cx="8.5" cy="8.5" r="1.5"/>',
   menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
-  chest:'<rect x="3" y="10" width="18" height="10" rx="2"/><path d="M3 10a9 9 0 0 1 18 0"/><path d="M10 14h4"/>'
+  chest:'<rect x="3" y="10" width="18" height="10" rx="2"/><path d="M3 10a9 9 0 0 1 18 0"/><path d="M10 14h4"/>',
+  grid:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  edit:'<path d="M14 4l6 6-9 9H5v-6z"/>',
+  drop:'<path d="M12 5v14M5 12l7 7 7-7"/>'
 };
 const ico=(n,s=18,cls='')=>`<svg class="ico ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
 
@@ -390,6 +395,9 @@ MERCH_ITEMS.forEach(it=>{
 function merchItemsVisible(){
   return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
 }
+// pacote7b, item 4: lookup por id usado pelo menu de pausa (preço atual +
+// condicaoPagamento de cada item salvo, pro selo "caiu" e pro painel).
+const MERCH_BY_ID=new Map(MERCH_ITEMS.map(it=>[it.id,it]));
 // Pacote5 1.5: console -> {familia,ano,rotulo}, usado pra agrupar/ordenar
 // "Comprar por console" (home), a caixa de consoles (plataforma) e as abas
 // de família (diretório de universos/busca). Mesma carga síncrona dos

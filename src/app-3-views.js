@@ -3377,40 +3377,356 @@ function renderMerchItem(id,token){
   </div>`;
 }
 
-/* ---------- Meu Inventário ---------- */
-function monthYear(iso){try{return new Date(iso).toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).replace('.','')}catch{return ''}}
+/* ---------- Meu Inventário ("menu de pausa", pacote7b item 4) ----------
+   Troca o layout antigo (amarelo + quadriculado azul-marinho + abas em
+   caixinha, pacote4) pelo tema atual do site (greige escuro, vermelho só
+   em ação, cartões --glass-*). "PAUSE MENU" continua, só que pequeno, em
+   Press Start 2P (Google Fonts, OFL) -- é o único elemento "gamer"
+   explícito que sobra. Aba "Museu" fica pra depois do lançamento, não
+   criada agora (pedido explícito do pacote). */
+// Estado efêmero de UI (não vai pra URL nem localStorage): qual item está
+// com o formulário de edição aberto, e qual console foi escolhido no
+// cadastro rápido. Zerado a cada vez que a pessoa sai da tela.
+let invState={editingId:null,editingTarget:null,addConsole:null};
+function formatDateBR(iso){
+  if(!iso)return '';
+  try{const d=new Date(iso);if(isNaN(d))return '';return d.toLocaleDateString('pt-BR')}catch{return ''}
+}
+const INV_CATEGORIES=[
+  ['todos','Todos','grid'],
+  ['games','Games','gamepad'],
+  ['colecionaveis','Colecionáveis','cube'],
+  ['fanmade','Fan-made','brush'],
+  ['quero','Quero','heart'],
+  ['alertas','Alertas','bell']
+];
+function invCategoryMatch(i,cat){
+  if(cat==='games')return i.kind==='game';
+  if(cat==='colecionaveis')return i.kind==='merch';
+  if(cat==='fanmade')return i.kind==='fanmade';
+  if(cat==='quero')return i.status==='wanted'||i.status==='saved';
+  if(cat==='alertas')return !!i.alert;
+  return true;
+}
+// Preço atual "ao vivo", só das fontes que o site já tem de verdade (sem
+// inventar dado pra fan-made/anúncio único -- esses mostram só o preço
+// salvo na hora de marcar, nunca um "menor preço agora"). Devolve
+// {display,cond,min,pix} ou null quando não há fonte viva.
+function invLivePrice(i){
+  if(i.kind==='game'){
+    const p=catalogBySlug.get(i.id.replace('game:',''));
+    if(!p)return null;
+    const b=gameCheapestOffer(p);
+    if(!b)return null;
+    return {display:`${COND_LABEL[b.cond]} · ${b.minDisplay}`,min:b.min,mock:!!b.mock};
+  }
+  if(i.kind==='merch'){
+    const it=MERCH_BY_ID.get(i.id);
+    if(!it||it.preco==null)return null;
+    return {display:`${brl(it.preco)}${it.condicaoPagamento?' '+it.condicaoPagamento:''}`,min:it.preco,mock:false};
+  }
+  return null;
+}
+// Selo "caiu" (item 4.6): sem histórico no servidor -- só compara com
+// ultimoPrecoVisto, gravado no próprio item quando a pessoa ABRE o painel
+// dele (ver selectInvItem em app-main.js); some sozinho na próxima abertura.
+function invCaiu(i,live){
+  return !!(live&&i.ultimoPrecoVisto!=null&&live.min<i.ultimoPrecoVisto);
+}
+function invGroupLabel(i,modo){
+  if(modo==='plataforma')return i.platforms?.[0]||'Sem plataforma';
+  if(modo==='universo')return (i.universe&&uMap.get(i.universe)?.name)||'Sem universo';
+  return '';
+}
+// Cadastro rápido (item 4.5): busca livre no catálogo inteiro (mesmo
+// mecanismo de pontuação da busca de verdade, matchCatalog) + "comece pelo
+// seu console" -- consoles com jogo catalogado, mais jogos primeiro, e os
+// N primeiros do catálogo pra cada um (sem campo de popularidade no
+// catálogo; ordem do próprio catalog.js, documentado aqui pra não parecer
+// medido de verdade).
+function invConsoleChips(){
+  const counts=new Map();
+  catalog.forEach(p=>p.variants.forEach(v=>counts.set(v[1],(counts.get(v[1])||0)+1)));
+  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([plat])=>plat);
+}
+function invPopularForConsole(plat,limit=18){
+  return catalog.filter(p=>p.variants.some(v=>v[1]===plat)).slice(0,limit);
+}
+function invQuickAddMarkup(q){
+  const results=q&&q.length>=2?matchCatalog(q).slice(0,8):[];
+  const chips=invConsoleChips();
+  const sel=invState.addConsole;
+  const pool=sel?invPopularForConsole(sel):[];
+  const quickRow=p=>{
+    const id='game:'+p.slug,cur=invGet(id);
+    regRef(gameRef(p));
+    return `<div class="inv-quick-row">
+      <span class="inv-quick-name">${esc(p.title)}<small>${esc(platShort(p))}</small></span>
+      <button class="btn btn-sm ${cur&&cur.status==='owned'?'btn-primary':'btn-outline'}" data-act="inv-quick-set" data-id="${esc(id)}" data-status="owned">Tenho</button>
+      <button class="btn btn-sm ${cur&&cur.status==='wanted'?'btn-primary':'btn-outline'}" data-act="inv-quick-set" data-id="${esc(id)}" data-status="wanted">Quero</button>
+    </div>`;
+  };
+  return `<div class="inv-quickadd">
+    <h2 style="margin:0 0 4px;font-size:20px">Comece a montar seu inventário</h2>
+    <p class="fine" style="margin:0 0 14px">Busque um jogo ou escolha um console -- toque em "Tenho" ou "Quero" em cada um, sem precisar abrir a ficha.</p>
+    <input id="invQuickSearch" type="search" class="select" placeholder="Digite o nome do jogo..." value="${esc(q||'')}" style="width:100%;max-width:420px">
+    ${results.length?`<div class="inv-quick-list" style="margin-top:10px">${results.map(m=>quickRow(m.p)).join('')}</div>`:''}
+    <p class="fine" style="margin:16px 0 8px">Comece pelo seu console</p>
+    <div class="inv-console-chips">${chips.map(c=>`<button class="chip-pill ${c===sel?'is-on':''}" data-act="inv-console-pick" data-console="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    ${sel?`<div class="inv-quick-list" style="margin-top:12px">${pool.map(quickRow).join('')}</div>`:''}
+    ${invList().length?`<p style="margin-top:16px"><button class="btn btn-ghost btn-sm" data-act="inv-add-close">Fechar</button></p>`:''}
+  </div>`;
+}
+// Painel do item selecionado (coluna direita): muda conforme Tenho/Quero.
+// `sheetOpen` só é usado pelo CSS mobile (item 4.8): no mobile o painel é
+// um "bottom sheet" que só aparece com ?sel= explícito na URL (toque num
+// espaço da grade); no desktop sempre fica visível, ignorando a flag.
+function invDetailMarkup(i,sheetOpen){
+  if(!i)return `<aside class="inv-aside inv-aside-empty" aria-label="Item selecionado"><p class="fine">Selecione um item na grade pra ver os detalhes aqui.</p></aside>`;
+  const p=i.kind==='game'?catalogBySlug.get(i.id.replace('game:','')):null;
+  const uni=i.universe&&uMap.get(i.universe);
+  const live=invLivePrice(i);
+  const owned=i.status==='owned';
+  const wanted=i.status==='wanted'||i.status==='saved';
+  const gamePageHref=p?`#/jogo/${p.slug}`:i.kind==='merch'?`#/item/${i.id}`:null;
+  const editing=invState.editingId===i.id;
+  let body='';
+  if(owned){
+    body=`<div class="inv-aside-body">
+      <div class="inv-aside-grid">
+        <div><span class="inv-aside-label">Adicionado em</span><span class="inv-aside-value">${esc(formatDateBR(i.addedAt))||'—'}</span></div>
+        <div><span class="inv-aside-label">Valor pago</span><span class="inv-aside-value">${i.valorPago!=null?esc(brl(i.valorPago)):i.paid!=null?esc(brl(i.paid))+' (anúncio)':'—'}</span></div>
+        <div style="grid-column:span 2"><span class="inv-aside-label">Condição</span><span class="inv-aside-value">${esc(i.condicao||'—')}</span></div>
+      </div>
+      ${editing?`<div class="inv-edit-form">
+        <label class="fine">Valor pago<input id="invEditPaid" class="select" type="number" step="0.01" min="0" value="${i.valorPago!=null?esc(i.valorPago):''}" placeholder="0,00"></label>
+        <label class="fine">Condição<input id="invEditCond" class="select" type="text" value="${esc(i.condicao||'')}" placeholder="Ex.: Usado · com caixa"></label>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary btn-sm" data-act="inv-edit-save" data-id="${esc(i.id)}">Salvar</button><button class="btn btn-ghost btn-sm" data-act="inv-edit-cancel">Cancelar</button></div>
+      </div>`:`<button class="btn btn-outline btn-sm" data-act="inv-edit-start" data-id="${esc(i.id)}">${ico('edit',14)} Editar dados</button>`}
+      <div class="inv-aside-actions">
+        ${gamePageHref?`<a class="btn btn-primary" href="${gamePageHref}">Ver página do jogo →</a>`:''}
+        <button class="btn btn-ghost" data-act="inv-remove" data-id="${esc(i.id)}">Remover</button>
+      </div>
+    </div>`;
+  }else if(wanted){
+    const alvoEditing=invState.editingTarget===i.id;
+    body=`<div class="inv-aside-body">
+      ${live?`<div class="pm-tag"><span class="pm-tag-label">Menor preço agora</span><span class="pm-tag-value">${esc(live.display)}</span></div>`:'<p class="fine">Ainda sem oferta encontrada pra este item.</p>'}
+      ${alvoEditing?`<div class="inv-edit-form">
+        <label class="fine">Preço-alvo (R$)<input id="invEditTarget" class="select" type="number" step="0.01" min="0" value="${i.precoAlvo!=null?esc(i.precoAlvo):''}"></label>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary btn-sm" data-act="inv-target-save" data-id="${esc(i.id)}">Salvar</button><button class="btn btn-ghost btn-sm" data-act="inv-target-cancel">Cancelar</button></div>
+      </div>`:`<p class="fine">${i.precoAlvo!=null?`Missão: conseguir por até <b>${esc(brl(i.precoAlvo))}</b> · <button class="link-cta" data-act="inv-target-start" data-id="${esc(i.id)}">editar</button>`:`<button class="link-cta" data-act="inv-target-start" data-id="${esc(i.id)}">Defina um preço-alvo</button>`}</p>`}
+      <button role="switch" aria-checked="${!!i.alert}" class="pm-switch" data-act="inv-alert-toggle" data-id="${esc(i.id)}"><span>Avisar quando o preço cair</span><span class="pm-switch-track"><span class="pm-switch-knob"></span></span></button>
+      <div class="inv-aside-actions">
+        ${p?`<a class="btn btn-primary" href="#/ofertas/${p.slug}">Ver ofertas →</a>`:i.kind==='merch'?`<a class="btn btn-primary" href="#/item/${i.id}">Ver ofertas →</a>`:''}
+        <button class="btn btn-ghost" data-act="inv-remove" data-id="${esc(i.id)}">Remover</button>
+      </div>
+    </div>`;
+  }
+  return `<aside class="inv-aside${sheetOpen?' is-open':''}" aria-label="Item selecionado">
+    <button class="inv-aside-close" data-act="inv-sheet-close" aria-label="Fechar">${ico('close',18)}</button>
+    <div class="inv-aside-cover">${coverTile(i.title,{platform:i.platforms?.[0]||'',size:'big',mock:!!i.mock,image:i.kind==='merch'?(MERCH_BY_ID.get(i.id)?.imagemAutorizada?MERCH_BY_ID.get(i.id).imagem:''):''})}</div>
+    <div class="inv-aside-head">${uni?`<span class="inv-aside-uni">${esc(uni.name)}</span>`:''}<h3>${esc(i.title)}</h3></div>
+    ${body}
+  </aside>${sheetOpen?'<div class="inv-aside-backdrop" data-act="inv-sheet-close"></div>':''}`;
+}
+function invMissionsMarkup(){
+  const wanted=invList().filter(i=>i.status==='wanted'||i.status==='saved').sort((a,b)=>String(b.addedAt).localeCompare(String(a.addedAt)));
+  const row=i=>{
+    regRef({id:i.id,kind:i.kind,cat:i.cat,type:i.type,origin:i.origin,unique:i.unique,creator:i.creator,title:i.title,universe:i.universe,platforms:i.platforms,price:i.price,mock:i.mock});
+    const live=invLivePrice(i);
+    const done=live&&i.precoAlvo!=null&&live.min<=i.precoAlvo;
+    const href=i.kind==='game'?(catalogBySlug.get(i.id.replace('game:',''))?`#/ofertas/${catalogBySlug.get(i.id.replace('game:','')).slug}`:null):i.kind==='merch'?`#/item/${i.id}`:null;
+    return `<div class="mission-row ${done?'is-done':''}">
+      <div class="mission-cover">${coverTile(i.title,{size:'mini-slot',mock:!!i.mock})}</div>
+      <div class="mission-info"><span class="fine">${esc(i.platforms?.join(' · ')||'')}</span><b>${esc(i.title)}</b>
+        <span class="fine">${i.precoAlvo!=null?`Missão: conseguir por até <b>${esc(brl(i.precoAlvo))}</b>`:'Sem preço-alvo definido'}</span>
+        <span class="fine">${live?`Menor preço agora: ${esc(live.display)}`:'Sem oferta encontrada agora'}</span>
+      </div>
+      <div class="mission-status">
+        <span class="chip ${done?'status':'soft'}">${done?'Missão cumprida!':'Em andamento'}</span>
+        ${done&&href?`<a class="btn btn-primary btn-sm" href="${href}">Ver oferta →</a>`:`<button class="btn btn-outline btn-sm" data-act="inv-target-start" data-id="${esc(i.id)}">${i.precoAlvo!=null?'Editar preço-alvo':'Definir preço-alvo'}</button>`}
+      </div>
+    </div>`;
+  };
+  return `<div class="pm-panel">
+    <div class="pm-panel-head"><div><h2 style="margin:0">Missões</h2><p class="fine" style="margin:4px 0 0">O que você está caçando e o preço que topa pagar. A missão se cumpre quando alguma loja chegar lá.</p></div>
+    <button class="btn btn-primary btn-sm" data-act="inv-add-open" data-console="">+ Nova missão</button></div>
+    ${wanted.length?`<div class="mission-list">${wanted.map(row).join('')}</div>`:`<div class="empty"><h2>Nenhuma missão ainda</h2><p>Marque um jogo ou item como "Quero" pra criar sua primeira missão.</p></div>`}
+  </div>`;
+}
 function renderInventory(params){
   setTitle('Meu Inventário');
-  const tab=params.get('tab')||'all';
-  const items=invList().sort((a,b)=>String(b.addedAt).localeCompare(String(a.addedAt)));
-  const owned=items.filter(i=>i.status==='owned'),wanted=items.filter(i=>i.status==='wanted'||i.status==='saved'),alerted=items.filter(i=>i.alert);
-  const stat=(icon,n,l)=>`<div class="stat">${ico(icon,26)}<div><b>${n}</b><span>${l}</span></div></div>`;
-  const shown=tab==='owned'?owned:tab==='wanted'?wanted:tab==='alerts'?alerted:items;
-  const tabs=[['all','Todos os itens',items.length],['owned','Tenho',owned.length],['wanted','Quero',wanted.length],['alerts','Alertas de preço',alerted.length]];
-  const card=i=>{
+  const view=params.get('view')==='mis'?'mis':'inv';
+  const cat=INV_CATEGORIES.some(([k])=>k===params.get('cat'))?params.get('cat'):'todos';
+  const modo=params.get('modo')==='lista'?'lista':'grade';
+  const agr=['plataforma','universo'].includes(params.get('agr'))?params.get('agr'):'nenhum';
+  const q=norm(params.get('q')||'');
+  const addOpen=params.get('add')==='1';
+  const all=invList();
+  const missCount=all.filter(i=>i.status==='wanted'||i.status==='saved').length;
+  const filtered=all.filter(i=>invCategoryMatch(i,cat)&&(!q||norm(i.title).includes(q)))
+    .sort((a,b)=>String(b.addedAt).localeCompare(String(a.addedAt)));
+  const selId=params.get('sel')||filtered[0]?.id||null;
+  const selItem=selId?all.find(i=>i.id===selId):null;
+
+  const tabsHtml=`<div class="tabs" role="tablist">
+    <a class="tab" role="tab" href="#/inventario" aria-current="${view==='inv'}">Inventário</a>
+    <a class="tab" role="tab" href="#/inventario?view=mis" aria-current="${view==='mis'}">Missões ${missCount}</a>
+  </div>`;
+
+  const header=`<div class="inventory-topline"><div><span class="inventory-kicker">PAUSE MENU</span><h1 class="page-h">Meu Inventário</h1>
+  <p class="lede">O que você tem, o que procura e os avisos que quer receber. Fica só neste aparelho: não há login nem envio de dados.</p></div><a class="btn inv-continue" href="#/">← Continuar procurando</a></div>`;
+
+  if(view==='mis'){
+    main.innerHTML=`<div class="inventory-world">${header}${tabsHtml}${invMissionsMarkup()}</div>`;
+    return;
+  }
+
+  if(!all.length||addOpen){
+    main.innerHTML=`<div class="inventory-world">${header}${tabsHtml}<div class="pm-panel">${invQuickAddMarkup(params.get('q2'))}</div></div>`;
+    wireInventoryQuickAdd();
+    return;
+  }
+
+  const railHtml=`<nav class="pm-rail" aria-label="Categorias do inventário">${INV_CATEGORIES.map(([k,l,icon])=>{
+    const n=all.filter(i=>invCategoryMatch(i,k)).length;
+    return `<a class="pm-cat-item" href="#/inventario?cat=${k}" aria-pressed="${k===cat}">${ico(icon,20)}<span>${esc(l)}</span><small>${n}</small></a>`;
+  }).join('')}</nav>`;
+
+  let gridInner='';
+  const slot=i=>{
     regRef({id:i.id,kind:i.kind,cat:i.cat,type:i.type,origin:i.origin,unique:i.unique,creator:i.creator,title:i.title,universe:i.universe,platforms:i.platforms,price:i.price,mock:i.mock});
-    const tag=i.status==='owned'?'Tenho':i.status==='saved'?'Salvo':'Quero';
-    const meta=i.paid!=null?`Pago: ${brl(i.paid)}${i.boughtAt?' · '+monthYear(i.boughtAt):''}`:`Adicionado em ${monthYear(i.addedAt)}`;
-    const p=i.kind==='game'?catalogBySlug.get(i.id.replace('game:','')):null;
-    let cta='';
-    if(p)cta=`<a class="btn btn-outline btn-sm" href="#/jogo/${p.slug}">Ver ofertas</a>`;
-    else if(i.kind==='game')cta=`<a class="btn btn-outline btn-sm" href="#/busca?q=${enc(i.title)}">Buscar</a>`;
-    else if(i.unique)cta=`<button class="btn btn-outline btn-sm" data-act="mock-item" data-id="${esc(i.id)}">Ver item</button>`;
-    else cta=`<button class="btn btn-outline btn-sm" data-act="open-merch-offers" data-id="${esc(i.id)}">Ver ofertas</button>`;
-    return `<article class="inv-card">${coverTile(i.title,{size:'wide',mock:!!i.mock})}
-      <div class="inv-body"><div class="inv-title">${esc(i.title)}</div>
-      <div class="inv-meta"><span class="chip status">${tag}</span>${i.alert?` <span class="chip soft">alerta marcado</span>`:''}</div>
-      <div class="inv-meta">${esc(meta)}${i.kind==='fanmade'?' · anúncio único':''}</div>
-      <div class="inv-actions">${cta}<button class="btn btn-ghost btn-sm" data-act="open-save" data-id="${esc(i.id)}">Alterar</button></div></div></article>`;
+    const live=i.status==='wanted'?invLivePrice(i):null;
+    const caiu=invCaiu(i,live);
+    const sel=i.id===selId;
+    return `<a class="inv-slot" href="#/inventario?cat=${cat}&sel=${esc(i.id)}" data-inv-slot aria-current="${sel}" aria-label="${esc(i.title)}, ${esc(i.platforms?.join(' · ')||'')}, ${i.status==='owned'?'Tenho':'Quero'}">
+      <span class="inv-slot-art">${coverTile(i.title,{platform:i.platforms?.[0]||'',size:'',mock:!!i.mock,image:i.kind==='merch'?(MERCH_BY_ID.get(i.id)?.imagemAutorizada?MERCH_BY_ID.get(i.id).imagem:''):''})}
+        <span class="inv-slot-badges">${i.status==='wanted'?`<span class="inv-badge-heart">${ico('heart',12)}</span>`:''}${caiu?`<span class="inv-badge-caiu">${ico('drop',10)} caiu</span>`:''}</span>
+      </span>
+      <span class="inv-slot-name">${esc(i.title)}</span>
+    </a>`;
   };
-  main.innerHTML=`<div class="inventory-world"><div class="inventory-topline"><div><span class="inventory-kicker">PAUSE MENU</span><h1 class="page-h">Meu Inventário</h1>
-  <p class="lede">O que você tem, o que procura e os avisos que quer receber. Fica só neste aparelho: não há login nem envio de dados.</p></div><a class="btn inv-continue" href="#/">← Continuar procurando</a></div>
-  <div class="stats">${stat('gamepad',items.filter(i=>i.kind==='game'&&i.status==='owned').length,'Games')}${stat('cube',items.filter(i=>i.kind==='merch'&&i.status==='owned').length,'Colecionáveis')}${stat('brush',items.filter(i=>i.kind==='fanmade'&&i.status==='owned').length,'Artesanais')}${stat('bell',alerted.length,'Alertas')}</div>
-  <p class="fine">Sem porcentagem de “franquia completa”: contamos só o que você realmente tem.</p>
-  <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<a class="tab" role="tab" href="#/inventario?tab=${k}" aria-current="${k===tab}">${l} (${n})</a>`).join('')}</div>
-  ${shown.length?`<div class="inv-grid">${shown.map(card).join('')}</div>`:`<div class="empty"><h2>${items.length?'Nada nesta aba ainda':'Seu inventário está vazio'}</h2><p>Toque em ${ico('heart',14)} num jogo ou item para escolher Quero, Já tenho ou Criar alerta.</p><p style="margin-top:12px"><a class="btn btn-primary btn-sm" href="#/games">Explorar games</a></p></div>`}
-  ${items.length?`<p style="margin-top:22px"><button class="btn btn-ghost btn-sm" data-act="clear-inventory">Limpar meu inventário</button></p>`:''}
-  <p class="fine" style="margin-top:14px">Alertas de preço ainda não enviam notificações: por enquanto só registram o seu interesse neste aparelho.</p></div>`;
+  const addSlots=`<a class="inv-slot inv-slot-add" href="#/inventario?cat=${cat}&add=1" aria-label="Adicionar à coleção">
+    <span class="inv-slot-dashed">${ico('plus',22)}</span><span class="inv-slot-name">Adicionar</span></a>`;
+  if(modo==='lista'){
+    gridInner=`<div class="inv-list">${filtered.map(i=>{
+      const live=i.status==='wanted'?invLivePrice(i):null;
+      return `<a class="inv-list-row" href="#/inventario?cat=${cat}&sel=${esc(i.id)}" aria-current="${i.id===selId}">
+        <span class="inv-list-cover">${coverTile(i.title,{size:'mini-slot',mock:!!i.mock})}</span>
+        <span class="inv-list-info"><b>${esc(i.title)}</b><span class="fine">${esc(i.platforms?.join(' · ')||'')} · ${i.status==='owned'?'Tenho':'Quero'}</span></span>
+        <span class="fine">${live?esc(live.display):''}</span>
+      </a>`;
+    }).join('')}</div>`;
+  }else if(agr!=='nenhum'){
+    const groups=new Map();
+    filtered.forEach(i=>{const k=invGroupLabel(i,agr)||'Outros';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(i)});
+    gridInner=[...groups.entries()].map(([k,arr])=>`<h3 class="inv-group-head">${esc(k)}</h3><div class="inv-grid-slots">${arr.map(slot).join('')}${arr===[...groups.values()].pop()?addSlots:''}</div>`).join('');
+  }else{
+    gridInner=`<div class="inv-grid-slots">${filtered.map(slot).join('')}${filtered.length<40?addSlots:''}</div>`;
+  }
+
+  const catLabel=INV_CATEGORIES.find(([k])=>k===cat)[1];
+  const center=`<section class="pm-center" aria-label="Itens">
+    <div class="pm-center-head">
+      <div style="display:flex;align-items:baseline;gap:10px"><h2 style="margin:0">${esc(catLabel)}</h2><span class="fine">${filtered.length} ${filtered.length===1?'item':'itens'}</span></div>
+      <div class="pm-center-tools">
+        <input id="invCollectionSearch" type="search" class="select" placeholder="Buscar na coleção" value="${esc(params.get('q')||'')}" style="width:170px">
+        <select id="invGroupSelect" class="select">
+          <option value="nenhum" ${agr==='nenhum'?'selected':''}>Agrupar: Nenhum</option>
+          <option value="plataforma" ${agr==='plataforma'?'selected':''}>Agrupar: Plataforma</option>
+          <option value="universo" ${agr==='universo'?'selected':''}>Agrupar: Universo</option>
+        </select>
+        <a class="btn-icon" href="#/inventario?cat=${cat}&modo=${modo==='grade'?'lista':'grade'}${agr!=='nenhum'?'&agr='+agr:''}" aria-label="${modo==='grade'?'Ver em lista':'Ver em grade'}">${ico(modo==='grade'?'list':'grid',18)}</a>
+      </div>
+    </div>
+    <div class="pm-grid-wrap" data-inv-grid tabindex="-1">${filtered.length?gridInner:`<div class="empty"><h2>Nada nesta categoria ainda</h2><p>Toque em "Adicionar" pra começar.</p>${addSlots}</div>`}</div>
+  </section>`;
+
+  const footer=`<div class="pm-footer">
+    <div class="pm-footer-stats">
+      ${[['gamepad',all.filter(i=>i.kind==='game'&&i.status==='owned').length,'games'],['cube',all.filter(i=>i.kind==='merch'&&i.status==='owned').length,'colecionáveis'],['brush',all.filter(i=>i.kind==='fanmade').length,'fan-made'],['bell',all.filter(i=>i.alert).length,'alertas']]
+        .map(([,n,l])=>`<div class="pm-stat"><b>${n}</b><span>${esc(l)}</span></div>`).join('')}
+    </div>
+    <div class="pm-footer-actions">
+      <span class="fine">Salvo só neste aparelho. Exporte de vez em quando para não perder.</span>
+      <button class="btn btn-ghost btn-sm" data-act="inv-export">Exportar coleção</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">Importar<input id="invImportFile" type="file" accept="application/json" style="display:none"></label>
+    </div>
+  </div>
+  <p class="fine" style="margin-top:14px">Alertas de preço ainda não enviam notificações: por enquanto só registram o seu interesse neste aparelho.</p>
+  <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-act="clear-inventory">Limpar meu inventário</button></p>`;
+
+  main.innerHTML=`<div class="inventory-world">${header}${tabsHtml}
+  <div class="pm-layout">${railHtml}${center}${invDetailMarkup(selItem,params.has('sel'))}</div>
+  ${footer}</div>`;
+
+  if(selItem&&selItem.status==='wanted'){
+    const live=invLivePrice(selItem);
+    if(live)invSet(refs.get(selItem.id)||{id:selItem.id,kind:selItem.kind,title:selItem.title},{ultimoPrecoVisto:live.min});
+  }
+  wireInventoryGrid();
+}
+// Listeners pós-render: busca na coleção, agrupar, navegação por setas na
+// grade (só quando o foco está nela -- nunca listener global de teclado,
+// pacote7b 4.2), import.
+function wireInventoryGrid(){
+  const searchEl=$('#invCollectionSearch');
+  searchEl?.addEventListener('input',()=>{
+    const p=parseHash().params;
+    if(searchEl.value)p.set('q',searchEl.value);else p.delete('q');
+    p.delete('sel');
+    navigateTo('/inventario?'+p.toString());
+  });
+  const groupEl=$('#invGroupSelect');
+  groupEl?.addEventListener('change',()=>{
+    const p=parseHash().params;
+    if(groupEl.value==='nenhum')p.delete('agr');else p.set('agr',groupEl.value);
+    navigateTo('/inventario?'+p.toString());
+  });
+  const grid=$('[data-inv-grid]');
+  grid?.addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+    const slots=$$('[data-inv-slot]',grid);
+    const cur=slots.indexOf(document.activeElement);
+    if(cur<0)return;
+    e.preventDefault();
+    let perRow=1;
+    const top0=slots[0]?.offsetTop;
+    for(let i=1;i<slots.length;i++){if(slots[i].offsetTop!==top0){perRow=i;break}}
+    let next=cur;
+    if(e.key==='ArrowLeft')next=cur-1;
+    else if(e.key==='ArrowRight')next=cur+1;
+    else if(e.key==='ArrowUp')next=cur-perRow;
+    else if(e.key==='ArrowDown')next=cur+perRow;
+    if(slots[next])slots[next].focus();
+  });
+  const fileInput=$('#invImportFile');
+  fileInput?.addEventListener('change',()=>{
+    const f=fileInput.files?.[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(reader.result);
+        const incoming=data&&data.items?data.items:data;
+        let added=0;
+        Object.values(incoming||{}).forEach(it=>{
+          if(it&&it.id&&!inv.items[it.id]){inv.items[it.id]=it;added++}
+        });
+        if(added){saveInv();toast(`${added} item${added===1?'':'s'} importado${added===1?'':'s'}.`);route()}
+        else toast('Nada novo pra importar -- já estava tudo na sua coleção.');
+      }catch{toast('Arquivo inválido.')}
+    };
+    reader.readAsText(f);
+  });
+}
+function wireInventoryQuickAdd(){
+  const searchEl=$('#invQuickSearch');
+  searchEl?.addEventListener('input',()=>{
+    const p=parseHash().params;p.set('add','1');
+    if(searchEl.value)p.set('q2',searchEl.value);else p.delete('q2');
+    navigateTo('/inventario?'+p.toString());
+  });
 }
 
 function renderNotFound(){
@@ -3537,7 +3853,7 @@ function sidebarContent(){
     ${featured.length?`<div class="sidebar-featured"><ul class="sidebar-uni-list">${featured.map(sidebarUniverseItem).join('')}</ul><a class="sidebar-see-all" href="#/universos">Ver todos →</a></div>`:''}
     <a class="sidebar-footer" href="#/inventario"${invActive?' aria-current="page"':''}>
       ${ico('chest',22)}
-      <span class="sidebar-footer-info"><b>Meu Inventário</b><small>${owned} de ${catalog.length} jogos</small></span>
+      <span class="sidebar-footer-info"><b>Meu Inventário</b><small>${owned} jogo${owned===1?'':'s'} na coleção</small></span>
     </a>`;
 }
 // Item 4 (rodada 5): "Universos em destaque" mostra quantos itens couberem

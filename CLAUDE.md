@@ -405,6 +405,48 @@ dono, pacote5b final — ver nota abaixo)
   **`#ambientAnchor`** (camada 1, elemento próprio, `z-index:-3`, o mais baixo dos quatro) — `<body>` (e as 2
   outras "eras" de regra que setavam o mesmo background) ficou transparente.
 
+**Meu Inventário / "menu de pausa"** (pacote7b, item 4 — substitui o layout do pacote4: amarelo +
+quadriculado azul-marinho + abas em caixinha pelo tema atual do site, greige escuro + `--glass-*`)
+- `renderInventory` (`app-3-views.js`) lê tudo da URL: `view` (`inv` padrão\|`mis` Missões), `cat` (Todos\|
+  Games\|Colecionáveis\|Fan-made\|Quero\|Alertas), `modo` (`grade` padrão\|`lista`), `agr` (agrupar:
+  `nenhum` padrão\|`plataforma`\|`universo`), `q` (busca na coleção), `sel` (item selecionado no painel
+  direito) e `add=1` (cadastro rápido). Único estado que NÃO vai pra URL: `invState` (módulo,
+  `editingId`/`editingTarget`/`addConsole`) — formulário de edição aberto e console escolhido no cadastro
+  rápido, efêmero, zera ao navegar.
+- **"PAUSE MENU"** continua sendo o único elemento "gamer" explícito — pequeno, Press Start 2P (Google
+  Fonts, licença OFL, carregada em `index.html`), cor `--action`. Nunca mais preenche a tela de amarelo.
+- **Categorias** (coluna esquerda, `.pm-rail`/`.pm-cat-item`): ícones de traço (`ico()`, mesmo helper da
+  barra lateral do site) — nunca emoji. Selecionada = mesmo estilo do item ativo da sidebar (contorno +
+  fundo `--glass-3`), nunca preenchida de vermelho.
+- **Grade** (`.inv-grid-slots`, ladrilhos 3:4 via `.cover` padrão): badge coração = `status==='wanted'`;
+  badge "↓ caiu" = `invCaiu()` compara `ultimoPrecoVisto` (gravado só quando a pessoa ABRE o item no
+  painel, `renderInventory`) com o preço atual (`invLivePrice`). **Badge "x2" do mockup de referência NÃO
+  implementado** — o catálogo já junta todas as plataformas de um jogo numa única entrada
+  (`platforms[]`), não existe hoje um caso real de "mesmo jogo salvo duas vezes" pra badge mostrar; ver
+  `docs/referencias/meu-inventario-maquete.dc.html` se precisar revisitar.
+- **Painel direito** (`invDetailMarkup`): muda por status. Tenho: `adicionadoEm` (= `addedAt`, sempre
+  existiu), `valorPago`/`condicao` (campos novos, opcionais, por enquanto só editáveis por um formulário
+  inline simples — sem modal bonito ainda) via "Editar dados"; cai pro `paid` antigo (fluxo de anúncio
+  único/fan-made, `save-snapshot`) quando `valorPago` não foi preenchido. Quero: etiqueta de preço
+  (`.pm-tag`, forma lisa com furinho/barbante, desenhada do zero — não existia componente parecido no
+  site), `precoAlvo` (preço-alvo da missão) e o switch `Avisar quando o preço cair` (`.pm-switch`, também
+  novo). **Sem descrição do jogo no painel** — a sinopse traduzida pro português não existe no catálogo
+  ainda (backlog item 6); a condição do pacote ("só se existir em português") nunca é satisfeita hoje.
+- **Cadastro rápido** (`invQuickAddMarkup`, estado vazio e "+"): busca usa `matchCatalog` (mesmo mecanismo
+  da busca de verdade); "comece pelo seu console" lista os consoles com mais jogos catalogados — sem
+  campo de popularidade no catálogo, os jogos mostrados por console são só os primeiros do array
+  (`catalog`), não um ranking de verdade.
+- **Missões** (`invMissionsMarkup`): lista os itens "Quero", "cumprida" quando o menor preço atual
+  (`invLivePrice`) ≤ `precoAlvo`.
+- **Exportar/Importar**: exporta `{v,exportadoEm,items}` (JSON, baixa na hora); importar faz merge por id
+  (só adiciona o que não existe, nunca sobrescreve).
+- **Mobile** (item 4.8): categorias viram fileira com rolagem horizontal; o painel do item é um "bottom
+  sheet" (`.inv-aside.is-open`, só abre com `?sel=` explícito na URL — nunca ocupa a tela sozinho por
+  padrão) com botão de fechar, pano de fundo e Escape fecham — **foco não fica preso de verdade dentro do
+  sheet** (sem ciclo de Tab), simplificação assumida por tempo; se incomodar na prática, revisitar.
+- **Aba "Museu"**: não criada (pedido explícito do pacote — fica pra depois do lançamento). O mockup de
+  referência (`docs/referencias/meu-inventario-maquete.dc.html`) tem uma aba Museu de exemplo; ignorada.
+
 ## Arquivos de prompt (`docs/`)
 - `docs/prompt-pacote-7-expansao.md`: pacote atual (expansão do catálogo via GitHub Action + universos
   automáticos). Só o item 1 (script + workflow + exemplo de amostra) feito até agora — ver seção própria abaixo.

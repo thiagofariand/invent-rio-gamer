@@ -189,7 +189,6 @@ function route(){
   const {path,params}=parseHash();
   closeOverlay('offerOverlay');closeOverlay('saveOverlay');closeOverlay('filterOverlay');
   const token=++viewToken;
-  document.body.classList.toggle('inventory-route',path==='/inventario');
   // Item 5 (rodada 5): ficha do jogo e comparadora migram 100% pro vidro
   // fumê também — cor base vem da paleta do universo do próprio jogo
   // (sem universo, cai no bloco "padrao", igual ao resto do site).
@@ -343,6 +342,14 @@ function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('sh
 function openOverlay(id){const el=document.getElementById(id);el.classList.add('open');document.body.style.overflow='hidden';const f=el.querySelector('[data-autofocus]')||el.querySelector('button,input,a');f&&f.focus()}
 function closeOverlay(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('open');if(!$$('.overlay.open').length)document.body.style.overflow=''}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.overlay.open').forEach(o=>closeOverlay(o.id))});
+// Painel do item do Meu Inventário no mobile (item 4.8, "bottom sheet"):
+// Escape fecha igual aos outros overlays do site, mesmo não sendo um
+// .overlay de verdade (CSS próprio, só visível abaixo de 900px).
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const sheet=document.querySelector('.inv-aside.is-open');
+  if(sheet)$('[data-act="inv-sheet-close"]')?.click();
+});
 $$('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeOverlay(o.id)}));
 
 /* ---------- modal de ofertas ---------- */
@@ -618,6 +625,73 @@ document.addEventListener('click',e=>{
   }
   const closeId=btn.closest('.overlay')?.id;
   if(act==='close-overlay'&&closeId){closeOverlay(closeId);return}
+
+  /* ---------- Meu Inventário / "menu de pausa" (pacote7b, item 4) ---------- */
+  if(act==='inv-quick-set'){
+    const ref=refs.get(btn.dataset.id);if(!ref)return;
+    const cur=invGet(btn.dataset.id),status=btn.dataset.status;
+    invSet(ref,{status:cur&&cur.status===status?null:status});
+    route();
+    return;
+  }
+  if(act==='inv-console-pick'){
+    invState.addConsole=invState.addConsole===btn.dataset.console?null:btn.dataset.console;
+    route();
+    return;
+  }
+  if(act==='inv-add-open'){navigateTo('/inventario?add=1');return}
+  if(act==='inv-add-close'){invState.addConsole=null;navigateTo('/inventario');return}
+  if(act==='inv-remove'){
+    const ref=refs.get(btn.dataset.id);if(!ref)return;
+    invSet(ref,{status:null,alert:false});
+    toast('Removido do seu Inventário.');
+    route();
+    return;
+  }
+  if(act==='inv-alert-toggle'){
+    const ref=refs.get(btn.dataset.id);if(!ref)return;
+    const cur=invGet(btn.dataset.id);
+    invSet(ref,{alert:!(cur&&cur.alert)});
+    route();
+    return;
+  }
+  if(act==='inv-edit-start'){invState.editingId=btn.dataset.id;route();return}
+  if(act==='inv-edit-cancel'){invState.editingId=null;route();return}
+  if(act==='inv-edit-save'){
+    const ref=refs.get(btn.dataset.id);if(!ref)return;
+    const paidRaw=($('#invEditPaid')?.value||'').replace(',','.');
+    const paid=parseFloat(paidRaw);
+    const cond=$('#invEditCond')?.value||'';
+    invSet(ref,{valorPago:Number.isFinite(paid)&&paidRaw!==''?paid:null,condicao:cond||null});
+    invState.editingId=null;
+    route();
+    return;
+  }
+  if(act==='inv-target-start'){invState.editingTarget=btn.dataset.id;route();return}
+  if(act==='inv-target-cancel'){invState.editingTarget=null;route();return}
+  if(act==='inv-target-save'){
+    const ref=refs.get(btn.dataset.id);if(!ref)return;
+    const raw=($('#invEditTarget')?.value||'').replace(',','.');
+    const val=parseFloat(raw);
+    invSet(ref,{precoAlvo:Number.isFinite(val)&&raw!==''?val:null});
+    invState.editingTarget=null;
+    route();
+    return;
+  }
+  if(act==='inv-sheet-close'){
+    const p=parseHash().params;p.delete('sel');
+    navigateTo('/inventario'+(p.toString()?'?'+p:''));
+    return;
+  }
+  if(act==='inv-export'){
+    const blob=new Blob([JSON.stringify({v:1,exportadoEm:new Date().toISOString(),items:inv.items},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='meu-inventario.json';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast('Coleção exportada.');
+    return;
+  }
 });
 document.addEventListener('change',e=>{
   if(e.target.matches('[data-filter]'))applyParams(collectFilterParams('.filterbar'));
