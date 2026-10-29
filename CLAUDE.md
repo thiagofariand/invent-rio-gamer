@@ -227,10 +227,16 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
   pré-existente nos 25 mocks antigos, que ainda usam `origem` pro filtro "Origem" da busca de merch).
   `jogosRelacionados` é lista de **slugs do catálogo** (nunca nome livre) — um item pode ligar a mais de um jogo; sem
   jogo correspondente no catálogo, a lista fica vazia (sem link, sem texto solto).
-- **Campos calculados, nunca gravados no JSON**: `preco,loja,url,precoAtualizadoEm,importado` do item são calculados
-  ao carregar (`merchCheapestOffer()` em `app-1-core.js`) a partir da oferta **mais barata sem condição de cupom/
-  pagamento** (`ofertas[].preco`, nunca `precoCondicional`) — fonte única, sem duplicar o preço em dois lugares. Item
-  com `ofertas[]` mas nenhuma oferta com preço (ex. set fora de catálogo na loja oficial) mostra "Indisponível".
+- **Campos calculados, nunca gravados no JSON**: `preco,loja,url,precoAtualizadoEm,importado,condicaoPagamento` do
+  item são calculados ao carregar (`merchCheapestOffer()` em `app-1-core.js`) a partir da oferta **mais barata**
+  (`ofertas[].preco`, **nunca** `precoCondicional` — esse é cupom, nunca entra no "a partir de"; desconto só de
+  Pix, SEM cupom, não é condição no sentido da regra, conta normal) — fonte única, sem duplicar o preço em dois
+  lugares. `it.condicaoPagamento` (copiado da oferta escolhida) é o que faz `merchPriceLine()` escrever "a partir
+  de R$ 438,84 no Pix" em vez de um número pelado que pareceria valer pra qualquer forma de pagamento (bug
+  corrigido no pacote7b, item 3 — antes a etiqueta "no Pix" só aparecia na linha da oferta individual, não no
+  resumo "a partir de" do card/ficha do item). Mesma regra pro cabeçalho de cada grupo por condição
+  (`merchOffersByCondition`, "a partir de" do grupo). Item com `ofertas[]` mas nenhuma oferta com preço (ex. set
+  fora de catálogo na loja oficial) mostra "Indisponível".
 - **Campos por categoria**:
   - `blocos-de-montar` (LEGO e afins): `marca,numeroSet,pecas,ano,faixaEtaria,status` (`status:"aposentado"` vira selo
     "Aposentado (fora de linha)"; `"a-venda"` não tem selo). Condições de oferta: `novo-lacrado`,`usado-completo`

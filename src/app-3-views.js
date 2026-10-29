@@ -629,7 +629,11 @@ function merchPriceLine(it){
   if(it.preco==null&&it.ofertas&&it.ofertas.length)return `<span class="merch-price-cta">Indisponível</span>`;
   const{fresh}=merchPriceState(it);
   const importadoTag=it.importado?' <span class="merch-price-importado">· Importado</span>':'';
-  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}</b>${importadoTag}</span><span class="merch-price-meta">${esc(it.loja)} · ${precoVistoEm(it.precoAtualizadoEm).toLowerCase().replace('preço','Preço')}</span>`;
+  // pacote7b, item 3: preço no Pix conta pro "a partir de" (não é cupom),
+  // sempre com a forma de pagamento escrita ao lado -- nunca um número
+  // "pelado" que parece valer pra qualquer forma de pagamento.
+  const condPagTag=it.condicaoPagamento?` ${esc(it.condicaoPagamento)}`:'';
+  if(fresh)return `<span class="merch-price">a partir de <b>${brl(it.preco)}${condPagTag}</b>${importadoTag}</span><span class="merch-price-meta">${esc(it.loja)} · ${precoVistoEm(it.precoAtualizadoEm).toLowerCase().replace('preço','Preço')}</span>`;
   return `<span class="merch-price-cta">Ver preço na ${esc(it.loja)}</span>`;
 }
 // Pacote4 4.2: só renderiza foto com imagem+imagemAutorizada===true (nunca
@@ -3358,7 +3362,7 @@ function renderMerchItem(id,token){
       <div class="merch-item-offers">
         ${merchOffersByCondition(it.ofertas).map(g=>`
           <section class="merch-offer-group">
-            <h2>${esc(g.label)} <span class="merch-offer-group-from">a partir de ${brl(g.offers[0].preco)}</span></h2>
+            <h2>${esc(g.label)} <span class="merch-offer-group-from">a partir de ${brl(g.offers[0].preco)}${g.offers[0].condicaoPagamento?` ${esc(g.offers[0].condicaoPagamento)}`:''}</span></h2>
             ${g.offers.map(merchOfferRow).join('')}
           </section>`).join('')}
       </div>

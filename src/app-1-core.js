@@ -371,6 +371,12 @@ function merchCheapestOffer(it){
   if(!priced.length)return null;
   return priced.reduce((a,b)=>b.preco<a.preco?b:a);
 }
+// pacote7b, item 3: desconto à vista no Pix não é cupom (qualquer pessoa
+// pode pagar no Pix) -- o.preco já é esse preço quando a oferta tem
+// condicaoPagamento (ex. amiibo Guardião, "no Pix"), então já entra no
+// "a partir de" calculado acima. Só falta carregar condicaoPagamento pro
+// item achatado, pra merchPriceLine (abaixo) escrever a forma de
+// pagamento do lado do preço, como o pacote pede.
 MERCH_ITEMS.forEach(it=>{
   if(!it.ofertas||!it.ofertas.length)return;
   const c=merchCheapestOffer(it);
@@ -379,6 +385,7 @@ MERCH_ITEMS.forEach(it=>{
   it.url=c?c.url:(it.ofertas[0]?it.ofertas[0].url:null);
   it.precoAtualizadoEm=c?c.atualizadoEm:null;
   it.importado=c?!!c.importado:false;
+  it.condicaoPagamento=c?c.condicaoPagamento||null:null;
 });
 function merchItemsVisible(){
   return MERCH_ITEMS.filter(it=>!it.exemplo||mockOn());
