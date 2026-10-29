@@ -69,17 +69,15 @@ const CORTES_ATUAIS = [5, 10, 20, 50];
 const CORTES_SNES_OCIDENTAL = [3, 5, 10, 20];
 const CORTES_SNES_JAPONES = [10, 20, 40, 80];
 
-// Categoria IGDB (campo "category" do endpoint games): 0 main_game,
-// 8 remake, 9 remaster são os únicos aceitos (pacote7, item 1 — "só jogos
-// principais e remakes/remasters"). Ficam de fora, explicitamente: 1
-// dlc_addon, 2 expansion, 3 bundle, 4 standalone_expansion, 5 mod, 6
-// episode, 7 season, 13 pack, 14 update (tudo que o pacote pediu pra
-// excluir, nomeado). NÃO mencionados pelo pacote e tratados como excluídos
-// por padrão (mais perto de "jogo principal" que de shovelware, mas
-// ambíguos sem o dono decidir): 10 expanded_game, 11 port, 12 fork — se
-// algum desses fizer falta na amostra (ex. porte relevante faltando),
-// é só acrescentar ao array abaixo.
-const CATEGORIAS_PERMITIDAS = [0, 8, 9];
+// Tipo de jogo na IGDB: o campo "category" do endpoint games foi
+// DESCONTINUADO pela IGDB e substituído por "game_type" (pacote7b, item 1.1
+// — a Action rodou com "category", voltou 0 jogos em TODAS as plataformas
+// e ainda assim terminou verde; o PR #6, gerado por esse run, está errado e
+// deve ser fechado sem mesclar). Os valores do enum são os MESMOS de antes
+// (0 main_game, 8 remake, 9 remaster só muda o nome do campo, não os
+// números) — ver item 1.3 abaixo pra Action falhar (vermelho) quando isso
+// se repetir, em vez de terminar com sucesso.
+const TIPOS_PERMITIDOS = [0, 8, 9];
 
 // Sinal de lançamento físico: a IGDB não tem um campo dedicado "físico"
 // documentado publicamente (sem acesso à documentação ao vivo neste
@@ -149,21 +147,43 @@ async function igdbQuery(endpoint, body) {
 // lançamento, usado como sinal secundário pra jogo recém-anunciado que
 // ainda não tem avaliação) + ano + nome. release_dates.region só pedido
 // pra plataformas que precisam do split ocidental/japonês (SNES).
-async function fetchAllForPlatform(igdbId, { comRegiao } = {}) {
-  const fields = ['id', 'name', 'first_release_date', 'total_rating_count', 'hypes', 'category'];
+async function fetchAllForPlatform(igdbId, { comRegiao, semFiltroTipo } = {}) {
+  const fields = ['id', 'name', 'first_release_date', 'total_rating_count', 'hypes', 'game_type'];
   if (comRegiao) fields.push('release_dates.region');
-  const categoriasWhere = `category = (${CATEGORIAS_PERMITIDAS.join(',')})`;
+  const tipoWhere = semFiltroTipo ? '' : ` & game_type = (${TIPOS_PERMITIDOS.join(',')})`;
   const out = [];
   let offset = 0;
   const limit = 500;
   for (;;) {
-    const body = `fields ${fields.join(',')}; where platforms = (${igdbId}) & ${categoriasWhere}; limit ${limit}; offset ${offset}; sort id asc;`;
+    const body = `fields ${fields.join(',')}; where platforms = (${igdbId})${tipoWhere}; limit ${limit}; offset ${offset}; sort id asc;`;
     const page = await igdbQuery('games', body);
     out.push(...page);
     if (page.length < limit) break;
     offset += limit;
   }
   return out;
+}
+
+// Confirma o ID de cada plataforma consultando o endpoint /platforms da
+// própria IGDB (pacote7b, item 1.2) e registra no log o ID usado — em vez
+// de só confiar no valor fixo abaixo. Em modo amostra/simulado (sem rede
+// pra IGDB) pula a consulta e avisa no log que o ID não foi confirmado.
+async function confirmarIdsPlataforma(plataformas) {
+  if (SIMULAR) {
+    for (const p of plataformas) log(`ID de plataforma NÃO confirmado (modo simulado): ${p.nome} = ${p.igdbId} (fixo no script)`);
+    return;
+  }
+  const ids = plataformas.map(p => p.igdbId);
+  const body = `fields id,name; where id = (${ids.join(',')}); limit ${ids.length};`;
+  const encontrados = await igdbQuery('platforms', body);
+  for (const p of plataformas) {
+    const achado = encontrados.find(e => e.id === p.igdbId);
+    if (!achado) {
+      log(`ATENÇÃO: ID de plataforma ${p.igdbId} (esperado "${p.nome}") não existe na IGDB — verificar manualmente.`);
+    } else {
+      log(`ID de plataforma confirmado: ${p.nome} = ${achado.id} (nome na IGDB: "${achado.name}")`);
+    }
+  }
 }
 
 function popularidade(game) {
@@ -204,7 +224,7 @@ function gerarSimulado(seedBase, n, { comRegiao } = {}) {
       first_release_date: Math.floor(new Date(`${ano}-06-15`).getTime() / 1000),
       total_rating_count: popularidadeFake,
       hypes: Math.round(popularidadeFake * 0.1),
-      category: [0, 0, 0, 8, 9][i % 5],
+      game_type: [0, 0, 0, 8, 9][i % 5],
     };
     if (comRegiao) {
       // ~12% exclusivos do Japão (aproximação pra teste de formato, não um dado real)
@@ -251,6 +271,8 @@ function listaExemplos(exemplosPorCorte) {
 
 async function rodarAmostra() {
   const linhas = [];
+  const plataformasFalhas = []; // pacote7b 1.3: nomes das plataformas com 0 jogos antes do corte
+
   linhas.push('# Importação IGDB — modo amostra');
   linhas.push('');
   linhas.push(`Gerado em ${new Date().toISOString()}${SIMULAR ? ' — **DADOS SIMULADOS** (sem TWITCH_CLIENT_ID/SECRET neste run; usado só pra validar o formato do relatório, não reflete a IGDB de verdade)' : ' com dados reais da IGDB.'}`);
@@ -259,20 +281,38 @@ async function rodarAmostra() {
   linhas.push('reais abaixo e peça o modo completo com `corte=<valor>` pra aplicar de verdade.');
   linhas.push('');
   linhas.push('## Filtro aplicado');
-  linhas.push(`- Categorias IGDB aceitas: ${CATEGORIAS_PERMITIDAS.join(', ')} (0 jogo principal, 8 remake, 9 remaster). Excluídos: DLC, expansão, bundle, mod, episódio, temporada, pacote, atualização — e, por ambiguidade não resolvida pelo pacote, port/expanded_game/fork.`);
+  linhas.push(`- \`game_type\` IGDB aceitos: ${TIPOS_PERMITIDOS.join(', ')} (0 jogo principal, 8 remake, 9 remaster). Excluídos: DLC, expansão, bundle, mod, episódio, temporada, pacote, atualização — e, por ambiguidade não resolvida pelo pacote, port/expanded_game/fork. (Campo renomeado de \`category\` pra \`game_type\` pela IGDB — pacote7b item 1.1.)`);
   linhas.push(`- Popularidade = maior valor entre \`total_rating_count\` (avaliações) e \`hypes\` (quero-jogar pré-lançamento).`);
   linhas.push(`- Sinal de lançamento físico: **não há campo confiável documentado na IGDB pra isso** (não confirmado ao vivo neste ambiente) — critério é só popularidade, como o pacote prevê pra esse caso.`);
   linhas.push('');
 
+  await confirmarIdsPlataforma([...PLATFORMS_ATUAIS, SNES]);
+  linhas.push('## IDs de plataforma confirmados nesta execução');
+  linhas.push(SIMULAR
+    ? '**Não confirmados** — modo simulado, sem rede pra IGDB. Ver log da Action pra confirmação real.'
+    : 'Ver log completo da Action — cada ID foi consultado em `/platforms` e o nome devolvido pela IGDB foi registrado.');
+  linhas.push('');
+
   for (const plat of PLATFORMS_ATUAIS) {
     log(`varrendo ${plat.nome} (igdbId=${plat.igdbId})...`);
-    const games = SIMULAR
-      ? gerarSimulado(plat.igdbId, 600)
-      : await fetchAllForPlatform(plat.igdbId);
-    log(`${plat.nome}: ${games.length} jogos (categoria principal/remake/remaster) antes do corte de popularidade.`);
-    const { porCorte, exemplosPorCorte } = amostrarCortes(games, CORTES_ATUAIS);
+    let antes, depois;
+    if (SIMULAR) {
+      const brutos = gerarSimulado(plat.igdbId, 600);
+      antes = brutos.length;
+      depois = brutos.filter(g => TIPOS_PERMITIDOS.includes(g.game_type));
+    } else {
+      const brutos = await fetchAllForPlatform(plat.igdbId, { semFiltroTipo: true });
+      antes = brutos.length;
+      depois = await fetchAllForPlatform(plat.igdbId);
+    }
+    log(`${plat.nome}: ${antes} jogos antes do filtro de tipo -> ${depois.length} depois do filtro de tipo (principal/remake/remaster), antes do corte de popularidade.`);
+    if (depois.length === 0) {
+      log(`ERRO: ${plat.nome} voltou 0 jogos antes do corte de popularidade — Action vai terminar com falha (pacote7b item 1.3).`);
+      plataformasFalhas.push(plat.nome);
+    }
+    const { porCorte, exemplosPorCorte } = amostrarCortes(depois, CORTES_ATUAIS);
     linhas.push(`## ${plat.nome}`);
-    linhas.push(`Total após filtro de categoria, antes do corte de popularidade: **${games.length} jogos**.`);
+    linhas.push(`Antes do filtro de tipo: **${antes} jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **${depois.length} jogos**.`);
     linhas.push('');
     linhas.push('| Corte (popularidade mínima) | Jogos que entrariam |');
     linhas.push('| --- | --- |');
@@ -283,12 +323,27 @@ async function rodarAmostra() {
   }
 
   log(`varrendo ${SNES.nome} (igdbId=${SNES.igdbId})...`);
-  const snesGames = SIMULAR
-    ? gerarSimulado(SNES.igdbId, 800, { comRegiao: true })
-    : await fetchAllForPlatform(SNES.igdbId, { comRegiao: true });
+  let snesAntes, snesGames;
+  if (SIMULAR) {
+    const brutos = gerarSimulado(SNES.igdbId, 800, { comRegiao: true });
+    snesAntes = brutos.length;
+    snesGames = brutos.filter(g => TIPOS_PERMITIDOS.includes(g.game_type));
+  } else {
+    const brutos = await fetchAllForPlatform(SNES.igdbId, { comRegiao: true, semFiltroTipo: true });
+    snesAntes = brutos.length;
+    snesGames = await fetchAllForPlatform(SNES.igdbId, { comRegiao: true });
+  }
   const snesOcidental = snesGames.filter(g => !isJapaoExclusivo(g));
   const snesJapones = snesGames.filter(g => isJapaoExclusivo(g));
-  log(`${SNES.nome}: ${snesGames.length} jogos totais (${snesOcidental.length} ocidentais, ${snesJapones.length} exclusivos do Japão).`);
+  log(`${SNES.nome}: ${snesAntes} jogos antes do filtro de tipo -> ${snesGames.length} depois (${snesOcidental.length} ocidentais, ${snesJapones.length} exclusivos do Japão), antes do corte de popularidade.`);
+  if (snesOcidental.length === 0) {
+    log(`ERRO: ${SNES.nome} (ocidental) voltou 0 jogos antes do corte de popularidade — Action vai terminar com falha (pacote7b item 1.3).`);
+    plataformasFalhas.push(`${SNES.nome} (ocidental)`);
+  }
+  if (snesJapones.length === 0) {
+    log(`ERRO: ${SNES.nome} (exclusivo do Japão) voltou 0 jogos antes do corte de popularidade — Action vai terminar com falha (pacote7b item 1.3).`);
+    plataformasFalhas.push(`${SNES.nome} (exclusivo do Japão)`);
+  }
 
   linhas.push(`## ${SNES.nome} (retrô — regras próprias, pacote7 item 1b)`);
   linhas.push('Cartucho de SNES é sempre físico — o filtro aqui é só popularidade, com corte PRÓPRIO,');
@@ -313,9 +368,20 @@ async function rodarAmostra() {
   linhas.push(listaExemplos(jpAmostra.exemplosPorCorte));
   linhas.push('');
 
+  if (plataformasFalhas.length) {
+    linhas.push('## ⚠️ Falha nesta execução');
+    linhas.push(`As seguintes plataformas voltaram **0 jogos antes do corte de popularidade**: ${plataformasFalhas.join(', ')}. Isso quase sempre indica ID de plataforma errado ou filtro de \`game_type\` quebrado — a Action termina com falha (vermelho) de propósito, em vez de gerar um relatório vazio como se nada tivesse acontecido (pacote7b item 1.3).`);
+    linhas.push('');
+  }
+
   const outPath = path.join(ROOT, 'docs', 'importacao-amostra.md');
   fs.writeFileSync(outPath, linhas.join('\n') + '\n');
   log(`docs/importacao-amostra.md gerado (${SIMULAR ? 'SIMULADO' : 'dados reais da IGDB'}).`);
+
+  if (plataformasFalhas.length) {
+    log(`FALHA: ${plataformasFalhas.length} plataforma(s) com 0 jogos antes do corte: ${plataformasFalhas.join(', ')}.`);
+    process.exitCode = 1;
+  }
 }
 
 async function rodarCompleto() {

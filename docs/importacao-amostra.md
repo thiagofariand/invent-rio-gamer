@@ -1,17 +1,20 @@
 # Importação IGDB — modo amostra
 
-Gerado em 2026-10-13T13:03:51.279Z — **DADOS SIMULADOS** (sem TWITCH_CLIENT_ID/SECRET neste run; usado só pra validar o formato do relatório, não reflete a IGDB de verdade)
+Gerado em 2026-10-29T15:10:03.583Z — **DADOS SIMULADOS** (sem TWITCH_CLIENT_ID/SECRET neste run; usado só pra validar o formato do relatório, não reflete a IGDB de verdade)
 
 Nenhum jogo foi gravado no catálogo — este modo só mede. Escolha um corte vendo os nomes
 reais abaixo e peça o modo completo com `corte=<valor>` pra aplicar de verdade.
 
 ## Filtro aplicado
-- Categorias IGDB aceitas: 0, 8, 9 (0 jogo principal, 8 remake, 9 remaster). Excluídos: DLC, expansão, bundle, mod, episódio, temporada, pacote, atualização — e, por ambiguidade não resolvida pelo pacote, port/expanded_game/fork.
+- `game_type` IGDB aceitos: 0, 8, 9 (0 jogo principal, 8 remake, 9 remaster). Excluídos: DLC, expansão, bundle, mod, episódio, temporada, pacote, atualização — e, por ambiguidade não resolvida pelo pacote, port/expanded_game/fork. (Campo renomeado de `category` pra `game_type` pela IGDB — pacote7b item 1.1.)
 - Popularidade = maior valor entre `total_rating_count` (avaliações) e `hypes` (quero-jogar pré-lançamento).
 - Sinal de lançamento físico: **não há campo confiável documentado na IGDB pra isso** (não confirmado ao vivo neste ambiente) — critério é só popularidade, como o pacote prevê pra esse caso.
 
+## IDs de plataforma confirmados nesta execução
+**Não confirmados** — modo simulado, sem rede pra IGDB. Ver log da Action pra confirmação real.
+
 ## Nintendo Switch
-Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
+Antes do filtro de tipo: **600 jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **600 jogos**.
 
 | Corte (popularidade mínima) | Jogos que entrariam |
 | --- | --- |
@@ -61,7 +64,7 @@ Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
   - Quest 52 (simulado) (2020) — popularidade 100
 
 ## PlayStation 4
-Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
+Antes do filtro de tipo: **600 jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **600 jogos**.
 
 | Corte (popularidade mínima) | Jogos que entrariam |
 | --- | --- |
@@ -111,7 +114,7 @@ Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
   - Saga 43 (simulado) (2017) — popularidade 60
 
 ## PlayStation 5
-Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
+Antes do filtro de tipo: **600 jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **600 jogos**.
 
 | Corte (popularidade mínima) | Jogos que entrariam |
 | --- | --- |
@@ -161,7 +164,7 @@ Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
   - Chronicles 41 (simulado) (2022) — popularidade 50
 
 ## Xbox One
-Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
+Antes do filtro de tipo: **600 jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **600 jogos**.
 
 | Corte (popularidade mínima) | Jogos que entrariam |
 | --- | --- |
@@ -211,7 +214,7 @@ Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
   - Shadows 54 (simulado) (2025) — popularidade 89
 
 ## Xbox Series X|S
-Total após filtro de categoria, antes do corte de popularidade: **600 jogos**.
+Antes do filtro de tipo: **600 jogos**. Após filtro de tipo (principal/remake/remaster), antes do corte de popularidade: **600 jogos**.
 
 | Corte (popularidade mínima) | Jogos que entrariam |
 | --- | --- |
