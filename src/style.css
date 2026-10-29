@@ -22,6 +22,11 @@
      removidos (hero adaptativo — ver .hhw-art/.hhw-bg/.hhw-film). */
   --hero-h-wide:340px;
   --tile-h:112px;--tile-overlap:108px;--tile-pop:44px;--tile-w:140px;
+  /* pacote7b, item 2.1: espaço vertical mínimo entre fileiras do diretório
+     de universos pra a capa que salta (--tile-pop) + a subida extra do
+     hover (6px) + respiro (14px) nunca invadir a fileira de cima e
+     esconder "N jogos" — calculado a partir de --tile-pop, nunca fixo. */
+  --tile-row-gap:calc(var(--tile-pop) + 6px + 14px);
   --side-w:300px;
   /* Pacote5c, item 2: --hero-base GLOBAL (deriva de --page-bg, que já
      muda por tema/paleta via applyUniverseChrome em app-main.js) — é a
@@ -3003,9 +3008,36 @@ html[data-theme="neutral"] body.dark-surface-route{
 .universe-tiles-label{position:absolute;left:0;top:-12px;transform:translateY(-100%);z-index:6;display:inline-block;color:#fff;font:500 16px/1.2 var(--font-ui);text-shadow:0 1px 6px rgba(0,0,0,.5);text-decoration:none;white-space:nowrap}
 /* Diretório (item 4/5): mesmo ladrilho, largura fixa, grade auto-fill
    (quantos couberem por linha) em vez de colunas fixas — reserva o
-   espaço de --tile-pop no topo de cada fileira. */
-.universe-tiles-grid{display:grid;grid-template-columns:repeat(auto-fill,var(--tile-w));gap:14px;padding-top:var(--tile-pop)}
+   espaço de --tile-pop no topo de cada fileira.
+   pacote7b 2.1: row-gap separado do column-gap — --tile-row-gap (ver
+   :root) em vez do gap:14px uniforme de antes, que deixava a capa que
+   salta de cada fileira invadir o ladrilho da fileira de cima e esconder
+   a contagem "N jogos" (Super Mario, Zelda, Pokémon…). */
+.universe-tiles-grid{display:grid;grid-template-columns:repeat(auto-fill,var(--tile-w));column-gap:14px;row-gap:var(--tile-row-gap);padding-top:var(--tile-pop)}
+/* pacote7b, item 2.2: busca ocupa toda a largura disponível (flex:1) e,
+   na mesma linha, à direita, o seletor "Ordenar:" com a mesma altura da
+   busca (herda .select dos dois lados). Item 2.4: no mobile os dois
+   empilham em largura total. */
+.uni-dir-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.uni-dir-search{flex:1;min-width:0}
+.uni-dir-sort-label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2,var(--muted));white-space:nowrap}
+.uni-dir-sort{width:auto}
 @media(max-width:899px){
+  .uni-dir-controls{flex-direction:column;align-items:stretch}
+  .uni-dir-search{width:100%}
+  .uni-dir-sort-label{width:100%;justify-content:space-between}
+  .uni-dir-sort{flex:1}
+}
+/* pacote7b, item 2.3: barra de letras do modo A-Z, só com >100 universos.
+   Letra sem universo fica desativada (sem link, opacidade baixa). Rola
+   horizontalmente no mobile em vez de quebrar linha. */
+.uni-letter-bar{display:flex;gap:4px;overflow-x:auto;margin:14px 0 2px;scrollbar-width:none}
+.uni-letter-bar a,.uni-letter-bar span{flex:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none}
+.uni-letter-bar a{color:var(--text-1,var(--ink));background:var(--glass-2,var(--panel));cursor:pointer}
+.uni-letter-bar a:hover,.uni-letter-bar a:focus-visible{background:var(--line-strong)}
+.uni-letter-bar span[aria-disabled]{color:var(--text-2,var(--muted));opacity:.35}
+@media(max-width:899px){
+
   .universe-tiles-overlap{margin-top:12px}
   .universe-tiles-row{overflow-x:auto;scroll-snap-type:x mandatory}
   .universe-tiles-row>.universe-tile{width:120px;scroll-snap-align:start}

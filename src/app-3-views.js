@@ -516,7 +516,9 @@ function universeTileMarkup(u,opts={}){
   // pacote6, item 5 (Lighthouse label-content-name-mismatch): sem
   // aria-label custom — .ut-name + .ut-count (visíveis) já formam um nome
   // acessível equivalente, sem risco de não bater com o texto exibido.
-  return `<a class="universe-tile" href="#/universo/${u.slug}" data-ut-tile data-ut-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ut-platform="${esc(platform)}" data-ut-year="${esc(rep?.year||'')}" style="--ut-base:${esc(base)}">
+  // pacote7b 2.3: id opcional (opts.id) -- âncora da barra de letras no
+  // modo A-Z, só no primeiro ladrilho de cada letra.
+  return `<a class="universe-tile" ${opts.id?`id="${esc(opts.id)}"`:''} href="#/universo/${u.slug}" data-ut-tile data-ut-title="${esc(rep?igdbTitleFor(rep,platform):u.name)}" data-ut-platform="${esc(platform)}" data-ut-year="${esc(rep?.year||'')}" style="--ut-base:${esc(base)}">
     <span class="ut-cover-wrap" aria-hidden="true"><span class="ut-cover-slot"></span></span>
     <span class="ut-sigla" aria-hidden="true">${esc(u.sigla)}</span>
     <span class="ut-body"><b class="ut-name">${esc(displayName)}</b><small class="ut-count">${count} jogo${count===1?'':'s'}</small></span>
@@ -2864,6 +2866,53 @@ function sortUniversesCurated(list){
     return ca!==cb?ca-cb:a.name.localeCompare(b.name);
   });
 }
+// pacote7b, item 2.2: data do lançamento mais recente, só jogo já
+// LANÇADO com data confirmada (releaseState==='lancado' && releaseDate
+// existe) -- pré-venda e anunciado nunca contam pra "Recentes". null
+// quando o universo não tem nenhum jogo lançado com data (ex.: só
+// pré-venda/anunciado na plataforma filtrada) -- esses vão pro fim.
+function newestLaunchedDate(u,plat){
+  const titles=titlesOf(u.slug).filter(p=>!plat||p.variants.some(v=>PLATFORM_ECO_KEY[v[0]]===plat));
+  let latest=null;
+  for(const p of titles){
+    if(!p.releaseDate||releaseState(p)!=='lancado')continue;
+    if(!latest||p.releaseDate>latest)latest=p.releaseDate;
+  }
+  return latest;
+}
+const UNIVERSE_ORDERS=[['populares','Populares'],['recentes','Recentes'],['az','A–Z']];
+// pacote7b, item 2.2: três ordens do diretório -- Populares (padrão: mais
+// jogos primeiro, empate alfabético), Recentes (jogo lançado mais novo
+// primeiro) e A–Z. Substitui a ordem curada (sortUniversesCurated) que a
+// página de universos usava antes; essa função continua existindo e em
+// uso na home, só não mais aqui.
+function sortUniversesByOrder(list,ordem,plat){
+  if(ordem==='az')return [...list].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  if(ordem==='recentes')return [...list].sort((a,b)=>{
+    const da=newestLaunchedDate(a,plat),db=newestLaunchedDate(b,plat);
+    if(da&&db&&da!==db)return db.localeCompare(da);
+    if(da&&!db)return -1;
+    if(!da&&db)return 1;
+    return a.name.localeCompare(b.name,'pt-BR');
+  });
+  return [...list].sort((a,b)=>gamesOnPlatform(b,plat)-gamesOnPlatform(a,plat)||a.name.localeCompare(b.name,'pt-BR'));
+}
+// pacote7b, item 2.3: barra de letras do modo A-Z -- só aparece com mais
+// de 100 universos na lista atual (filtrada por aba/busca). Letras sem
+// nenhum universo ficam desativadas (sem link). Usa a 1ª letra do nome
+// JÁ NORMALIZADA (sem acento) pra bater com a ordenação localeCompare.
+const AZ_LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+function firstLetterOf(name){
+  const c=norm(name).charAt(0).toUpperCase();
+  return AZ_LETTERS.includes(c)?c:'#';
+}
+function universeLetterBarMarkup(list){
+  if(list.length<=100)return '';
+  const presentes=new Set(list.map(u=>firstLetterOf(u.name)));
+  return `<nav class="uni-letter-bar" aria-label="Ir para a letra">${AZ_LETTERS.map(l=>
+    presentes.has(l)?`<a href="#uniLetter-${l}">${l}</a>`:`<span aria-disabled="true">${l}</span>`
+  ).join('')}</nav>`;
+}
 function renderUniverses(params){
   setTitle('Universos');
   const q=norm(params.get('q')||'');
@@ -2873,17 +2922,39 @@ function renderUniverses(params){
   // em variants[][0]), não pela "casa"/dona da franquia. ?plat= abre
   // já na aba (vem do ladrilho "Ver todos os universos" da plataforma).
   const plat=['nintendo','playstation','xbox'].includes(params.get('plat'))?params.get('plat'):'';
-  const list=sortUniversesCurated(universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
+  // pacote7b, item 2.2: ordem fica na URL (?ordem=populares|recentes|az),
+  // combina com a aba de plataforma (ex.: Nintendo + Recentes).
+  const ordem=UNIVERSE_ORDERS.some(([k])=>k===params.get('ordem'))?params.get('ordem'):'populares';
+  const filtered=universes.filter(u=>u.hasCatalog&&titlesOf(u.slug).length>=3)
     .filter(u=>!plat||u.plataformas.includes(plat))
-    .filter(u=>!q||norm(u.name).includes(q)));
+    .filter(u=>!q||norm(u.name).includes(q));
+  const list=sortUniversesByOrder(filtered,ordem,plat);
   const platTabs=[['','Todos'],['nintendo','Nintendo'],['playstation','PlayStation'],['xbox','Xbox']];
-  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('plat',k);if(params.get('q'))p.set('q',params.get('q'));const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  const hrefFor=k=>{const p=new URLSearchParams();if(k)p.set('plat',k);if(params.get('q'))p.set('q',params.get('q'));if(ordem!=='populares')p.set('ordem',ordem);const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  const hrefForOrdem=o=>{const p=new URLSearchParams();if(plat)p.set('plat',plat);if(params.get('q'))p.set('q',params.get('q'));if(o!=='populares')p.set('ordem',o);const s=p.toString();return '#/universos'+(s?'?'+s:'')};
+  // pacote7b 2.3: marca o 1º ladrilho de cada letra (só no modo A-Z) com
+  // id="uniLetter-X" pra barra de letras rolar até ele.
+  const letrasJaMarcadas=new Set();
+  const tilesHtml=list.map(u=>{
+    let id=null;
+    if(ordem==='az'){
+      const letra=firstLetterOf(u.name);
+      if(!letrasJaMarcadas.has(letra)){letrasJaMarcadas.add(letra);id=`uniLetter-${letra}`;}
+    }
+    return universeTileMarkup(u,{count:gamesOnPlatform(u,plat),id});
+  }).join('');
   main.innerHTML=`
   <h1 class="page-h">Universos</h1>
   <p class="lede">Explore franquias e encontre onde comprar cada jogo.</p>
-  <div class="section-gap" style="margin-top:16px"><input id="uniSearchInput" type="search" class="select" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}" style="max-width:320px;width:100%"></div>
+  <div class="uni-dir-controls section-gap" style="margin-top:16px">
+    <input id="uniSearchInput" type="search" class="select uni-dir-search" placeholder="Buscar universo..." value="${esc(params.get('q')||'')}">
+    <label class="uni-dir-sort-label">Ordenar:
+      <select id="uniSortSelect" class="select uni-dir-sort">${UNIVERSE_ORDERS.map(([k,l])=>`<option value="${k}" ${k===ordem?'selected':''}>${esc(l)}</option>`).join('')}</select>
+    </label>
+  </div>
   <div class="tabs" role="tablist" style="margin-top:14px">${platTabs.map(([k,l])=>`<a class="tab" role="tab" href="${hrefFor(k)}" aria-current="${k===plat}">${esc(l)}</a>`).join('')}</div>
-  <div class="universe-tiles-grid" style="margin-top:24px">${list.map(u=>universeTileMarkup(u,{count:gamesOnPlatform(u,plat)})).join('')||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
+  ${universeLetterBarMarkup(list)}
+  <div class="universe-tiles-grid" style="margin-top:24px">${tilesHtml||'<p class="lede">Nenhum universo encontrado.</p>'}</div>`;
   hydrateUniverseTiles(main);
   const searchEl=$('#uniSearchInput');
   searchEl?.addEventListener('input',()=>{
@@ -2891,6 +2962,10 @@ function renderUniverses(params){
     if(searchEl.value)p.set('q',searchEl.value);else p.delete('q');
     history.replaceState(null,'','#/universos'+(p.toString()?'?'+p:''));
     renderUniverses(p);
+  });
+  const sortEl=$('#uniSortSelect');
+  sortEl?.addEventListener('change',()=>{
+    navigateTo(hrefForOrdem(sortEl.value).slice(1));
   });
 }
 
