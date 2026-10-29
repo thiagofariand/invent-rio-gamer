@@ -250,7 +250,8 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
   - Ícone próprio por categoria em `assets/icons-categoria.svg` (`#cat-blocos-de-montar`, `#cat-amiibo`,
     `#cat-livros-mangas`) — nunca o logotipo da marca (LEGO/amiibo só em texto).
 - **Schema da oferta** (`ofertas[]`): `loja,vendedor,anuncio,condicao,preco,precoAnterior,condicaoPagamento,
-  precoCondicional,condicaoCondicional,freteGratis,importado,conferido,pecaUnica,atualizadoEm,url,afiliadoTag`.
+  precoCondicional,condicaoCondicional,freteGratis,importado,conferido,pecaUnica,atualizadoEm,url,afiliadoTag,
+  estado` (campo `estado` adicionado no pacote7b, item 5 — ver "Faxina diária" logo abaixo).
   - `condicaoPagamento` é sufixo do PRÓPRIO `preco` quando ele já exige uma forma de pagamento específica (ex. "no
     Pix" — `preco` já É o valor no Pix, mostrado "R$ 438,84 no Pix", com `precoAnterior` riscado do valor cheio ao
     lado, no mesmo padrão de uma promoção comum).
@@ -284,6 +285,36 @@ amiibo e livros/mangás — teste-merch/teste-merch2)
 - **Colecionáveis de {jogo}** (teste-merch2, item 1): seção na página do jogo, logo abaixo de "Comprar este jogo" —
   fileira de até 12 itens de merch ligados ao jogo via `jogosRelacionados`, "Ver todos →" abre `#/merch` filtrado
   por esse jogo. Sem item ligado, a seção não aparece (nunca mostra vazia).
+
+**Faxina diária das ofertas** (pacote7b, item 5 — `scripts/faxina-ofertas.mjs` +
+`.github/workflows/faxina-ofertas.yml`, agendada 1x/dia 09:00 UTC + manual)
+- Verifica cada URL de `src/data/merch.json`'s `ofertas[].url` (HTTP simples, sem IA, com espera de
+  ~1,2s entre lojas pra não parecer robô). 404/410 → **quebrado**; 403/429/5xx/timeout → **não
+  verificável** (nunca tratado como quebrado — comum no Mercado Livre bloquear requisição simples mesmo
+  de anúncio válido); resto → **ok**.
+- **Nunca apaga oferta.** Só grava `ofertas[].estado` (`"oculto-quebrado"` | `"oculto-pecaunica"` |
+  ausente = visível). Oferta com `estado` nunca conta pro preço calculado (`merchCheapestOffer`) nem
+  aparece na lista (`merchOffersByCondition`) — mas continua no JSON, pra nunca perder o histórico.
+  Uma vez oculta, fica oculta pra sempre até o dono remover o campo `estado` à mão depois de revisar — o
+  script NUNCA re-verifica nem desoculta uma oferta já marcada (evita gastar requisição à toa e
+  respeita "fica oculta até eu revisar", pedido do pacote).
+- `pecaUnica:true` + `atualizadoEm` com mais de 14 dias → oculta direto (`oculto-pecaunica`), sem nem
+  checar a URL — é só conta de data.
+- Gera `docs/faxina-relatorio.md` (resumo + listas de quebradas/ocultadas/não-verificáveis) e abre PR pra
+  `claude/pacote5-final` com o relatório + `merch.json` atualizado — nunca commita direto. Sem nenhuma
+  oferta pra ocultar nesta execução, não abre PR (comportamento padrão do
+  `peter-evans/create-pull-request`: sem diff, sem PR).
+- **Fora do escopo**: `lib/shopee-manual-offers.js` (preço de JOGO, schema em JS — objeto literal, não
+  JSON) não é tocado por esta faxina. Editar esse arquivo por regex num script automático, sem
+  supervisão, é arriscado demais pro ganho (seriam só as ~13 ofertas de lá) — decisão tomada nesta
+  rodada, documentada aqui caso o dono queira migrar esse arquivo pra JSON no futuro e aí sim incluir.
+  Ofertas de jogo que vêm de API (Mercado Livre, via `lib/mercadolivre.js`) também ficam de fora — são
+  buscadas ao vivo a cada visita, não têm URL fixa guardada pra checar num cron.
+- **Validado com dados simulados** (`node scripts/faxina-ofertas.mjs --simular`, sem rede neste ambiente)
+  — confirma a lógica de quebrado/não-verificável/pecaUnica vencida, a idempotência (rodar duas vezes
+  seguidas não re-oculta nem re-verifica o que já está oculto) e que o item some do "a partir de"/da
+  lista assim que ganha `estado` (visto no preview local). Serialização do JSON preserva uma linha por
+  item (igual ao arquivo hoje) pra PR nunca reformatar o arquivo inteiro por causa de 1 campo novo.
 
 **Página de plataforma e diretório de universos** (pacote5) · **Home** voltou pro desenho do Pacote 4 (pedido do
 dono, pacote5b final — ver nota abaixo)

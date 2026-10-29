@@ -1,0 +1,55 @@
+name: Faxina diária das ofertas
+
+# pacote7b, item 5 — Action agendada (1x/dia, plano Hobby) + manual
+# (workflow_dispatch). Roda scripts/faxina-ofertas.mjs: SEM IA, só HTTP
+# simples em cada URL de oferta de src/data/merch.json, com espera entre
+# lojas. Nunca commita direto — sempre abre PR (peter-evans/create-pull-request
+# já só abre PR quando há diff de verdade; sem mudanças, não abre nada).
+#
+# Igual ao workflow de importação IGDB (pacote7, item 1.5): se este
+# arquivo mudar, abrir também um PR separado só com ele pra main, porque o
+# GitHub só oferece "Run workflow" pra versão do workflow que está lá.
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC (~06:00 em São Paulo), 1x/dia
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  faxina:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Rodar faxina
+        run: node scripts/faxina-ofertas.mjs
+
+      - name: Abrir Pull Request com o resultado (só se algo mudou)
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "faxina: ofertas verificadas (${{ github.run_id }})"
+          title: "Faxina diária das ofertas — ${{ github.run_id }}"
+          body: |
+            Gerado pela Action "Faxina diária das ofertas" (run ${{ github.run_id }}).
+
+            Veja `docs/faxina-relatorio.md` — ofertas ocultadas (quebradas ou com pecaUnica vencida),
+            quebradas e não verificáveis desta execução.
+
+            `src/data/merch.json` só ganha o campo `estado` em ofertas que precisaram ficar ocultas
+            agora — nenhuma oferta foi apagada. Oferta oculta fica assim até alguém revisar à mão
+            (removendo o campo `estado` depois de confirmar que voltou a funcionar).
+          branch: "faxina/ofertas-${{ github.run_id }}"
+          add-paths: |
+            docs/faxina-relatorio.md
+            src/data/merch.json
+          base: ${{ github.ref_name }}

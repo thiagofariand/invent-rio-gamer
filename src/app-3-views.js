@@ -3279,7 +3279,10 @@ function merchOfferRow(o){
 // lista); dentro do grupo, mais barata primeiro.
 function merchOffersByCondition(ofertas){
   const groups=new Map();
-  ofertas.forEach(o=>{
+  // pacote7b, item 5: oferta oculta (campo estado, gravado pela faxina
+  // diária -- quebrada ou pecaUnica vencida) nunca aparece na lista,
+  // mesmo que ainda exista no JSON (a faxina nunca apaga, só oculta).
+  ofertas.filter(o=>!o.estado).forEach(o=>{
     if(!groups.has(o.condicao))groups.set(o.condicao,[]);
     groups.get(o.condicao).push(o);
   });

@@ -372,7 +372,10 @@ try{
 // já vindos prontos do JSON.
 function merchCheapestOffer(it){
   if(!it.ofertas||!it.ofertas.length)return null;
-  const priced=it.ofertas.filter(o=>o.preco!=null);
+  // pacote7b, item 5: oferta com estado (oculto-quebrado/oculto-pecaunica,
+  // gravado pela faxina diária) nunca entra no cálculo -- fica oculta até
+  // o dono revisar, mesmo que fosse a mais barata.
+  const priced=it.ofertas.filter(o=>o.preco!=null&&!o.estado);
   if(!priced.length)return null;
   return priced.reduce((a,b)=>b.preco<a.preco?b:a);
 }
